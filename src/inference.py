@@ -26,6 +26,8 @@ from sbi.utils import BoxUniform
 
 from simulator import RandomWalkSimulator
 
+import tqdm
+
 
 class RandomWalkNPE:
     """Neural Posterior Estimation for Random Walk parameter inference."""
@@ -157,7 +159,7 @@ class RandomWalkNPE:
         observations = np.zeros((n_simulations, simulator.Lx))
         
         # Generate training data
-        for i in range(n_simulations):
+        for i in tqdm.tqdm(range(n_simulations)):
             # Sample parameters from priors (uniform distributions)
             U = np.random.uniform(*prior_bounds['U'])
             P = np.random.uniform(*prior_bounds['P'])
@@ -170,8 +172,8 @@ class RandomWalkNPE:
             observations[i] = column_counts
             
             # Progress indication
-            if n_simulations > 100 and (i + 1) % max(1, n_simulations // 10) == 0:
-                print(f"Generated {i + 1}/{n_simulations} simulations ({100*(i+1)/n_simulations:.1f}%)")
+            # if n_simulations > 100 and (i + 1) % max(1, n_simulations // 10) == 0:
+            #     print(f"Generated {i + 1}/{n_simulations} simulations ({100*(i+1)/n_simulations:.1f}%)")
         
         # Convert to tensors
         theta = torch.tensor(parameters, dtype=torch.float32)
