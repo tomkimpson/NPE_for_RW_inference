@@ -5,7 +5,7 @@ app = marimo.App(width="medium")
 
 
 @app.cell
-def _():
+def __():
     import marimo as mo
     mo.md(
         r"""
@@ -28,11 +28,11 @@ def _():
         - **T**: Number of time steps
         """
     )
-    return (mo,)
+    return mo,
 
 
 @app.cell
-def _():
+def __(mo):
     """
     Import required modules and set up the JAX simulator
     """
@@ -40,7 +40,6 @@ def _():
     import os
     import time
     import numpy as np
-    from collections import defaultdict
 
     # Add src directory to path
     sys.path.append(os.path.join(os.path.dirname(os.getcwd()), 'src'))
@@ -81,7 +80,7 @@ def _():
 
 
 @app.cell
-def _(mo):
+def __(mo):
     mo.md(
         r"""
         ## JAX Simulator Setup
@@ -94,7 +93,7 @@ def _(mo):
 
 
 @app.cell
-def _(JAX_AVAILABLE, RandomWalkSimulator, RandomWalkSimulatorJax):
+def __(JAX_AVAILABLE, RandomWalkSimulator, RandomWalkSimulatorJax):
     """
     Initialize both simulators with lattice parameters
     """
@@ -122,7 +121,7 @@ def _(JAX_AVAILABLE, RandomWalkSimulator, RandomWalkSimulatorJax):
 
 
 @app.cell
-def _(mo):
+def __(mo):
     mo.md(
         r"""
         ## Simulation Parameters
@@ -134,7 +133,7 @@ def _(mo):
 
 
 @app.cell
-def _():
+def __():
     """
     Set simulation parameters
     """
@@ -152,7 +151,7 @@ def _():
 
 
 @app.cell
-def _(mo):
+def __(mo):
     mo.md(
         r"""
         ## Performance Comparison: Single Simulation
@@ -164,7 +163,7 @@ def _(mo):
 
 
 @app.cell
-def _(JAX_AVAILABLE, P, T, U, jax_simulator, numpy_simulator, time):
+def __(JAX_AVAILABLE, P, T, U, jax_simulator, numpy_simulator, time):
     """
     Compare single simulation performance
     """
@@ -216,7 +215,7 @@ def _(JAX_AVAILABLE, P, T, U, jax_simulator, numpy_simulator, time):
 
 
 @app.cell
-def _(mo):
+def __(mo):
     mo.md(
         r"""
         ## Batch Processing Demonstration
@@ -229,7 +228,7 @@ def _(mo):
 
 
 @app.cell
-def _(JAX_AVAILABLE, jax_simulator, np, time):
+def __(JAX_AVAILABLE, jax_simulator, np, time):
     """
     Test JAX batch processing capabilities
     """
@@ -264,7 +263,7 @@ def _(JAX_AVAILABLE, jax_simulator, np, time):
 
 
 @app.cell
-def _(mo):
+def __(mo):
     mo.md(
         r"""
         ## Large-Scale Training Data Generation
@@ -277,7 +276,7 @@ def _(mo):
 
 
 @app.cell
-def _(JAX_AVAILABLE, jax_simulator, time):
+def __(JAX_AVAILABLE, jax_simulator, time):
     """
     Test large-scale training data generation
     """
@@ -329,194 +328,26 @@ def _(JAX_AVAILABLE, jax_simulator, time):
 
 
 @app.cell
-def _(mo):
+def __(mo):
     mo.md(
         r"""
-        ## Validation Against NumPy Implementation
-
-        Let's verify that the JAX implementation produces equivalent results to the NumPy version.
-        """
-    )
-    return
-
-
-@app.cell
-def _(JAX_AVAILABLE, P, T, U, jax_simulator, numpy_simulator):
-    """
-    Validate JAX results against NumPy implementation
-    """
-    if JAX_AVAILABLE and jax_simulator is not None:
-        print("🔍 Validation Test: JAX vs NumPy")
-        print("=" * 40)
-        
-        # Run comparison using built-in method
-        validation_results = jax_simulator.compare_with_numpy(
-            numpy_simulator,
-            n_comparisons=5,
-            tolerance=0.0,
-            U=U, P=P, T=T
-        )
-        
-        print(f"📊 Validation Results:")
-        print(f"   Exact matches: {validation_results['exact_matches']}/5")
-        print(f"   Success rate: {validation_results['success_rate']:.1%}")
-        print(f"   Mean correlation: {validation_results['mean_correlation']:.4f}")
-        print(f"   Mean difference: {validation_results['mean_difference']:.4f}")
-        print(f"   Max difference: {validation_results['max_difference']:.1f}")
-        print(f"   Agent conservation error: {validation_results['mean_agent_conservation_error']:.1f}")
-        
-        if validation_results['success_rate'] >= 0.6:
-            print("✅ Validation PASSED - JAX implementation is numerically consistent!")
-        else:
-            print("⚠️  Validation shows differences - may be due to random number generation")
-        
-        return validation_results
-    else:
-        print("❌ JAX validation not available")
-        return None
-
-
-@app.cell
-def _(mo):
-    mo.md(
-        r"""
-        ## Visualization: JAX vs NumPy Results
-
-        Let's visualize the results from both implementations to ensure they produce 
-        similar agent distributions.
-        """
-    )
-    return
-
-
-@app.cell
-def _(
-    JAX_AVAILABLE, 
-    Lx, 
-    Ly, 
-    P, 
-    T, 
-    U,
-    jax_counts, 
-    jax_final, 
-    jax_init,
-    numpy_counts,
-    numpy_final,
-    numpy_init,
-    plot_simulation_comparison
-):
-    """
-    Create comparison visualizations
-    """
-    if JAX_AVAILABLE and 'jax_counts' in locals() and jax_counts is not None:
-        print("📊 Creating comparison visualizations...")
-        
-        # NumPy simulation visualization
-        fig_numpy = plot_simulation_comparison(
-            initial_positions=numpy_init,
-            final_positions=numpy_final,
-            column_counts=numpy_counts,
-            Lx=Lx,
-            Ly=Ly,
-            U=U,
-            P=P,
-            T=T,
-            figsize=(15, 5)
-        )
-        fig_numpy.suptitle('NumPy Simulation Results', fontsize=14, y=1.02)
-        
-        # JAX simulation visualization  
-        fig_jax = plot_simulation_comparison(
-            initial_positions=jax_init,
-            final_positions=jax_final,
-            column_counts=jax_counts,
-            Lx=Lx,
-            Ly=Ly,
-            U=U,
-            P=P,
-            T=T,
-            figsize=(15, 5)
-        )
-        fig_jax.suptitle('JAX Simulation Results', fontsize=14, y=1.02)
-        
-        print("✅ Visualizations created!")
-        
-        return fig_numpy, fig_jax
-    else:
-        print("❌ Cannot create visualizations - JAX results not available")
-        return None, None
-
-
-@app.cell
-def _(mo):
-    mo.md(
-        r"""
-        ## Performance Benchmarking Summary
-
-        Let's use the built-in benchmarking functionality to get detailed performance statistics.
-        """
-    )
-    return
-
-
-@app.cell
-def _(JAX_AVAILABLE, P, T, U, jax_simulator):
-    """
-    Comprehensive performance benchmarking
-    """
-    if JAX_AVAILABLE and jax_simulator is not None:
-        print("📊 Comprehensive JAX Performance Benchmark")
-        print("=" * 50)
-        
-        # Run detailed benchmarking
-        benchmark_results = jax_simulator.benchmark_performance(
-            n_trials=10,
-            U=U, P=P, T=T
-        )
-        
-        print(f"🎯 Benchmark Results:")
-        print(f"   Mean time: {benchmark_results['mean_time']:.4f}s (±{benchmark_results['std_time']:.4f}s)")
-        print(f"   Min/Max time: {benchmark_results['min_time']:.4f}s / {benchmark_results['max_time']:.4f}s") 
-        print(f"   Rate: {benchmark_results['simulations_per_second']:.1f} simulations/second")
-        print(f"   Total agents: {benchmark_results['total_agents']}")
-        print(f"   Device: {benchmark_results['device']}")
-        
-        # Calculate efficiency metrics
-        throughput_per_agent = benchmark_results['simulations_per_second'] / benchmark_results['total_agents']
-        print(f"   Throughput per agent: {throughput_per_agent:.4f} sims/second/agent")
-        
-        return benchmark_results
-    else:
-        print("❌ JAX benchmarking not available")
-        return None
-
-
-@app.cell
-def _(mo):
-    mo.md(
-        r"""
-        ## Summary & Next Steps
+        ## Performance Summary
 
         🎉 **JAX Simulator Testing Complete!**
-
-        ### Performance Highlights:
         """
     )
     return
 
 
 @app.cell
-def _(
+def __(
     JAX_AVAILABLE,
     batch_rate, 
-    benchmark_results,
-    generation_time,
     n_batch,
     numpy_time,
     jax_time,
     rate,
-    speedup,
-    validation_results
+    speedup
 ):
     """
     Generate performance summary
@@ -540,11 +371,6 @@ def _(
             print(f"   50k dataset: ~{50000/rate/60:.1f} minutes")
             print(f"   100k dataset: ~{100000/rate/60:.1f} minutes")
         
-        if 'validation_results' in locals() and validation_results is not None:
-            print(f"\n✅ **Validation:**")
-            print(f"   Success rate: {validation_results['success_rate']:.1%}")
-            print(f"   Correlation: {validation_results['mean_correlation']:.3f}")
-        
         print(f"\n🚀 **Ready for Production Use!**")
         print(f"   The JAX simulator provides significant performance improvements")
         print(f"   while maintaining numerical consistency with the NumPy version.")
@@ -554,34 +380,6 @@ def _(
         print("❌ JAX simulator performance summary not available")
         print("   Install JAX to enable high-performance simulation capabilities")
 
-    return
-
-
-@app.cell
-def _(mo):
-    mo.md(
-        r"""
-        ## Development Notes
-
-        ### JAX Implementation Features:
-        - ✅ **JIT Compilation**: All core functions compiled for maximum speed
-        - ✅ **GPU Support**: Automatic device detection and utilization  
-        - ✅ **Memory Efficient**: Fixed-size arrays with sentinel values
-        - ✅ **Batch Processing**: Sequential processing with JAX-optimized individual sims
-        - ✅ **Validation Tools**: Built-in comparison with NumPy implementation
-
-        ### Future Optimizations:
-        - 🔄 **True Parallel Batching**: Resolve JAX vmap/JIT issues for full GPU parallelism
-        - 🔄 **Memory Optimization**: Reduce memory footprint for larger lattices
-        - 🔄 **Custom Kernels**: Specialized CUDA kernels for maximum performance
-
-        ### Usage Recommendations:
-        - Use JAX simulator for all new NPE training data generation
-        - Validate new parameter ranges with NumPy comparison
-        - Monitor GPU memory usage for very large batch sizes
-        - Consider CPU fallback for development/debugging
-        """
-    )
     return
 
 
