@@ -18,3 +18,7 @@ ipykernel>=6.0.0
 # Additional utilities
 tqdm>=4.62.0
 seaborn>=0.11.0
+
+# JAX for high-performance computing (optional but recommended)
+jax>=0.4.0
+jaxlib>=0.4.0
