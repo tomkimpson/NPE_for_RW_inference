@@ -187,3 +187,4 @@ Thumbs.db
 
 # Safety measure: prevent accidental git operations on external code
 external_code/
+src/results/* # for now don't track results 
