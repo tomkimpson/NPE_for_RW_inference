@@ -310,7 +310,7 @@ def main():
     print(f"✅ Posterior sampling completed in {elapsed:.1f} seconds")
     
     # Compute summary statistics
-    samples_np = posterior_samples.numpy()
+    samples_np = posterior_samples.cpu().numpy()
     U_mean, U_std = samples_np[:, 0].mean(), samples_np[:, 0].std()
     P_mean, P_std = samples_np[:, 1].mean(), samples_np[:, 1].std()
     
@@ -361,7 +361,7 @@ def main():
     
     # Save results
     results = {
-        'posterior_samples': posterior_samples.numpy(),
+        'posterior_samples': posterior_samples.cpu().numpy(),
         'true_parameters': args.theta_true,
         'observed_data': column_counts,
         'summary_statistics': {

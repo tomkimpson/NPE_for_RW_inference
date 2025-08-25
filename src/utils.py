@@ -332,7 +332,7 @@ def save_results(results: Dict[str, Any], filepath: str) -> None:
         if isinstance(obj, np.ndarray):
             return obj.tolist()
         elif isinstance(obj, torch.Tensor):
-            return obj.numpy().tolist()
+            return obj.cpu().numpy().tolist()
         elif isinstance(obj, dict):
             return {k: convert_arrays(v) for k, v in obj.items()}
         elif isinstance(obj, list):

@@ -171,7 +171,7 @@ class RandomWalkNPE:
             print(f"   Drawing {n_simulations} parameter samples from proposal distribution...")
             # Sample all parameters at once to avoid multiple progress bars
             theta_samples = proposal_distribution.sample((n_simulations,))
-            theta_samples_np = theta_samples.numpy()
+            theta_samples_np = theta_samples.cpu().numpy()
             
             # Generate training data
             for i in tqdm.tqdm(range(n_simulations), desc="Running simulations"):
@@ -546,7 +546,7 @@ class RandomWalkNPE:
             
             # Evaluate posterior on observed data
             posterior_samples = self.sample_posterior(x_obs, num_samples=1000)
-            samples_np = posterior_samples.numpy()
+            samples_np = posterior_samples.cpu().numpy()
             U_mean, U_std = samples_np[:, 0].mean(), samples_np[:, 0].std()
             P_mean, P_std = samples_np[:, 1].mean(), samples_np[:, 1].std()
             
@@ -625,7 +625,7 @@ class RandomWalkNPE:
         round_dir.mkdir(parents=True, exist_ok=True)
         
         # Save posterior samples
-        samples_np = posterior_samples.numpy()
+        samples_np = posterior_samples.cpu().numpy()
         np.save(round_dir / "posterior_samples.npy", samples_np)
         
         # Save training info
@@ -798,7 +798,7 @@ class RandomWalkNPE:
         
         fig, axes = plt.subplots(1, 2, figsize=figsize)
         
-        samples_np = samples.numpy()
+        samples_np = samples.cpu().numpy()
         
         for i, (ax, name) in enumerate(zip(axes, param_names)):
             # Histogram
@@ -838,7 +838,7 @@ class RandomWalkNPE:
         fig : matplotlib.figure.Figure
             Figure object
         """
-        samples_np = samples.numpy()
+        samples_np = samples.cpu().numpy()
         
         fig, axes = plt.subplots(2, 2, figsize=figsize)
         
@@ -910,7 +910,7 @@ class RandomWalkNPE:
         # Sample from each round's posterior
         all_samples = []
         for i, posterior in enumerate(self.posteriors_by_round):
-            samples = posterior.sample((1000,)).numpy()
+            samples = posterior.sample((1000,)).cpu().numpy()
             all_samples.append(samples)
             
             # Plot marginals for each parameter
@@ -958,8 +958,8 @@ class RandomWalkNPE:
             raise ValueError(f"round2 must be between 1 and {len(self.posteriors_by_round)}")
         
         # Get samples from both rounds
-        samples1 = self.posteriors_by_round[round1-1].sample((1000,)).numpy()
-        samples2 = self.posteriors_by_round[round2-1].sample((1000,)).numpy()
+        samples1 = self.posteriors_by_round[round1-1].sample((1000,)).cpu().numpy()
+        samples2 = self.posteriors_by_round[round2-1].sample((1000,)).cpu().numpy()
         
         fig, axes = plt.subplots(2, 2, figsize=figsize)
         param_names = ['U (initial occupancy)', 'P (movement probability)']
@@ -1039,7 +1039,7 @@ def generate_training_data(
     theta, x = npe.generate_training_data(
         simulator, n_simulations, T, None, prior_bounds, random_seed
     )
-    return theta.numpy(), x.numpy()
+    return theta.cpu().numpy(), x.cpu().numpy()
 
 
 def define_priors(prior_type: str = "uniform") -> Dict[str, Any]:
