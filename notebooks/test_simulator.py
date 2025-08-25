@@ -218,6 +218,37 @@ def _(
 
 
 @app.cell
+def _(
+    Lx,
+    Ly,
+    T,
+    U,
+    column_counts,
+    final_positions,
+    initial_positions,
+    plot_simulation_comparison,
+):
+    """
+    What if we change the P value?
+    """
+    # Create main comparison plot
+    fig_comparison_P07 = plot_simulation_comparison(
+        initial_positions=initial_positions,
+        final_positions=final_positions,
+        column_counts=column_counts,
+        Lx=Lx,
+        Ly=Ly,
+        U=U,
+        P=0.7,
+        T=T,
+        figsize=(18, 6)
+    )
+    fig_comparison_P07.suptitle('Random Walk Simulation Results', fontsize=16, y=1.02)
+
+    return
+
+
+@app.cell
 def _(mo):
     mo.md(
         r"""
@@ -456,11 +487,11 @@ def _(
 
         # Run simulation
         column_counts_bench_multi, _, _ = simulator.simulate(np.random.uniform(*prior_bounds['U']), np.random.uniform(*prior_bounds['P']), T)
-            
+
         # Store results
         parameters[i] = [U, P]
         observations[i] = column_counts_bench
-    
+
 
     multiple_sim_time = time.time() - start_time_multi
 

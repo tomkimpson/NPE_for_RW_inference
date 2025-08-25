@@ -240,6 +240,70 @@ class RandomWalkSimulator:
                 counts[array_index] += 1
                 
         return counts
+    
+    def get_enhanced_observations(self, positions: List[Tuple[int, int]]) -> np.ndarray:
+        """
+        Get enhanced observations including spatial spread metrics.
+        
+        This captures more information about the spatial distribution
+        which can help distinguish different movement probabilities.
+        
+        Parameters:
+        -----------
+        positions : List[Tuple[int, int]]
+            Agent positions with centered coordinates
+            
+        Returns:
+        --------
+        np.ndarray
+            Enhanced observation vector with:
+            - Column counts (standard)
+            - Total spread (std dev of x positions)  
+            - Asymmetry (skewness of distribution)
+            - Concentration (fraction in central region)
+        """
+        # Get standard column counts
+        column_counts = self.get_column_counts(positions)
+        
+        if not positions:
+            # No agents - return zeros for all metrics
+            enhanced_obs = np.zeros(len(column_counts) + 3)
+            enhanced_obs[:len(column_counts)] = column_counts
+            return enhanced_obs
+        
+        # Extract x coordinates
+        x_coords = np.array([x for x, y in positions])
+        
+        # Compute spread metrics
+        x_std = np.std(x_coords) if len(x_coords) > 1 else 0.0  # Total spread
+        x_skew = self._compute_skewness(x_coords)  # Asymmetry
+        
+        # Compute concentration in central region
+        central_region = 10  # Half-width of central region
+        central_agents = np.sum(np.abs(x_coords) <= central_region)
+        concentration = central_agents / len(positions) if len(positions) > 0 else 0.0
+        
+        # Combine all observations
+        enhanced_obs = np.concatenate([
+            column_counts,
+            [x_std, x_skew, concentration]
+        ])
+        
+        return enhanced_obs
+    
+    def _compute_skewness(self, data: np.ndarray) -> float:
+        """Compute skewness (third moment) of data."""
+        if len(data) < 3:
+            return 0.0
+        
+        mean = np.mean(data)
+        std = np.std(data)
+        
+        if std == 0:
+            return 0.0
+            
+        skew = np.mean(((data - mean) / std) ** 3)
+        return skew
 
 
 class RandomWalkSimulatorJax:
