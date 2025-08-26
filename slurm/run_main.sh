@@ -4,7 +4,7 @@
 #SBATCH --output=slurm/outputs/snpe_random_walk_%j.txt
 #SBATCH --export=ALL 
 #SBATCH --gres=gpu:1
-#SBATCH --time=2:00:00 
+#SBATCH --time=6:00:00 
 #SBATCH --mem=16G
 #SBATCH --cpus-per-task=4
 
@@ -17,7 +17,7 @@ conda activate NPE_LV
 
 #Run command
 #time python src/main.py --use_snpe --snpe_rounds 2
-time python main.py --use_snpe --snpe_rounds 10 --samples_per_round 2000 \
+time python src/main.py --use_snpe --snpe_rounds 10 --samples_per_round 2000 \
       --max_epochs 300 --stop_after_epochs 80 \
       --hidden_features 768 --num_transforms 15 \
       --convergence_threshold 0.001 \
