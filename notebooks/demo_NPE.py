@@ -69,7 +69,7 @@ def _():
     print(f"🔥 PyTorch version: {torch.__version__}")
     print(f"📊 Corner version: Available for posterior visualization")
 
-    return RandomWalkNPE, corner, np, pickle, plt, torch
+    return RandomWalkNPE, corner, pickle, plt, torch
 
 
 @app.cell
@@ -120,6 +120,53 @@ def _(pickle):
 
 @app.cell
 def _(mo):
+    mo.md(r"""## Corner Plot""")
+    return
+
+
+@app.cell
+def _(corner, plt, posterior_samples, true_parameters):
+    """
+    Create a corner plot of the posterior distribution
+    """
+    import scienceplots
+    plt.style.use('science')
+
+    # Set up the corner plot
+    print("Creating corner plot visualization...")
+
+    # Parameter names and labels
+    param_names = ['U', 'P']
+
+    # Create corner plot
+    fig = corner.corner(
+        posterior_samples,
+        labels=param_names,
+        truths=true_parameters,
+        truth_color='red',
+        color='skyblue',
+        show_titles=True,
+        range=((0,1),(0,1)),
+        title_kwargs={'fontsize': 12},
+        label_kwargs={'fontsize': 14},
+        title_fmt='.4f',
+        smooth=1.0,
+        smooth1d=1.0,
+        bins=50,
+        quantiles=[0.16, 0.5, 0.84],  # Show 68% credible intervals
+        plot_density=True,
+        plot_datapoints=True,
+        fill_contours=True,
+        max_n_ticks=5
+    )
+    plt.xlim(0,1)
+    plt.show()
+
+    return
+
+
+@app.cell
+def _(mo):
     mo.md(
         r"""
     ## Posterior Summary Statistics
@@ -128,6 +175,7 @@ def _(mo):
     neural network learned to map the observed random walk data back to the original parameters.
 
     **Key Metrics:**
+
     - **Point estimates**: Mean posterior values for U and P
     - **Uncertainty**: Standard deviations showing inference confidence  
     - **Credible intervals**: 95% intervals containing the most probable parameter values
@@ -254,109 +302,11 @@ def _(metadata, snpe_info):
 def _(mo):
     mo.md(
         r"""
-    ## Corner Plot: Full Posterior Visualization
-
-    Now for the main event! We'll use **corner.corner** to create a comprehensive visualization of our 
-    posterior distribution. Corner plots are the gold standard for visualizing multivariate posteriors because they show:
-
-    - **Marginal distributions**: Individual parameter uncertainties (diagonal)
-    - **Joint distributions**: Parameter correlations and dependencies (off-diagonal)  
-    - **True values**: Reference lines showing ground truth (red lines)
-    - **Credible contours**: Confidence regions in parameter space
-
-    This gives us a complete picture of what our NPE model learned about the parameters U and P.
-    """
-    )
-    return
-
-
-@app.cell
-def _(corner, np, plt, posterior_samples, true_parameters):
-    """
-    Create a comprehensive corner plot of the posterior distribution
-    """
-    # Set up the corner plot
-    print("📊 Creating corner plot visualization...")
-
-    # Parameter names and labels
-    param_names = ['U (Initial Occupancy)', 'P (Movement Probability)']
-
-    # Create corner plot
-    fig = corner.corner(
-        posterior_samples,
-        labels=param_names,
-        truths=true_parameters,
-        truth_color='red',
-        color='skyblue',
-        show_titles=True,
-        title_kwargs={'fontsize': 12},
-        label_kwargs={'fontsize': 14},
-        title_fmt='.4f',
-        smooth=1.0,
-        bins=40,
-        quantiles=[0.16, 0.5, 0.84],  # Show 68% credible intervals
-        levels=(1 - np.exp(-0.5), 1 - np.exp(-2)),  # 1-sigma and 2-sigma contours
-        plot_density=False,
-        plot_datapoints=True,
-        fill_contours=True,
-        max_n_ticks=5
-    )
-
-    # Customize the figure
-    fig.suptitle('NPE Posterior Distribution: Random Walk Parameters\n' + 
-                 f'True: U={true_parameters[0]}, P={true_parameters[1]} (red lines)', 
-                 fontsize=16, y=0.98)
-
-    # Add interpretation text
-    fig.text(0.02, 0.02, 
-             f'Posterior samples: {len(posterior_samples):,} | '
-             f'Method: Sequential NPE | '
-             f'Contours: 68% (dark) & 95% (light) credible regions',
-             fontsize=10, ha='left')
-
-    plt.show()
-
-    print("✅ Corner plot completed!")
-    print(f"📈 The plot shows:")
-    print(f"   • Diagonal: Marginal posterior distributions for each parameter")
-    print(f"   • Off-diagonal: Joint posterior showing parameter correlations")
-    print(f"   • Red lines: True parameter values")
-    print(f"   • Contours: 68% and 95% credible regions")
-    print(f"   • Points: Individual posterior samples from the neural network")
-
-    return
-
-
-@app.cell
-def _(mo):
-    mo.md(
-        r"""
-    ## Parameter Correlation Analysis
-
-    Let's analyze the **correlation structure** in our posterior. The off-diagonal plot in the corner plot 
-    shows how the parameters U and P are related in our posterior distribution.
-
-    **Key Questions:**
-    - Are U and P independent or correlated?
-    - Does uncertainty in one parameter affect the other?
-    - How does this compare to what we expect from the random walk model?
-    """
-    )
-    return
-
-
-@app.cell
-def _(mo):
-    mo.md(
-        r"""
     ## Comparison with Built-in SBI Visualization
 
     Let's also create the standard SBI posterior plots for comparison. The `sbi` library (which powers our NPE implementation) 
     has built-in visualization functions that provide a different perspective on the same posterior distribution.
 
-    This shows how different visualization approaches can highlight different aspects of the posterior:
-    - **Corner plots**: Comprehensive view with contours and correlations
-    - **SBI plots**: Clean marginals and pairwise scatter plots
     """
     )
     return
@@ -393,13 +343,6 @@ def _(RandomWalkNPE, plt, posterior_samples, torch, true_parameters):
     )
     fig2.suptitle('SBI-style Pairwise Posterior Relationships', fontsize=14, y=0.98)
     plt.show()
-
-    print("✅ SBI visualization completed!")
-    print("\n📊 Comparison of Visualization Styles:")
-    print("   • Corner plots: Best for publication, shows contours and credible regions")
-    print("   • SBI plots: Clean and simple, good for quick assessment")
-    print("   • Both show the same underlying posterior distribution")
-    print("   • Choice depends on audience and purpose")
 
     return
 
