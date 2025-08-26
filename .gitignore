@@ -158,11 +158,8 @@ Manifest.toml
 *.npy
 *.npz
 
-# Results and outputs
-results/*.png
-results/*.jpg
-results/*.pdf
-results/*.svg
+#Allow compressed pkl files
+!*_extracted.pkl
 
 # Large files
 *.zip
@@ -187,5 +184,4 @@ Thumbs.db
 
 # Safety measure: prevent accidental git operations on external code
 external_code/
-src/results/* # for now don't track results 
 src/sbi-logs  # or the log files from the SBI package
