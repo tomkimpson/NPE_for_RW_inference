@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 from simulator import RandomWalkSimulator
 from inference import RandomWalkNPE
 from utils import check_device_availability, print_device_info, configure_warnings
+from predict import posterior_predictive_sample, compute_prediction_intervals, plot_prediction_intervals
 
 # Configure warning filters
 configure_warnings()
@@ -69,6 +70,8 @@ def main():
                        help='True parameters for inference test [U P]')
     parser.add_argument('--num_samples', type=int, default=5000,
                        help='Number of posterior samples')
+    parser.add_argument('--n_pred_samples', type=int, default=None,
+                       help='Number of posterior predictive samples (default: same as num_samples)')
     
     # Sequential NPE parameters
     parser.add_argument('--use_snpe', action='store_true',
@@ -359,6 +362,76 @@ def main():
     fig4.savefig(results_dir / "simulation_comparison.png", dpi=150, bbox_inches='tight')
     plt.close(fig4)
     
+    # Save posterior samples as independent data file
+    print(f"\n💾 Saving posterior samples...") 
+    posterior_data = {
+        'posterior_samples': posterior_samples.cpu().numpy(),
+        'true_parameters': args.theta_true,
+        'metadata': {
+            'n_samples': args.num_samples,
+            'lattice_size': (args.Lx, args.Ly),
+            'time_steps': args.T,
+            'seed': args.seed,
+            'training_approach': 'SNPE' if args.use_snpe else 'NPE',
+            'sampling_time': elapsed
+        }
+    }
+    
+    import pickle
+    with open(results_dir / "posterior_samples.pkl", 'wb') as f:
+        pickle.dump(posterior_data, f)
+    
+    # Step 6: Posterior Predictive Sampling
+    print(f"\n🔮 Generating posterior predictive samples...")
+    pred_start_time = time.time()
+    
+    # Generate predictive samples 
+    n_pred = args.n_pred_samples or args.num_samples
+    predictions = posterior_predictive_sample(
+        posterior_samples=posterior_samples.cpu().numpy(),
+        simulator=simulator,
+        T=args.T,
+        n_pred_samples=n_pred,
+        random_seed=args.seed + 2000
+    )
+    
+    # Compute prediction intervals
+    prediction_results = compute_prediction_intervals(predictions)
+    
+    # Create prediction visualization  
+    fig5 = plot_prediction_intervals(
+        prediction_results=prediction_results,
+        observed_data=column_counts,
+        Lx=args.Lx,
+        title_suffix=f" (T={args.T})"
+    )
+    fig5.savefig(results_dir / "prediction_intervals.png", dpi=150, bbox_inches='tight')
+    plt.close(fig5)
+    
+    # Save prediction results
+    predictive_data = {
+        'prediction_results': prediction_results,
+        'input_metadata': {
+            'posterior_samples_shape': posterior_samples.shape,
+            'true_parameters': args.theta_true,
+            'simulation_params': {
+                'Lx': args.Lx, 'Ly': args.Ly, 'T': args.T,
+                'initial_region_half_width': args.initial_region_half_width
+            },
+            'prediction_params': {
+                'n_pred_samples': n_pred,
+                'seed': args.seed + 2000
+            }
+        },
+        'observed_data': column_counts
+    }
+    
+    with open(results_dir / "predictive_results.pkl", 'wb') as f:
+        pickle.dump(predictive_data, f)
+    
+    pred_elapsed = time.time() - pred_start_time
+    print(f"✅ Posterior predictive sampling completed in {pred_elapsed:.1f} seconds")
+    
     # Save results
     results = {
         'posterior_samples': posterior_samples.cpu().numpy(),
@@ -406,6 +479,12 @@ def main():
     print(f"   - posterior_pairwise.png") 
     print(f"   - observed_data.png")
     print(f"   - simulation_comparison.png")
+    print(f"   - prediction_intervals.png")
+    
+    print(f"\n💾 Data files:")
+    print(f"   - posterior_samples.pkl (independent posterior samples)")
+    print(f"   - predictive_results.pkl (prediction intervals and uncertainty)")
+    print(f"   - results.pkl (complete workflow results)")
     
     # Print SNPE-specific summary if applicable
     if args.use_snpe and 'training_info' in locals():
@@ -427,10 +506,18 @@ def main():
     print(f"   - Test with different true parameter values")
     print(f"   - Analyze model performance with validation data")
     
-    print(f"\n🔮 Posterior Predictive Sampling:")
-    print(f"   Run posterior predictive sampling for uncertainty quantification:")
-    print(f"   python src/predict.py {results_dir}/results.pkl")
-    print(f"   This generates prediction intervals and visualizes model uncertainty")
+    print(f"\n🔮 Posterior Predictive Results:")
+    global_stats = prediction_results['global_stats']
+    print(f"   Total agents: {global_stats['total_agents_mean']:.1f} ± {global_stats['total_agents_std']:.1f}")
+    print(f"   Range: [{global_stats['total_agents_min']}, {global_stats['total_agents_max']}]")
+    observed_total = np.sum(column_counts)
+    predictions_total = np.sum(predictions, axis=1) 
+    p2_5 = np.percentile(predictions_total, 2.5)
+    p97_5 = np.percentile(predictions_total, 97.5)
+    in_interval = p2_5 <= observed_total <= p97_5
+    print(f"   Observed total: {observed_total}")
+    print(f"   95% interval: [{p2_5:.1f}, {p97_5:.1f}]")
+    print(f"   Observed in interval: {'Yes' if in_interval else 'No'}")
 
 
 if __name__ == '__main__':
