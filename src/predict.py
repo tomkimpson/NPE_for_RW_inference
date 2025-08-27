@@ -297,7 +297,10 @@ def plot_prediction_intervals(
     
     fig, ax1 = plt.subplots(1, 1, figsize=(12, 6))
     
-    columns = np.arange(Lx)
+    # Center column indices around 0 (same logic as plot_simulation_comparison)
+    x_min = -(Lx // 2)
+    x_max = Lx // 2 if Lx % 2 == 1 else (Lx // 2) - 1
+    columns = np.arange(x_min, x_max + 1)
     
     # Main prediction plot with uncertainty bands
     ax1.fill_between(columns, intervals['p2.5'], intervals['p97.5'], 
@@ -311,7 +314,7 @@ def plot_prediction_intervals(
         ax1.scatter(columns, observed_data, c='blue', s=50, 
                    label='Observed Data', zorder=5)
     
-    ax1.set_xlabel('Column Index')
+    ax1.set_xlabel('Column Index (centered)')
     ax1.set_ylabel('Agent Count')
     ax1.set_title(f'Posterior Predictive Distribution{title_suffix}')
     ax1.legend()

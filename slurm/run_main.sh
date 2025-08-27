@@ -16,10 +16,23 @@ source ~/.bashrc
 conda activate NPE_LV 
 
 #Run command - may need to play with the parameters to see what works best. The below are somewhat arbitrary.
-time python src/main.py --use_snpe --snpe_rounds 10 --samples_per_round 2000 \
-      --max_epochs 300 --stop_after_epochs 80 \
-      --hidden_features 768 --num_transforms 15 \
+time python src/main.py --use_snpe --snpe_rounds 10 --samples_per_round 10000 \
+      --max_epochs 300 --stop_after_epochs 10 \
+      --hidden_features 128 --num_transforms 8 \
       --convergence_threshold 0.001 \
-      --learning_rate 5e-6 \
+      --learning_rate 1e-4 \
       --batch_size 128 \
-      --Lx 100 --Ly 50 --T 100
+      --Lx 200 --Ly 50 --T 100 --initial_region_half_width 25
+
+
+
+# time python src/main.py --use_snpe --snpe_rounds 10 --samples_per_round 2000 \
+#       --max_epochs 300 --stop_after_epochs 80 \
+#       --hidden_features 768 --num_transforms 15 \
+#       --convergence_threshold 0.001 \
+#       --learning_rate 5e-6 \
+#       --batch_size 128 \
+#       --Lx 200 --Ly 50 --T 100 --initial_region_half_width 25
+
+
+
