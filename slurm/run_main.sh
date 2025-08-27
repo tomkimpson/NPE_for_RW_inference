@@ -22,7 +22,7 @@ time python src/main.py --use_snpe --snpe_rounds 10 --samples_per_round 10000 \
       --convergence_threshold 0.001 \
       --learning_rate 1e-4 \
       --batch_size 128 \
-      --Lx 200 --Ly 50 --T 100 --initial_region_half_width 25
+      --Lx 200 --Ly 50 --T 100 --initial_region_half_width 25 --num_samples 10000
 
 
 
