@@ -16,6 +16,7 @@ NPE_for_RW_Inference/
 ├── src/                        # Main source code
 │   ├── __init__.py            # Package initialization
 │   ├── main.py                # Main workflow script (entry point)
+│   ├── predict.py             # Posterior predictive sampling
 │   ├── simulator.py           # Random walk simulator
 │   ├── inference.py           # NPE/SNPE training and inference
 │   └── utils.py               # Utility functions
@@ -77,6 +78,31 @@ python src/main.py --skip_training --model_path results/previous_run/npe_model.p
 sbatch slurm/run_main.sh
 ```
 
+### Posterior Predictive Sampling:
+After running the main workflow, you can generate posterior predictive samples to quantify uncertainty and validate your model:
+
+```bash
+# Basic posterior predictive sampling (uses all posterior samples)
+python src/predict.py results/workflow_YYYYMMDD_HHMMSS/inference_results/results.pkl
+
+# Generate fewer predictive samples for faster computation
+python src/predict.py results/workflow_YYYYMMDD_HHMMSS/inference_results/results.pkl --n_pred_samples 1000
+
+# Custom simulation parameters (must match training data)
+python src/predict.py results/workflow_YYYYMMDD_HHMMSS/inference_results/results.pkl \
+  --T 100 --Lx 21 --Ly 21
+
+# Specify output directory
+python src/predict.py results/workflow_YYYYMMDD_HHMMSS/inference_results/results.pkl \
+  --output_dir custom_predictions/
+```
+
+The posterior predictive sampling generates:
+- **Prediction intervals**: Uncertainty bands showing the range of possible outcomes
+- **Probabilistic forecasts**: Multiple realizations from the posterior predictive distribution  
+- **Model validation**: Compare observed data against predictive distribution
+- **Uncertainty quantification**: Visualize model confidence in different regions
+
 ## NPE vs SNPE
 
 The complete pipeline supports two training approaches:
@@ -110,6 +136,10 @@ results/workflow_YYYYMMDD_HHMMSS/
 │   ├── observed_data.png         # Observed column counts
 │   ├── simulation_comparison.png # Initial vs final states
 │   └── results.pkl               # Numerical results
+└── predictions/                  # Posterior predictive sampling (optional)
+    ├── prediction_intervals.png  # Prediction intervals plot
+    ├── predictive_results.pkl    # Full predictive results
+    └── prediction_summary.txt    # Summary statistics
 ```
 
 **Sequential NPE (SNPE) Output:**
@@ -130,6 +160,10 @@ results/workflow_YYYYMMDD_HHMMSS/
 │   ├── observed_data.png         # Observed column counts
 │   ├── simulation_comparison.png # Initial vs final states
 │   └── results.pkl               # Numerical results + SNPE metadata
+└── predictions/                  # Posterior predictive sampling (optional)
+    ├── prediction_intervals.png  # Prediction intervals plot
+    ├── predictive_results.pkl    # Full predictive results
+    └── prediction_summary.txt    # Summary statistics
 ```
 
 ## Key Parameters

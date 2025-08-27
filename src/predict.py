@@ -37,7 +37,7 @@ def load_results(results_path: str) -> Dict[str, Any]:
         
     Returns:
     --------
-    Dict containing posterior_samples, true_parameters, and metadata
+    Dict containing posterior_samples, true_parameters, metadata, and simulation_params
     """
     results_path = Path(results_path)
     
@@ -59,10 +59,76 @@ def load_results(results_path: str) -> Dict[str, Any]:
     if isinstance(results['posterior_samples'], torch.Tensor):
         results['posterior_samples'] = results['posterior_samples'].cpu().numpy()
     
+    # Extract simulation parameters from metadata if available
+    simulation_params = {}
+    if 'metadata' in results:
+        metadata = results['metadata']
+        if 'lattice_size' in metadata:
+            simulation_params['Lx'] = metadata['lattice_size'][0]
+            simulation_params['Ly'] = metadata['lattice_size'][1]
+        if 'time_steps' in metadata:
+            simulation_params['T'] = metadata['time_steps']
+        
+        print(f"📐 Found simulation parameters in metadata:")
+        if 'Lx' in simulation_params:
+            print(f"   Lattice size: {simulation_params['Lx']} x {simulation_params['Ly']}")
+        if 'T' in simulation_params:
+            print(f"   Time steps: {simulation_params['T']}")
+    else:
+        print("⚠️  No metadata found in results file - will use command-line defaults")
+    
+    # Add simulation parameters to results
+    results['simulation_params'] = simulation_params
+    
     print(f"✅ Loaded {results['posterior_samples'].shape[0]} posterior samples")
     print(f"🎯 True parameters: U={results['true_parameters'][0]}, P={results['true_parameters'][1]}")
     
     return results
+
+
+def load_prediction_results(prediction_path: str) -> Dict[str, Any]:
+    """
+    Load pre-computed prediction results from pickle file.
+    
+    Parameters:
+    -----------
+    prediction_path : str
+        Path to predictive_results.pkl file
+        
+    Returns:
+    --------
+    Dict containing prediction_results, observed_data, and input_metadata
+    """
+    prediction_path = Path(prediction_path)
+    
+    if not prediction_path.exists():
+        raise FileNotFoundError(f"Prediction results file not found: {prediction_path}")
+    
+    print(f"📂 Loading prediction results from: {prediction_path}")
+    
+    with open(prediction_path, 'rb') as f:
+        data = pickle.load(f)
+    
+    # Validate required keys
+    required_keys = ['prediction_results', 'input_metadata']
+    missing_keys = [key for key in required_keys if key not in data]
+    if missing_keys:
+        raise ValueError(f"Missing required keys in prediction results: {missing_keys}")
+    
+    prediction_results = data['prediction_results']
+    input_metadata = data['input_metadata']
+    
+    print(f"✅ Loaded prediction results:")
+    print(f"   Predictions: {prediction_results['metadata']['n_predictions']} samples")
+    print(f"   Columns: {prediction_results['metadata']['n_columns']}")
+    print(f"   Total agents: {prediction_results['global_stats']['total_agents_mean']:.1f} ± {prediction_results['global_stats']['total_agents_std']:.1f}")
+    
+    # Extract observed data if available
+    observed_data = data.get('observed_data', None)
+    if observed_data is not None:
+        print(f"   Observed data: {len(observed_data)} columns, {np.sum(observed_data)} total agents")
+    
+    return data
 
 
 def posterior_predictive_sample(
@@ -229,53 +295,27 @@ def plot_prediction_intervals(
     intervals = prediction_results['intervals']
     stats = prediction_results['column_stats']
     
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
+    fig, ax1 = plt.subplots(1, 1, figsize=(12, 6))
     
     columns = np.arange(Lx)
     
     # Main prediction plot with uncertainty bands
     ax1.fill_between(columns, intervals['p2.5'], intervals['p97.5'], 
-                     alpha=0.2, color='blue', label='95% Prediction Interval')
+                     alpha=0.2, color='green', label='95% Prediction Interval')
     ax1.fill_between(columns, intervals['p25'], intervals['p75'], 
-                     alpha=0.3, color='blue', label='50% Prediction Interval')
-    ax1.plot(columns, intervals['p50'], 'b-', linewidth=2, label='Median Prediction')
-    ax1.plot(columns, stats['mean'], 'b--', linewidth=1, alpha=0.8, label='Mean Prediction')
+                     alpha=0.3, color='green', label='50% Prediction Interval')
+    ax1.plot(columns, intervals['p50'], 'r-', linewidth=2, label='Median Prediction')
+    ax1.plot(columns, stats['mean'], 'r--', linewidth=1, alpha=0.8, label='Mean Prediction')
     
     if observed_data is not None:
-        ax1.plot(columns, observed_data, 'ro-', linewidth=2, markersize=6, 
-                label='Observed Data')
+        ax1.scatter(columns, observed_data, c='blue', s=50, 
+                   label='Observed Data', zorder=5)
     
     ax1.set_xlabel('Column Index')
     ax1.set_ylabel('Agent Count')
     ax1.set_title(f'Posterior Predictive Distribution{title_suffix}')
     ax1.legend()
     ax1.grid(True, alpha=0.3)
-    
-    # Distribution of total agents
-    total_agents = np.sum(prediction_results['predictions'], axis=1)
-    ax2.hist(total_agents, bins=50, density=True, alpha=0.7, color='skyblue', 
-             edgecolor='navy')
-    
-    # Add statistics lines
-    mean_total = prediction_results['global_stats']['total_agents_mean']
-    median_total = np.median(total_agents)
-    ax2.axvline(mean_total, color='red', linestyle='--', linewidth=2, 
-                label=f'Mean: {mean_total:.1f}')
-    ax2.axvline(median_total, color='orange', linestyle='--', linewidth=2, 
-                label=f'Median: {median_total:.1f}')
-    
-    if observed_data is not None:
-        observed_total = np.sum(observed_data)
-        ax2.axvline(observed_total, color='green', linestyle='-', linewidth=3, 
-                    label=f'Observed: {observed_total}')
-    
-    ax2.set_xlabel('Total Agent Count')
-    ax2.set_ylabel('Density')
-    ax2.set_title('Predictive Distribution of Total Agent Count')
-    ax2.legend()
-    ax2.grid(True, alpha=0.3)
-    
-    plt.tight_layout()
     return fig
 
 
@@ -286,8 +326,8 @@ def main():
     )
     
     # Input/Output
-    parser.add_argument('results_path', type=str,
-                       help='Path to results.pkl or results_extracted.pkl file')
+    parser.add_argument('results_path', type=str, nargs='?',
+                       help='Path to results.pkl or results_extracted.pkl file (not needed when using --load_predictions)')
     parser.add_argument('--output_dir', type=str, default=None,
                        help='Output directory (default: same as results file)')
     
@@ -314,63 +354,132 @@ def main():
     parser.add_argument('--device', type=str, default='cpu',
                        choices=['cpu', 'cuda'],
                        help='Device (predictions run on CPU regardless)')
+    parser.add_argument('--override_metadata', action='store_true',
+                       help='Force use of command-line parameters even when metadata is available')
+    parser.add_argument('--load_predictions', type=str, default=None,
+                       help='Path to existing predictive_results.pkl file to skip sampling and regenerate plots')
     
     args = parser.parse_args()
+    
+    # Validate argument combinations
+    if not args.load_predictions and not args.results_path:
+        parser.error("Either results_path or --load_predictions must be provided")
     
     # Set random seed
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     
     # Create output directory
-    results_path = Path(args.results_path)
     if args.output_dir is None:
-        output_dir = results_path.parent / "predictions"
+        if args.load_predictions:
+            # When loading predictions, default to same directory as prediction file
+            pred_path = Path(args.load_predictions)
+            output_dir = pred_path.parent / "plots_updated"
+        else:
+            # Normal case - use results file directory
+            results_path = Path(args.results_path)
+            output_dir = results_path.parent / "predictions"
     else:
         output_dir = Path(args.output_dir)
     
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    print(f"🔮 Starting Posterior Predictive Sampling")
-    print(f"📁 Results file: {results_path}")
-    print(f"📁 Output directory: {output_dir}")
-    print(f"⚙️  Simulation settings: Lx={args.Lx}, Ly={args.Ly}, T={args.T}")
-    print()
-    
     total_start = time.time()
     
-    # Load results
-    results = load_results(args.results_path)
-    posterior_samples = results['posterior_samples']
-    true_parameters = results['true_parameters']
-    
-    # Get observed data if available
-    observed_data = results.get('observed_data', None)
-    if observed_data is not None:
-        print(f"📊 Observed data available: {len(observed_data)} columns, {np.sum(observed_data)} total agents")
-    
-    # Initialize simulator
-    print(f"\n📐 Setting up simulator...")
-    simulator = RandomWalkSimulator(
-        Lx=args.Lx,
-        Ly=args.Ly,
-        initial_region_half_width=args.initial_region_half_width
-    )
-    
-    # Generate predictive samples
-    print(f"\n🔮 Generating posterior predictive samples...")
-    predictions = posterior_predictive_sample(
-        posterior_samples=posterior_samples,
-        simulator=simulator,
-        T=args.T,
-        n_pred_samples=args.n_pred_samples,
-        random_seed=args.seed
-    )
-    
-    # Compute prediction intervals
-    prediction_results = compute_prediction_intervals(
-        predictions=predictions,
-        percentiles=args.percentiles
-    )
+    # Check if loading pre-computed predictions
+    if args.load_predictions:
+        print(f"🔮 Loading Pre-computed Predictions (Fast Mode)")
+        print(f"📁 Prediction file: {args.load_predictions}")
+        print(f"📁 Output directory: {output_dir}")
+        print()
+        
+        # Load pre-computed prediction results
+        prediction_data = load_prediction_results(args.load_predictions)
+        prediction_results = prediction_data['prediction_results']
+        input_metadata = prediction_data['input_metadata']
+        observed_data = prediction_data.get('observed_data', None)
+        
+        # Extract simulation parameters from loaded metadata
+        sim_params = input_metadata['simulation_params']
+        actual_Lx = sim_params['Lx']
+        actual_Ly = sim_params['Ly']
+        actual_T = sim_params['T']
+        
+        print(f"⚙️  Using simulation settings from loaded data: Lx={actual_Lx}, Ly={actual_Ly}, T={actual_T}")
+        
+        # Skip to plotting
+        print(f"\n📊 Creating visualizations from loaded data...")
+        
+    else:
+        print(f"🔮 Starting Posterior Predictive Sampling")
+        print(f"📁 Results file: {results_path}")
+        print(f"📁 Output directory: {output_dir}")
+        print()
+        
+        # Load results
+        results = load_results(args.results_path)
+        posterior_samples = results['posterior_samples']
+        true_parameters = results['true_parameters']
+        simulation_params = results['simulation_params']
+        
+        # Use simulation parameters from metadata if available and not overridden
+        if args.override_metadata or not simulation_params:
+            actual_Lx = args.Lx
+            actual_Ly = args.Ly
+            actual_T = args.T
+            if args.override_metadata and simulation_params:
+                print(f"\n⚠️  Using command-line parameters instead of metadata (--override_metadata specified)")
+                print(f"   WARNING: This may lead to incorrect results if parameters don't match training data!")
+        else:
+            actual_Lx = simulation_params.get('Lx', args.Lx)
+            actual_Ly = simulation_params.get('Ly', args.Ly)
+            actual_T = simulation_params.get('T', args.T)
+            
+            # Check for parameter mismatches and warn user
+            param_warnings = []
+            if 'Lx' in simulation_params and args.Lx != actual_Lx:
+                param_warnings.append(f"Lx: command-line={args.Lx}, metadata={actual_Lx}")
+            if 'Ly' in simulation_params and args.Ly != actual_Ly:
+                param_warnings.append(f"Ly: command-line={args.Ly}, metadata={actual_Ly}")
+            if 'T' in simulation_params and args.T != actual_T:
+                param_warnings.append(f"T: command-line={args.T}, metadata={actual_T}")
+            
+            if param_warnings:
+                print(f"\n⚠️  Parameter mismatch detected! Using metadata values instead of command-line:")
+                for warning in param_warnings:
+                    print(f"   {warning}")
+                print(f"   (Use --override_metadata to force command-line values)")
+        
+        print(f"⚙️  Using simulation settings: Lx={actual_Lx}, Ly={actual_Ly}, T={actual_T}")
+        
+        # Get observed data if available
+        observed_data = results.get('observed_data', None)
+        if observed_data is not None:
+            print(f"📊 Observed data available: {len(observed_data)} columns, {np.sum(observed_data)} total agents")
+        
+        # Initialize simulator with correct parameters
+        print(f"\n📐 Setting up simulator...")
+        simulator = RandomWalkSimulator(
+            Lx=actual_Lx,
+            Ly=actual_Ly,
+            initial_region_half_width=args.initial_region_half_width
+        )
+        
+        # Generate predictive samples
+        print(f"\n🔮 Generating posterior predictive samples...")
+        predictions = posterior_predictive_sample(
+            posterior_samples=posterior_samples,
+            simulator=simulator,
+            T=actual_T,
+            n_pred_samples=args.n_pred_samples,
+            random_seed=args.seed
+        )
+        
+        # Compute prediction intervals
+        prediction_results = compute_prediction_intervals(
+            predictions=predictions,
+            percentiles=args.percentiles
+        )
     
     # Create visualizations
     print(f"\n📊 Creating visualizations...")
@@ -379,87 +488,95 @@ def main():
     fig = plot_prediction_intervals(
         prediction_results=prediction_results,
         observed_data=observed_data,
-        Lx=args.Lx,
-        title_suffix=f" (T={args.T})"
+        Lx=actual_Lx,
+        title_suffix=f" (T={actual_T})"
     )
     fig.savefig(output_dir / "prediction_intervals.png", dpi=150, bbox_inches='tight')
     plt.close(fig)
     
-    # Save results
-    print(f"\n💾 Saving results...")
-    
-    # Save prediction results
-    output_data = {
-        'prediction_results': prediction_results,
-        'input_metadata': {
-            'results_path': str(args.results_path),
-            'posterior_samples_shape': posterior_samples.shape,
-            'true_parameters': true_parameters,
-            'simulation_params': {
-                'Lx': args.Lx, 'Ly': args.Ly, 'T': args.T,
-                'initial_region_half_width': args.initial_region_half_width
-            },
-            'prediction_params': {
-                'n_pred_samples': args.n_pred_samples or len(posterior_samples),
-                'percentiles': args.percentiles,
-                'seed': args.seed
+    # Save results (only for sampling mode, not for loading mode)
+    if not args.load_predictions:
+        print(f"\n💾 Saving results...")
+        
+        # Save prediction results
+        output_data = {
+            'prediction_results': prediction_results,
+            'input_metadata': {
+                'results_path': str(args.results_path),
+                'posterior_samples_shape': posterior_samples.shape,
+                'true_parameters': true_parameters,
+                'simulation_params': {
+                    'Lx': actual_Lx, 'Ly': actual_Ly, 'T': actual_T,
+                    'initial_region_half_width': args.initial_region_half_width
+                },
+                'prediction_params': {
+                    'n_pred_samples': args.n_pred_samples or len(posterior_samples),
+                    'percentiles': args.percentiles,
+                    'seed': args.seed
+                }
             }
         }
-    }
-    
-    if observed_data is not None:
-        output_data['observed_data'] = observed_data
-    
-    with open(output_dir / "predictive_results.pkl", 'wb') as f:
-        pickle.dump(output_data, f)
-    
-    # Save summary
-    summary_path = output_dir / "prediction_summary.txt"
-    with open(summary_path, 'w') as f:
-        f.write("Posterior Predictive Sampling Summary\n")
-        f.write("=" * 50 + "\n")
-        f.write(f"Timestamp: {datetime.now()}\n")
-        f.write(f"Results file: {args.results_path}\n")
-        f.write(f"Output directory: {output_dir}\n\n")
-        
-        f.write("Simulation Parameters:\n")
-        f.write(f"  Lattice size: {args.Lx} x {args.Ly}\n")
-        f.write(f"  Time steps: {args.T}\n")
-        f.write(f"  Initial region half-width: {args.initial_region_half_width or args.Lx//4}\n\n")
-        
-        f.write("Prediction Parameters:\n")
-        f.write(f"  Posterior samples available: {len(posterior_samples)}\n")
-        f.write(f"  Predictive samples generated: {prediction_results['metadata']['n_predictions']}\n")
-        f.write(f"  Percentiles computed: {args.percentiles}\n")
-        f.write(f"  Random seed: {args.seed}\n\n")
-        
-        f.write("Results:\n")
-        global_stats = prediction_results['global_stats']
-        f.write(f"  Total agents - Mean: {global_stats['total_agents_mean']:.2f}\n")
-        f.write(f"  Total agents - Std: {global_stats['total_agents_std']:.2f}\n")
-        f.write(f"  Total agents - Range: [{global_stats['total_agents_min']}, {global_stats['total_agents_max']}]\n")
         
         if observed_data is not None:
-            observed_total = np.sum(observed_data)
-            f.write(f"  Observed total agents: {observed_total}\n")
+            output_data['observed_data'] = observed_data
+        
+        with open(output_dir / "predictive_results.pkl", 'wb') as f:
+            pickle.dump(output_data, f)
+        
+        # Save summary
+        summary_path = output_dir / "prediction_summary.txt"
+        with open(summary_path, 'w') as f:
+            f.write("Posterior Predictive Sampling Summary\n")
+            f.write("=" * 50 + "\n")
+            f.write(f"Timestamp: {datetime.now()}\n")
+            f.write(f"Results file: {args.results_path}\n")
+            f.write(f"Output directory: {output_dir}\n\n")
             
-            # Check if observed falls within prediction interval
-            predictions_total = np.sum(predictions, axis=1)
-            p2_5 = np.percentile(predictions_total, 2.5)
-            p97_5 = np.percentile(predictions_total, 97.5)
-            in_interval = p2_5 <= observed_total <= p97_5
-            f.write(f"  Observed in 95% interval: {in_interval} (interval: [{p2_5:.1f}, {p97_5:.1f}])\n")
+            f.write("Simulation Parameters:\n")
+            f.write(f"  Lattice size: {actual_Lx} x {actual_Ly}\n")
+            f.write(f"  Time steps: {actual_T}\n")
+            f.write(f"  Initial region half-width: {args.initial_region_half_width or actual_Lx//4}\n\n")
+            
+            f.write("Prediction Parameters:\n")
+            f.write(f"  Posterior samples available: {len(posterior_samples)}\n")
+            f.write(f"  Predictive samples generated: {prediction_results['metadata']['n_predictions']}\n")
+            f.write(f"  Percentiles computed: {args.percentiles}\n")
+            f.write(f"  Random seed: {args.seed}\n\n")
+            
+            f.write("Results:\n")
+            global_stats = prediction_results['global_stats']
+            f.write(f"  Total agents - Mean: {global_stats['total_agents_mean']:.2f}\n")
+            f.write(f"  Total agents - Std: {global_stats['total_agents_std']:.2f}\n")
+            f.write(f"  Total agents - Range: [{global_stats['total_agents_min']}, {global_stats['total_agents_max']}]\n")
+            
+            if observed_data is not None:
+                observed_total = np.sum(observed_data)
+                f.write(f"  Observed total agents: {observed_total}\n")
+                
+                # Check if observed falls within prediction interval
+                predictions_total = np.sum(predictions, axis=1)
+                p2_5 = np.percentile(predictions_total, 2.5)
+                p97_5 = np.percentile(predictions_total, 97.5)
+                in_interval = p2_5 <= observed_total <= p97_5
+                f.write(f"  Observed in 95% interval: {in_interval} (interval: [{p2_5:.1f}, {p97_5:.1f}])\n")
     
     # Workflow completed
     total_elapsed = time.time() - total_start
     
-    print(f"\n🎉 POSTERIOR PREDICTIVE SAMPLING COMPLETED!")
-    print(f"⏱️  Total time: {total_elapsed:.1f} seconds")
-    print(f"📁 Results saved in: {output_dir}")
-    print(f"\n📊 Files created:")
-    print(f"   📈 Prediction intervals plot: prediction_intervals.png")
-    print(f"   💾 Full results: predictive_results.pkl")
-    print(f"   📝 Summary: prediction_summary.txt")
+    if args.load_predictions:
+        print(f"\n🎉 PLOT GENERATION COMPLETED!")
+        print(f"⏱️  Total time: {total_elapsed:.1f} seconds")
+        print(f"📁 Plot saved in: {output_dir}")
+        print(f"\n📊 File created:")
+        print(f"   📈 Updated prediction intervals plot: prediction_intervals.png")
+    else:
+        print(f"\n🎉 POSTERIOR PREDICTIVE SAMPLING COMPLETED!")
+        print(f"⏱️  Total time: {total_elapsed:.1f} seconds")
+        print(f"📁 Results saved in: {output_dir}")
+        print(f"\n📊 Files created:")
+        print(f"   📈 Prediction intervals plot: prediction_intervals.png")
+        print(f"   💾 Full results: predictive_results.pkl")
+        print(f"   📝 Summary: prediction_summary.txt")
     
     print(f"\n📈 Prediction Summary:")
     global_stats = prediction_results['global_stats']
@@ -468,7 +585,9 @@ def main():
     
     if observed_data is not None:
         observed_total = np.sum(observed_data)
-        predictions_total = np.sum(predictions, axis=1)
+        # Get predictions from the results data structure
+        predictions_data = prediction_results['predictions']
+        predictions_total = np.sum(predictions_data, axis=1)
         p2_5 = np.percentile(predictions_total, 2.5)
         p97_5 = np.percentile(predictions_total, 97.5)
         in_interval = p2_5 <= observed_total <= p97_5

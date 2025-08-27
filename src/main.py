@@ -426,6 +426,11 @@ def main():
     print(f"   - Try different lattice sizes or time steps")
     print(f"   - Test with different true parameter values")
     print(f"   - Analyze model performance with validation data")
+    
+    print(f"\n🔮 Posterior Predictive Sampling:")
+    print(f"   Run posterior predictive sampling for uncertainty quantification:")
+    print(f"   python src/predict.py {results_dir}/results.pkl")
+    print(f"   This generates prediction intervals and visualizes model uncertainty")
 
 
 if __name__ == '__main__':
