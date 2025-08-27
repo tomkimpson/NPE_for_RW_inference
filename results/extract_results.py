@@ -42,8 +42,8 @@ def extract_results(input_path, output_path=None):
     print(f"Loading results from: {input_path}")
     
     # Load full results with CUDA tensor handling
-    with open(filepath, 'rb') as f:
-        full_results=return pickle.load(f)
+    with open(input_path, 'rb') as f:
+        full_results= pickle.load(f)
     
     # Extract essential data
     extracted_data = {

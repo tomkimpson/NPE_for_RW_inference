@@ -15,6 +15,7 @@ from datetime import datetime
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
+from scipy import ndimage
 from typing import Tuple, Dict, Any, Optional, List
 
 # Project imports
@@ -208,7 +209,8 @@ def posterior_predictive_sample(
 
 def compute_prediction_intervals(
     predictions: np.ndarray,
-    percentiles: List[float] = [2.5, 25, 50, 75, 97.5]
+    percentiles: List[float] = [2.5, 25, 50, 75, 97.5],
+    smooth_sigma: Optional[float] = None
 ) -> Dict[str, Any]:
     """
     Compute prediction intervals and summary statistics.
@@ -219,6 +221,9 @@ def compute_prediction_intervals(
         Predicted column counts
     percentiles : List[float]
         Percentiles to compute for intervals
+    smooth_sigma : Optional[float]
+        Standard deviation for Gaussian smoothing of percentiles.
+        If None, no smoothing is applied (maintains backward compatibility).
         
     Returns:
     --------
@@ -232,6 +237,18 @@ def compute_prediction_intervals(
     intervals = {}
     for p in percentiles:
         intervals[f"p{p}"] = np.percentile(predictions, p, axis=0)
+    
+    # Apply smoothing if requested
+    if smooth_sigma is not None:
+        print(f"   Applying Gaussian smoothing (σ = {smooth_sigma})...")
+        smoothed_intervals = {}
+        for p in percentiles:
+            smoothed_intervals[f"p{p}"] = ndimage.gaussian_filter1d(
+                intervals[f"p{p}"], sigma=smooth_sigma
+            )
+        # Store both raw and smoothed intervals
+        intervals['raw'] = {f"p{p}": intervals[f"p{p}"] for p in percentiles}
+        intervals.update(smoothed_intervals)
     
     # Summary statistics
     stats = {
@@ -257,7 +274,8 @@ def compute_prediction_intervals(
         'metadata': {
             'n_predictions': n_pred,
             'n_columns': n_columns,
-            'percentiles': percentiles
+            'percentiles': percentiles,
+            'smooth_sigma': smooth_sigma
         }
     }
     
@@ -294,6 +312,7 @@ def plot_prediction_intervals(
     """
     intervals = prediction_results['intervals']
     stats = prediction_results['column_stats']
+    smooth_sigma = prediction_results['metadata'].get('smooth_sigma', None)
     
     fig, ax1 = plt.subplots(1, 1, figsize=(12, 6))
     
@@ -316,9 +335,104 @@ def plot_prediction_intervals(
     
     ax1.set_xlabel('Column Index (centered)')
     ax1.set_ylabel('Agent Count')
-    ax1.set_title(f'Posterior Predictive Distribution{title_suffix}')
+    
+    # Add smoothing info to title if applicable
+    title = f'Posterior Predictive Distribution{title_suffix}'
+    if smooth_sigma is not None:
+        title += f' (smoothed, σ={smooth_sigma})'
+    ax1.set_title(title)
+    
     ax1.legend()
     ax1.grid(True, alpha=0.3)
+    return fig
+
+
+def plot_prediction_violins(
+    prediction_results: Dict[str, Any],
+    observed_data: Optional[np.ndarray] = None,
+    Lx: int = 21,
+    violin_columns: Optional[List[int]] = None,
+    title_suffix: str = ""
+) -> plt.Figure:
+    """
+    Create violin plots showing full prediction distributions for selected columns.
+    
+    Parameters:
+    -----------
+    prediction_results : Dict
+        Results from compute_prediction_intervals
+    observed_data : np.ndarray, optional
+        Observed column counts for comparison
+    Lx : int
+        Number of columns (for column selection)
+    violin_columns : List[int], optional
+        Column indices to plot (default: center 7 columns)
+    title_suffix : str
+        Additional text for plot title
+        
+    Returns:
+    --------
+    matplotlib Figure
+    """
+    predictions = prediction_results['predictions']
+    n_pred, n_columns = predictions.shape
+    
+    # Default to center columns if not specified
+    if violin_columns is None:
+        center = n_columns // 2
+        violin_columns = list(range(max(0, center - 3), min(n_columns, center + 4)))
+    
+    # Validate column indices
+    violin_columns = [c for c in violin_columns if 0 <= c < n_columns]
+    if not violin_columns:
+        raise ValueError("No valid column indices provided")
+    
+    # Prepare data for violin plot
+    violin_data = [predictions[:, col] for col in violin_columns]
+    
+    # Create figure
+    fig, ax = plt.subplots(1, 1, figsize=(max(8, len(violin_columns) * 1.2), 6))
+    
+    # Create violin plot
+    parts = ax.violinplot(violin_data, positions=range(1, len(violin_columns) + 1), 
+                         widths=0.8, showmeans=False, showmedians=True, showextrema=True)
+    
+    # Customize violin appearance
+    for pc in parts['bodies']:
+        pc.set_facecolor('lightblue')
+        pc.set_alpha(0.7)
+    
+    # Add quartile lines
+    quartiles = []
+    for col in violin_columns:
+        col_data = predictions[:, col]
+        q1, q3 = np.percentile(col_data, [25, 75])
+        quartiles.append([q1, q3])
+    
+    for i, (q1, q3) in enumerate(quartiles):
+        ax.plot([i + 1, i + 1], [q1, q3], 'k-', linewidth=2, alpha=0.8)
+    
+    # Add observed data if available
+    if observed_data is not None:
+        observed_subset = [observed_data[col] for col in violin_columns]
+        ax.scatter(range(1, len(violin_columns) + 1), observed_subset, 
+                  c='red', s=50, marker='o', label='Observed Data', zorder=5)
+    
+    # Convert column indices to centered labels
+    x_min = -(Lx // 2)
+    centered_labels = [str(x_min + col) for col in violin_columns]
+    
+    # Formatting
+    ax.set_xticks(range(1, len(violin_columns) + 1))
+    ax.set_xticklabels(centered_labels)
+    ax.set_xlabel('Column Index (centered)')
+    ax.set_ylabel('Agent Count')
+    ax.set_title(f'Prediction Distributions by Column{title_suffix}')
+    ax.grid(True, alpha=0.3)
+    
+    if observed_data is not None:
+        ax.legend()
+    
     return fig
 
 
@@ -350,6 +464,14 @@ def main():
     parser.add_argument('--percentiles', type=float, nargs='+', 
                        default=[2.5, 25, 50, 75, 97.5],
                        help='Percentiles for prediction intervals')
+    
+    # Visualization parameters
+    parser.add_argument('--smooth_sigma', type=float, default=None,
+                       help='Gaussian smoothing parameter for prediction intervals (default: None, no smoothing)')
+    parser.add_argument('--create_violins', action='store_true',
+                       help='Generate violin plots for prediction distributions')
+    parser.add_argument('--violin_columns', type=int, nargs='+', default=None,
+                       help='Column indices for violin plots (default: center 7 columns)')
     
     # General parameters
     parser.add_argument('--seed', type=int, default=42,
@@ -409,6 +531,18 @@ def main():
         actual_T = sim_params['T']
         
         print(f"⚙️  Using simulation settings from loaded data: Lx={actual_Lx}, Ly={actual_Ly}, T={actual_T}")
+        
+        # Apply smoothing if requested (even in load mode)
+        if args.smooth_sigma is not None:
+            print(f"\n📊 Re-computing intervals with smoothing (σ = {args.smooth_sigma})...")
+            # Extract the raw predictions from loaded results
+            raw_predictions = prediction_results['predictions'] 
+            # Re-compute intervals with smoothing
+            prediction_results = compute_prediction_intervals(
+                predictions=raw_predictions,
+                percentiles=prediction_results['metadata']['percentiles'],
+                smooth_sigma=args.smooth_sigma
+            )
         
         # Skip to plotting
         print(f"\n📊 Creating visualizations from loaded data...")
@@ -481,7 +615,8 @@ def main():
         # Compute prediction intervals
         prediction_results = compute_prediction_intervals(
             predictions=predictions,
-            percentiles=args.percentiles
+            percentiles=args.percentiles,
+            smooth_sigma=args.smooth_sigma
         )
     
     # Create visualizations
@@ -496,6 +631,19 @@ def main():
     )
     fig.savefig(output_dir / "prediction_intervals.png", dpi=150, bbox_inches='tight')
     plt.close(fig)
+    
+    # Violin plots if requested
+    if args.create_violins:
+        print(f"   Creating violin plots...")
+        violin_fig = plot_prediction_violins(
+            prediction_results=prediction_results,
+            observed_data=observed_data,
+            Lx=actual_Lx,
+            violin_columns=args.violin_columns,
+            title_suffix=f" (T={actual_T})"
+        )
+        violin_fig.savefig(output_dir / "prediction_violins.png", dpi=150, bbox_inches='tight')
+        plt.close(violin_fig)
     
     # Save results (only for sampling mode, not for loading mode)
     if not args.load_predictions:
@@ -570,14 +718,18 @@ def main():
         print(f"\n🎉 PLOT GENERATION COMPLETED!")
         print(f"⏱️  Total time: {total_elapsed:.1f} seconds")
         print(f"📁 Plot saved in: {output_dir}")
-        print(f"\n📊 File created:")
+        print(f"\n📊 Files created:")
         print(f"   📈 Updated prediction intervals plot: prediction_intervals.png")
+        if args.create_violins:
+            print(f"   🎻 Updated violin plots: prediction_violins.png")
     else:
         print(f"\n🎉 POSTERIOR PREDICTIVE SAMPLING COMPLETED!")
         print(f"⏱️  Total time: {total_elapsed:.1f} seconds")
         print(f"📁 Results saved in: {output_dir}")
         print(f"\n📊 Files created:")
         print(f"   📈 Prediction intervals plot: prediction_intervals.png")
+        if args.create_violins:
+            print(f"   🎻 Violin plots: prediction_violins.png")
         print(f"   💾 Full results: predictive_results.pkl")
         print(f"   📝 Summary: prediction_summary.txt")
     
