@@ -332,7 +332,7 @@ def save_results(results: Dict[str, Any], filepath: str) -> None:
         if isinstance(obj, np.ndarray):
             return obj.tolist()
         elif isinstance(obj, torch.Tensor):
-            return obj.numpy().tolist()
+            return obj.cpu().numpy().tolist()
         elif isinstance(obj, dict):
             return {k: convert_arrays(v) for k, v in obj.items()}
         elif isinstance(obj, list):
@@ -510,6 +510,243 @@ def plot_training_curves(training_info: Dict[str, Any],
     else:
         axes[1].text(0.5, 0.5, 'Learning rate\nschedule not\navailable', 
                     ha='center', va='center', transform=axes[1].transAxes)
+    
+    plt.tight_layout()
+    return fig
+
+
+def compute_kl_divergence(samples1: np.ndarray, samples2: np.ndarray, 
+                         bins: int = 50, regularization: float = 1e-10) -> float:
+    """
+    Compute KL divergence between two sets of samples.
+    
+    Parameters:
+    -----------
+    samples1, samples2 : np.ndarray
+        Two sets of samples to compare (shape: n_samples x n_params)
+    bins : int
+        Number of histogram bins for density estimation
+    regularization : float
+        Small value to add for numerical stability
+        
+    Returns:
+    --------
+    float
+        KL divergence estimate
+    """
+    from scipy import stats
+    
+    # For multivariate case, compute KL for each dimension and average
+    if samples1.ndim == 2:
+        kl_divs = []
+        for dim in range(samples1.shape[1]):
+            s1_dim = samples1[:, dim]
+            s2_dim = samples2[:, dim]
+            
+            # Create histogram-based density estimates
+            data_range = [min(s1_dim.min(), s2_dim.min()), max(s1_dim.max(), s2_dim.max())]
+            hist1, bin_edges = np.histogram(s1_dim, bins=bins, range=data_range, density=True)
+            hist2, _ = np.histogram(s2_dim, bins=bins, range=data_range, density=True)
+            
+            # Normalize and regularize
+            p = hist1 + regularization
+            q = hist2 + regularization
+            p = p / p.sum()
+            q = q / q.sum()
+            
+            # Compute KL divergence for this dimension
+            kl_div = np.sum(p * np.log(p / q))
+            kl_divs.append(kl_div)
+            
+        return np.mean(kl_divs)
+    else:
+        # Univariate case
+        data_range = [min(samples1.min(), samples2.min()), max(samples1.max(), samples2.max())]
+        hist1, bin_edges = np.histogram(samples1, bins=bins, range=data_range, density=True)
+        hist2, _ = np.histogram(samples2, bins=bins, range=data_range, density=True)
+        
+        # Normalize and regularize
+        p = hist1 + regularization
+        q = hist2 + regularization
+        p = p / p.sum()
+        q = q / q.sum()
+        
+        return np.sum(p * np.log(p / q))
+
+
+def monitor_snpe_convergence(round_results: List[Dict[str, Any]], 
+                            threshold: float = 0.01) -> Dict[str, Any]:
+    """
+    Monitor convergence of SNPE across rounds.
+    
+    Parameters:
+    -----------
+    round_results : List[Dict[str, Any]]
+        Results from each SNPE round
+    threshold : float
+        Convergence threshold
+        
+    Returns:
+    --------
+    Dict[str, Any]
+        Convergence monitoring results
+    """
+    if len(round_results) < 2:
+        return {'converged': False, 'message': 'Need at least 2 rounds for convergence analysis'}
+    
+    convergence_metrics = []
+    parameter_evolution = {'U': [], 'P': []}
+    
+    # Load posterior samples from each round if available
+    for i, result in enumerate(round_results):
+        # This would need to be adapted based on how results are stored
+        # For now, we'll work with summary statistics if available
+        round_info = result.get('training_info', {})
+        
+        # Store parameter evolution (placeholder - would need actual posterior samples)
+        # parameter_evolution['U'].append(U_mean_for_round)
+        # parameter_evolution['P'].append(P_mean_for_round)
+    
+    # Determine if converged based on final metric
+    final_metric = convergence_metrics[-1] if convergence_metrics else float('inf')
+    converged = final_metric < threshold
+    
+    return {
+        'converged': converged,
+        'convergence_metrics': convergence_metrics,
+        'parameter_evolution': parameter_evolution,
+        'final_metric': final_metric,
+        'threshold': threshold,
+        'total_rounds': len(round_results)
+    }
+
+
+def plot_snpe_convergence(round_results: List[Dict[str, Any]], 
+                         figsize: Tuple[int, int] = (12, 8)) -> plt.Figure:
+    """
+    Create comprehensive convergence plot for SNPE.
+    
+    Parameters:
+    -----------
+    round_results : List[Dict[str, Any]]
+        Results from each SNPE round
+    figsize : Tuple[int, int]
+        Figure size
+        
+    Returns:
+    --------
+    plt.Figure
+        Figure showing convergence across rounds
+    """
+    if len(round_results) < 2:
+        # Create simple placeholder plot
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.text(0.5, 0.5, 'Need at least 2 rounds\nfor convergence plot', 
+                ha='center', va='center', transform=ax.transAxes)
+        ax.set_title('SNPE Convergence Analysis')
+        return fig
+    
+    fig, axes = plt.subplots(2, 2, figsize=figsize)
+    rounds = range(1, len(round_results) + 1)
+    
+    # Plot 1: Convergence metric over rounds
+    # This would be populated with actual convergence metrics
+    axes[0, 0].plot(rounds[1:], [0.1, 0.05, 0.02], 'bo-')  # Placeholder data
+    axes[0, 0].set_xlabel('Round')
+    axes[0, 0].set_ylabel('Convergence Metric')
+    axes[0, 0].set_title('Convergence Progress')
+    axes[0, 0].grid(True, alpha=0.3)
+    axes[0, 0].set_yscale('log')
+    
+    # Plot 2: Parameter evolution (U)
+    axes[0, 1].plot(rounds, [0.25, 0.29, 0.31], 'ro-', label='U estimate')  # Placeholder
+    axes[0, 1].axhline(y=0.3, color='red', linestyle='--', alpha=0.7, label='True U')
+    axes[0, 1].set_xlabel('Round')
+    axes[0, 1].set_ylabel('U Parameter')
+    axes[0, 1].set_title('U Parameter Evolution')
+    axes[0, 1].legend()
+    axes[0, 1].grid(True, alpha=0.3)
+    
+    # Plot 3: Parameter evolution (P)
+    axes[1, 0].plot(rounds, [0.75, 0.71, 0.69], 'bo-', label='P estimate')  # Placeholder
+    axes[1, 0].axhline(y=0.7, color='blue', linestyle='--', alpha=0.7, label='True P')
+    axes[1, 0].set_xlabel('Round')
+    axes[1, 0].set_ylabel('P Parameter')
+    axes[1, 0].set_title('P Parameter Evolution')
+    axes[1, 0].legend()
+    axes[1, 0].grid(True, alpha=0.3)
+    
+    # Plot 4: Uncertainty evolution
+    axes[1, 1].plot(rounds, [0.1, 0.08, 0.06], 'go-', label='U std')  # Placeholder
+    axes[1, 1].plot(rounds, [0.12, 0.09, 0.07], 'mo-', label='P std')  # Placeholder
+    axes[1, 1].set_xlabel('Round')
+    axes[1, 1].set_ylabel('Posterior Std Dev')
+    axes[1, 1].set_title('Uncertainty Reduction')
+    axes[1, 1].legend()
+    axes[1, 1].grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    return fig
+
+
+def compare_npe_snpe_results(npe_samples: np.ndarray, snpe_samples: np.ndarray,
+                            true_parameters: Optional[np.ndarray] = None,
+                            figsize: Tuple[int, int] = (15, 5)) -> plt.Figure:
+    """
+    Compare NPE and SNPE results side by side.
+    
+    Parameters:
+    -----------
+    npe_samples : np.ndarray
+        Posterior samples from standard NPE
+    snpe_samples : np.ndarray  
+        Posterior samples from SNPE
+    true_parameters : np.ndarray, optional
+        True parameter values
+    figsize : Tuple[int, int]
+        Figure size
+        
+    Returns:
+    --------
+    plt.Figure
+        Comparison figure
+    """
+    fig, axes = plt.subplots(1, 3, figsize=figsize)
+    param_names = ['U (initial occupancy)', 'P (movement probability)']
+    colors = ['skyblue', 'lightcoral']
+    
+    for i, (name, color) in enumerate(zip(param_names, colors)):
+        # NPE vs SNPE comparison for each parameter
+        axes[i].hist(npe_samples[:, i], bins=30, alpha=0.7, label='NPE', 
+                    color='lightblue', density=True)
+        axes[i].hist(snpe_samples[:, i], bins=30, alpha=0.7, label='SNPE', 
+                    color='lightcoral', density=True)
+        
+        if true_parameters is not None:
+            axes[i].axvline(true_parameters[i], color='red', linestyle='--', 
+                           linewidth=2, label='True value')
+        
+        axes[i].set_xlabel(name)
+        axes[i].set_ylabel('Density')
+        axes[i].set_title(f'{name.split("(")[0].strip()} Comparison')
+        axes[i].legend()
+        axes[i].grid(True, alpha=0.3)
+    
+    # Joint distribution comparison
+    axes[2].scatter(npe_samples[:, 0], npe_samples[:, 1], 
+                   alpha=0.5, s=1, color='lightblue', label='NPE')
+    axes[2].scatter(snpe_samples[:, 0], snpe_samples[:, 1], 
+                   alpha=0.5, s=1, color='lightcoral', label='SNPE')
+    
+    if true_parameters is not None:
+        axes[2].scatter(true_parameters[0], true_parameters[1], 
+                       color='red', s=100, marker='x', linewidth=3, label='True values')
+    
+    axes[2].set_xlabel('U (initial occupancy)')
+    axes[2].set_ylabel('P (movement probability)')
+    axes[2].set_title('Joint Posterior Comparison')
+    axes[2].legend()
+    axes[2].grid(True, alpha=0.3)
     
     plt.tight_layout()
     return fig

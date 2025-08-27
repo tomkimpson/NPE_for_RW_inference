@@ -10,7 +10,7 @@ import numpy as np
 import torch
 import pickle
 import warnings
-from typing import Tuple, Dict, Any, Optional
+from typing import Tuple, Dict, Any, Optional, List
 from pathlib import Path
 from scipy import stats
 import matplotlib.pyplot as plt
@@ -30,13 +30,13 @@ import tqdm
 
 
 class RandomWalkNPE:
-    """Neural Posterior Estimation for Random Walk parameter inference."""
+    """Sequential Neural Posterior Estimation for Random Walk parameter inference."""
     
     def __init__(self, 
                  device: str = 'cpu',
                  seed: Optional[int] = None):
         """
-        Initialize NPE inference.
+        Initialize SNPE inference.
         
         Parameters:
         -----------
@@ -61,6 +61,11 @@ class RandomWalkNPE:
         
         self.inference = None
         self.posterior = None
+        
+        # Sequential training attributes
+        self.posteriors_by_round = []  # Store posterior from each round
+        self.training_history = []  # Store training info from each round
+        self.current_round = 0
         
     def setup_inference(self, x_dim: int, **kwargs):
         """
@@ -100,10 +105,11 @@ class RandomWalkNPE:
         T: int,
         output_path: Optional[str] = None,
         prior_bounds: Optional[Dict[str, Tuple[float, float]]] = None,
-        random_seed: Optional[int] = None
+        random_seed: Optional[int] = None,
+        proposal_distribution = None
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        Generate training data for NPE by running simulations.
+        Generate training data for SNPE by running simulations.
         
         Parameters:
         -----------
@@ -116,9 +122,11 @@ class RandomWalkNPE:
         output_path : str, optional
             Path to save training data
         prior_bounds : Dict[str, Tuple[float, float]], optional
-            Prior bounds for parameters
+            Prior bounds for parameters (used only if proposal_distribution is None)
         random_seed : int, optional
             Random seed for reproducibility
+        proposal_distribution : optional
+            Proposal distribution for sequential rounds (if None, uses priors)
             
         Returns:
         --------
@@ -158,22 +166,38 @@ class RandomWalkNPE:
         parameters = np.zeros((n_simulations, 2))
         observations = np.zeros((n_simulations, simulator.Lx))
         
-        # Generate training data
-        for i in tqdm.tqdm(range(n_simulations)):
-            # Sample parameters from priors (uniform distributions)
-            U = np.random.uniform(*prior_bounds['U'])
-            P = np.random.uniform(*prior_bounds['P'])
+        # Sample all parameters at once if using proposal
+        if proposal_distribution is not None:
+            print(f"   Drawing {n_simulations} parameter samples from proposal distribution...")
+            # Sample all parameters at once to avoid multiple progress bars
+            theta_samples = proposal_distribution.sample((n_simulations,))
+            theta_samples_np = theta_samples.cpu().numpy()
             
-            # Run simulation
-            column_counts, _, _ = simulator.simulate(U, P, T)
+            # Generate training data
+            for i in tqdm.tqdm(range(n_simulations), desc="Running simulations"):
+                U = float(theta_samples_np[i, 0])
+                P = float(theta_samples_np[i, 1])
+                
+                # Run simulation
+                column_counts, _, _ = simulator.simulate(U, P, T)
+                
+                # Store results
+                parameters[i] = [U, P]
+                observations[i] = column_counts
+        else:
+            # Generate training data with prior sampling
+            for i in tqdm.tqdm(range(n_simulations), desc="Running simulations"):
+                # Sample parameters from priors (uniform distributions)
+                U = np.random.uniform(*prior_bounds['U'])
+                P = np.random.uniform(*prior_bounds['P'])
+                
+                # Run simulation
+                column_counts, _, _ = simulator.simulate(U, P, T)
+                
+                # Store results
+                parameters[i] = [U, P]
+                observations[i] = column_counts
             
-            # Store results
-            parameters[i] = [U, P]
-            observations[i] = column_counts
-            
-            # Progress indication
-            # if n_simulations > 100 and (i + 1) % max(1, n_simulations // 10) == 0:
-            #     print(f"Generated {i + 1}/{n_simulations} simulations ({100*(i+1)/n_simulations:.1f}%)")
         
         # Convert to tensors
         theta = torch.tensor(parameters, dtype=torch.float32)
@@ -286,7 +310,7 @@ class RandomWalkNPE:
         theta = theta.to(self.device)
         x = x.to(self.device)
         
-        # Add training data
+        # Add training data (no proposal for standard NPE)
         self.inference = self.inference.append_simulations(theta, x)
         
         # Train (remove neural_net_kwargs from training arguments)
@@ -314,6 +338,309 @@ class RandomWalkNPE:
         }
         
         return training_info
+    
+    def train_round(self, 
+                   theta: torch.Tensor, 
+                   x: torch.Tensor,
+                   proposal_distribution = None,
+                   training_batch_size: int = 512,
+                   learning_rate: float = 1e-4,
+                   max_num_epochs: int = 100,
+                   validation_fraction: float = 0.1,
+                   stop_after_epochs: int = 20,
+                   neural_net_kwargs: Optional[Dict[str, Any]] = None,
+                   **kwargs) -> Dict[str, Any]:
+        """
+        Train neural posterior estimator for a single SNPE round.
+        
+        Parameters:
+        -----------
+        theta : torch.Tensor of shape (n_samples, 2)
+            Parameter vectors [U, P]
+        x : torch.Tensor of shape (n_samples, x_dim)
+            Observations (column counts)
+        proposal_distribution : optional
+            Proposal distribution for this round (None for first round)
+        training_batch_size : int
+            Batch size for training
+        learning_rate : float
+            Learning rate
+        max_num_epochs : int
+            Maximum training epochs
+        validation_fraction : float
+            Fraction of data for validation
+        stop_after_epochs : int
+            Early stopping patience
+        neural_net_kwargs : Dict[str, Any], optional
+            Neural network configuration arguments
+        **kwargs : additional training arguments
+            
+        Returns:
+        --------
+        training_info : dict
+            Training information and losses
+        """
+        if self.inference is None:
+            # Pass neural network configuration to setup
+            setup_kwargs = {}
+            if neural_net_kwargs is not None:
+                setup_kwargs['neural_net_kwargs'] = neural_net_kwargs
+            self.setup_inference(x_dim=x.shape[1], **setup_kwargs)
+            
+        print(f"Training SNPE round with {len(theta)} samples...")
+        print(f"Parameter shape: {theta.shape}")
+        print(f"Observation shape: {x.shape}")
+        print(f"Note: Negative validation performance is normal (log-probability values)")
+        
+        # Move tensors to the correct device
+        theta = theta.to(self.device)
+        x = x.to(self.device)
+        
+        # Add training data with proposal if provided
+        if proposal_distribution is not None:
+            # proposal_distribution is now the posterior with default_x set
+            self.inference = self.inference.append_simulations(theta, x, proposal=proposal_distribution)
+        else:
+            # First round: no proposal
+            self.inference = self.inference.append_simulations(theta, x)
+        
+        # Train
+        density_estimator = self.inference.train(
+            training_batch_size=training_batch_size,
+            learning_rate=learning_rate,
+            max_num_epochs=max_num_epochs,
+            validation_fraction=validation_fraction,
+            stop_after_epochs=stop_after_epochs,
+            show_train_summary=True,
+            **kwargs
+        )
+        
+        # Build posterior
+        self.posterior = self.inference.build_posterior()
+        
+        # Return training info as a dictionary
+        training_info = {
+            'density_estimator': density_estimator,
+            'training_completed': True,
+            'max_epochs': max_num_epochs,
+            'batch_size': training_batch_size,
+            'learning_rate': learning_rate,
+            'validation_fraction': validation_fraction
+        }
+        
+        return training_info
+    
+    def train_sequential(self, 
+                        simulator: RandomWalkSimulator,
+                        n_rounds: int,
+                        n_simulations_per_round: int,
+                        T: int,
+                        x_obs: torch.Tensor,
+                        training_batch_size: int = 512,
+                        learning_rate: float = 1e-4,
+                        max_num_epochs: int = 100,
+                        validation_fraction: float = 0.1,
+                        stop_after_epochs: int = 20,
+                        neural_net_kwargs: Optional[Dict[str, Any]] = None,
+                        convergence_threshold: float = 0.01,
+                        random_seed: Optional[int] = None,
+                        output_dir: Optional[str] = None,
+                        **kwargs) -> Dict[str, Any]:
+        """
+        Train SNPE model through multiple sequential rounds.
+        
+        Parameters:
+        -----------
+        simulator : RandomWalkSimulator
+            Configured simulator instance
+        n_rounds : int
+            Number of sequential training rounds
+        n_simulations_per_round : int
+            Number of simulations to generate per round
+        T : int
+            Number of time steps for simulations
+        x_obs : torch.Tensor
+            Observed data for inference
+        training_batch_size : int
+            Batch size for training
+        learning_rate : float
+            Learning rate
+        max_num_epochs : int
+            Maximum training epochs per round
+        validation_fraction : float
+            Fraction of data for validation
+        stop_after_epochs : int
+            Early stopping patience
+        neural_net_kwargs : Dict[str, Any], optional
+            Neural network configuration arguments
+        convergence_threshold : float
+            Threshold for early stopping based on posterior change
+        random_seed : int, optional
+            Random seed for reproducibility
+        output_dir : str, optional
+            Directory to save intermediate results
+        **kwargs : additional training arguments
+            
+        Returns:
+        --------
+        sequential_training_info : dict
+            Comprehensive training information across all rounds
+        """
+        print(f"\n🔄 Starting Sequential NPE with {n_rounds} rounds")
+        print(f"   Simulations per round: {n_simulations_per_round}")
+        print(f"   Convergence threshold: {convergence_threshold}")
+        
+        self.posteriors_by_round = []
+        self.training_history = []
+        
+        for round_idx in range(n_rounds):
+            self.current_round = round_idx + 1
+            print(f"\n📊 ROUND {self.current_round}/{n_rounds}")
+            
+            # Determine proposal distribution for this round
+            if round_idx == 0:
+                proposal_distribution = None  # Use priors for first round
+                print("   Using prior distributions for parameter sampling")
+            else:
+                # Set default x for the posterior and pass it as proposal
+                self.posterior.set_default_x(x_obs)
+                proposal_distribution = self.posterior
+                print("   Using posterior from previous round as proposal")
+            
+            # Generate training data for this round
+            print(f"   Generating {n_simulations_per_round} training samples...")
+            theta, x = self.generate_training_data(
+                simulator=simulator,
+                n_simulations=n_simulations_per_round,
+                T=T,
+                proposal_distribution=proposal_distribution,
+                random_seed=random_seed + round_idx * 1000 if random_seed else None
+            )
+            
+            # Train model for this round
+            print(f"   Training neural network...")
+            training_info = self.train_round(
+                theta=theta,
+                x=x,
+                proposal_distribution=proposal_distribution,
+                training_batch_size=training_batch_size,
+                learning_rate=learning_rate,
+                max_num_epochs=max_num_epochs,
+                validation_fraction=validation_fraction,
+                stop_after_epochs=stop_after_epochs,
+                neural_net_kwargs=neural_net_kwargs,
+                **kwargs
+            )
+            
+            # Store results for this round (ensure posterior has default_x set)
+            self.posterior.set_default_x(x_obs)
+            self.posteriors_by_round.append(self.posterior)
+            self.training_history.append({
+                'round': self.current_round,
+                'n_simulations': n_simulations_per_round,
+                'training_info': training_info
+            })
+            
+            # Evaluate posterior on observed data
+            posterior_samples = self.sample_posterior(x_obs, num_samples=1000)
+            samples_np = posterior_samples.cpu().numpy()
+            U_mean, U_std = samples_np[:, 0].mean(), samples_np[:, 0].std()
+            P_mean, P_std = samples_np[:, 1].mean(), samples_np[:, 1].std()
+            
+            print(f"   Round {self.current_round} Results:")
+            print(f"     U: {U_mean:.4f} ± {U_std:.4f}")
+            print(f"     P: {P_mean:.4f} ± {P_std:.4f}")
+            
+            # Check for convergence (if not the first round)
+            if round_idx > 0:
+                convergence_metric = self._compute_convergence_metric(round_idx)
+                print(f"     Convergence metric: {convergence_metric:.6f}")
+                
+                if convergence_metric < convergence_threshold:
+                    print(f"   ✅ Convergence achieved after {self.current_round} rounds!")
+                    break
+            
+            # Save intermediate results if output directory provided
+            if output_dir is not None:
+                self._save_round_results(output_dir, round_idx, posterior_samples, training_info)
+        
+        # Prepare comprehensive results
+        sequential_training_info = {
+            'total_rounds_completed': self.current_round,
+            'converged': round_idx > 0 and convergence_metric < convergence_threshold if 'convergence_metric' in locals() else False,
+            'final_convergence_metric': convergence_metric if 'convergence_metric' in locals() else None,
+            'training_history': self.training_history,
+            'posteriors_by_round': len(self.posteriors_by_round)
+        }
+        
+        print(f"\n🎉 Sequential training completed after {self.current_round} rounds!")
+        return sequential_training_info
+    
+    def _compute_convergence_metric(self, round_idx: int) -> float:
+        """
+        Compute convergence metric between consecutive rounds.
+        
+        Parameters:
+        -----------
+        round_idx : int
+            Current round index
+            
+        Returns:
+        --------
+        float
+            Convergence metric (lower values indicate better convergence)
+        """
+        if round_idx == 0:
+            return float('inf')
+        
+        # Sample from previous and current posterior
+        prev_samples = self.posteriors_by_round[round_idx - 1].sample((1000,))
+        curr_samples = self.posteriors_by_round[round_idx].sample((1000,))
+        
+        # Compute simple metric based on sample statistics difference
+        prev_mean = prev_samples.mean(dim=0)
+        curr_mean = curr_samples.mean(dim=0)
+        prev_std = prev_samples.std(dim=0)
+        curr_std = curr_samples.std(dim=0)
+        
+        # Normalized difference in means and stds
+        mean_diff = torch.norm(curr_mean - prev_mean)
+        std_diff = torch.norm(curr_std - prev_std)
+        
+        # Combined metric
+        metric = float(mean_diff + std_diff)
+        return metric
+    
+    def _save_round_results(self, output_dir: str, round_idx: int, 
+                           posterior_samples: torch.Tensor, 
+                           training_info: Dict[str, Any]) -> None:
+        """Save results for a specific round."""
+        from pathlib import Path
+        import pickle
+        
+        round_dir = Path(output_dir) / f"round_{round_idx + 1}"
+        round_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Save posterior samples
+        samples_np = posterior_samples.cpu().numpy()
+        np.save(round_dir / "posterior_samples.npy", samples_np)
+        
+        # Save training info
+        with open(round_dir / "training_info.pkl", 'wb') as f:
+            pickle.dump(training_info, f)
+        
+        print(f"     Round {round_idx + 1} results saved to {round_dir}")
+    
+    def get_round_results(self) -> List[Dict[str, Any]]:
+        """
+        Get results from all completed rounds.
+        
+        Returns:
+        --------
+        List[Dict[str, Any]]
+            List of results for each round
+        """
+        return self.training_history.copy()
     
     def sample_posterior(self, 
                         x_obs: torch.Tensor,
@@ -468,7 +795,7 @@ class RandomWalkNPE:
         
         fig, axes = plt.subplots(1, 2, figsize=figsize)
         
-        samples_np = samples.numpy()
+        samples_np = samples.cpu().numpy()
         
         for i, (ax, name) in enumerate(zip(axes, param_names)):
             # Histogram
@@ -508,7 +835,7 @@ class RandomWalkNPE:
         fig : matplotlib.figure.Figure
             Figure object
         """
-        samples_np = samples.numpy()
+        samples_np = samples.cpu().numpy()
         
         fig, axes = plt.subplots(2, 2, figsize=figsize)
         
@@ -542,6 +869,158 @@ class RandomWalkNPE:
         
         plt.tight_layout()
         return fig
+    
+    def plot_snpe_evolution(self, 
+                           true_theta: Optional[torch.Tensor] = None,
+                           figsize: Tuple[int, int] = (15, 10)) -> plt.Figure:
+        """
+        Plot the evolution of posterior estimates across SNPE rounds.
+        
+        Parameters:
+        -----------
+        true_theta : torch.Tensor, optional
+            True parameter values [U, P]
+        figsize : Tuple[int, int]
+            Figure size
+            
+        Returns:
+        --------
+        plt.Figure
+            Figure showing posterior evolution
+        """
+        if len(self.posteriors_by_round) < 2:
+            fig, ax = plt.subplots(figsize=figsize)
+            ax.text(0.5, 0.5, 'Need at least 2 rounds\nfor evolution plot', 
+                    ha='center', va='center', transform=ax.transAxes)
+            ax.set_title('SNPE Posterior Evolution')
+            return fig
+        
+        n_rounds = len(self.posteriors_by_round)
+        fig, axes = plt.subplots(2, n_rounds, figsize=figsize)
+        
+        if n_rounds == 1:
+            axes = axes.reshape(2, 1)
+        
+        param_names = ['U (initial occupancy)', 'P (movement probability)']
+        colors = plt.cm.viridis(np.linspace(0, 1, n_rounds))
+        
+        # Sample from each round's posterior
+        all_samples = []
+        for i, posterior in enumerate(self.posteriors_by_round):
+            samples = posterior.sample((1000,)).cpu().numpy()
+            all_samples.append(samples)
+            
+            # Plot marginals for each parameter
+            for param_idx, param_name in enumerate(param_names):
+                ax = axes[param_idx, i]
+                ax.hist(samples[:, param_idx], bins=30, alpha=0.7, 
+                       color=colors[i], density=True)
+                
+                if true_theta is not None:
+                    ax.axvline(true_theta[param_idx].item(), color='red', 
+                              linestyle='--', linewidth=2)
+                
+                ax.set_title(f'Round {i+1}\n{param_name}')
+                ax.set_ylabel('Density' if i == 0 else '')
+                ax.grid(True, alpha=0.3)
+        
+        plt.tight_layout()
+        return fig
+    
+    def plot_round_comparison(self, 
+                             round1: int, 
+                             round2: int,
+                             true_theta: Optional[torch.Tensor] = None,
+                             figsize: Tuple[int, int] = (12, 8)) -> plt.Figure:
+        """
+        Compare posteriors between two specific rounds.
+        
+        Parameters:
+        -----------
+        round1, round2 : int
+            Round indices to compare (1-based)
+        true_theta : torch.Tensor, optional
+            True parameter values
+        figsize : Tuple[int, int]
+            Figure size
+            
+        Returns:
+        --------
+        plt.Figure
+            Comparison figure
+        """
+        if round1 < 1 or round1 > len(self.posteriors_by_round):
+            raise ValueError(f"round1 must be between 1 and {len(self.posteriors_by_round)}")
+        if round2 < 1 or round2 > len(self.posteriors_by_round):
+            raise ValueError(f"round2 must be between 1 and {len(self.posteriors_by_round)}")
+        
+        # Get samples from both rounds
+        samples1 = self.posteriors_by_round[round1-1].sample((1000,)).cpu().numpy()
+        samples2 = self.posteriors_by_round[round2-1].sample((1000,)).cpu().numpy()
+        
+        fig, axes = plt.subplots(2, 2, figsize=figsize)
+        param_names = ['U (initial occupancy)', 'P (movement probability)']
+        
+        for i, param_name in enumerate(param_names):
+            # Marginal comparison
+            axes[i, 0].hist(samples1[:, i], bins=30, alpha=0.7, 
+                           label=f'Round {round1}', color='lightblue', density=True)
+            axes[i, 0].hist(samples2[:, i], bins=30, alpha=0.7, 
+                           label=f'Round {round2}', color='lightcoral', density=True)
+            
+            if true_theta is not None:
+                axes[i, 0].axvline(true_theta[i].item(), color='red', 
+                                  linestyle='--', linewidth=2, label='True value')
+            
+            axes[i, 0].set_xlabel(param_name)
+            axes[i, 0].set_ylabel('Density')
+            axes[i, 0].set_title(f'{param_name} Comparison')
+            axes[i, 0].legend()
+            axes[i, 0].grid(True, alpha=0.3)
+        
+        # Joint distribution comparison
+        axes[0, 1].scatter(samples1[:, 0], samples1[:, 1], 
+                          alpha=0.5, s=1, color='lightblue', label=f'Round {round1}')
+        axes[0, 1].scatter(samples2[:, 0], samples2[:, 1], 
+                          alpha=0.5, s=1, color='lightcoral', label=f'Round {round2}')
+        
+        if true_theta is not None:
+            axes[0, 1].scatter(true_theta[0].item(), true_theta[1].item(), 
+                              color='red', s=100, marker='x', linewidth=3, label='True values')
+        
+        axes[0, 1].set_xlabel('U (initial occupancy)')
+        axes[0, 1].set_ylabel('P (movement probability)')
+        axes[0, 1].set_title('Joint Posterior Comparison')
+        axes[0, 1].legend()
+        axes[0, 1].grid(True, alpha=0.3)
+        
+        # Summary statistics comparison
+        stats1 = {
+            'U_mean': samples1[:, 0].mean(), 'U_std': samples1[:, 0].std(),
+            'P_mean': samples1[:, 1].mean(), 'P_std': samples1[:, 1].std()
+        }
+        stats2 = {
+            'U_mean': samples2[:, 0].mean(), 'U_std': samples2[:, 0].std(),
+            'P_mean': samples2[:, 1].mean(), 'P_std': samples2[:, 1].std()
+        }
+        
+        stats_text = f"Round {round1}:\n"
+        stats_text += f"U: {stats1['U_mean']:.3f} ± {stats1['U_std']:.3f}\n"
+        stats_text += f"P: {stats1['P_mean']:.3f} ± {stats1['P_std']:.3f}\n\n"
+        stats_text += f"Round {round2}:\n"
+        stats_text += f"U: {stats2['U_mean']:.3f} ± {stats2['U_std']:.3f}\n"
+        stats_text += f"P: {stats2['P_mean']:.3f} ± {stats2['P_std']:.3f}"
+        
+        axes[1, 1].text(0.1, 0.5, stats_text, transform=axes[1, 1].transAxes, 
+                        fontsize=10, verticalalignment='center',
+                        bbox=dict(boxstyle="round,pad=0.3", facecolor="lightgray"))
+        axes[1, 1].set_xlim(0, 1)
+        axes[1, 1].set_ylim(0, 1)
+        axes[1, 1].set_title('Summary Statistics')
+        axes[1, 1].axis('off')
+        
+        plt.tight_layout()
+        return fig
 
 
 # Legacy functions for backward compatibility
@@ -557,7 +1036,7 @@ def generate_training_data(
     theta, x = npe.generate_training_data(
         simulator, n_simulations, T, None, prior_bounds, random_seed
     )
-    return theta.numpy(), x.numpy()
+    return theta.cpu().numpy(), x.cpu().numpy()
 
 
 def define_priors(prior_type: str = "uniform") -> Dict[str, Any]:

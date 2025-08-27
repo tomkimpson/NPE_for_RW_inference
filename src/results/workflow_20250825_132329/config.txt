@@ -1,0 +1,36 @@
+NPE Random Walk Workflow Configuration
+==================================================
+Timestamp: 2025-08-25 13:23:29.279092
+Output directory: results/workflow_20250825_132329
+
+Arguments:
+  Lx: 100
+  Ly: 50
+  T: 100
+  initial_region_half_width: None
+  n_samples: 100
+  data_path: None
+  save_data: None
+  max_epochs: 100
+  batch_size: 512
+  learning_rate: 0.0001
+  hidden_features: 128
+  num_transforms: 5
+  validation_fraction: 0.1
+  stop_after_epochs: 20
+  theta_true: [0.3, 0.7]
+  num_samples: 5000
+  use_snpe: True
+  snpe_rounds: 3
+  samples_per_round: 500
+  convergence_threshold: 0.01
+  device: auto
+  seed: 42
+  output_dir: None
+  skip_data: False
+  skip_training: False
+  model_path: None
+
+Device Information:
+  device_used: cpu
+  cuda_available: False

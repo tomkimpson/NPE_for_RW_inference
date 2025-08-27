@@ -70,6 +70,16 @@ def main():
     parser.add_argument('--num_samples', type=int, default=5000,
                        help='Number of posterior samples')
     
+    # Sequential NPE parameters
+    parser.add_argument('--use_snpe', action='store_true',
+                       help='Use Sequential Neural Posterior Estimation (SNPE)')
+    parser.add_argument('--snpe_rounds', type=int, default=3,
+                       help='Number of sequential rounds for SNPE')
+    parser.add_argument('--samples_per_round', type=int, default=None,
+                       help='Number of simulations per SNPE round (default: n_samples // snpe_rounds)')
+    parser.add_argument('--convergence_threshold', type=float, default=0.01,
+                       help='Convergence threshold for early stopping in SNPE')
+    
     # General parameters
     parser.add_argument('--device', type=str, default='auto',
                        choices=['cpu', 'cuda', 'auto'],
@@ -121,10 +131,22 @@ def main():
     results_dir = output_dir / "inference_results"
     results_dir.mkdir(exist_ok=True)
     
-    print("🚀 Starting NPE Random Walk Workflow")
+    # Determine training approach
+    training_method = "Sequential NPE (SNPE)" if args.use_snpe else "Standard NPE"
+    
+    print(f"🚀 Starting {training_method} Random Walk Workflow")
     print(f"📁 Output directory: {output_dir}")
     print(f"🎯 Target parameters: U={args.theta_true[0]}, P={args.theta_true[1]}")
-    print(f"📊 Training samples: {args.n_samples}")
+    
+    if args.use_snpe:
+        samples_per_round = args.samples_per_round or (args.n_samples // args.snpe_rounds)
+        print(f"📊 SNPE Configuration:")
+        print(f"   Rounds: {args.snpe_rounds}")
+        print(f"   Samples per round: {samples_per_round}")
+        print(f"   Convergence threshold: {args.convergence_threshold}")
+    else:
+        print(f"📊 Training samples: {args.n_samples}")
+    
     print(f"🌱 Random seed: {args.seed}")
     print(f"📝 Note: PyTorch deprecation warnings are suppressed for cleaner output")
     print()
@@ -164,73 +186,7 @@ def main():
     # Initialize NPE
     npe = RandomWalkNPE(device=device, seed=args.seed)
     
-    # Step 1: Generate or load training data
-    if not args.skip_data and args.data_path is None:
-        print(f"\n📊 Generating {args.n_samples} training samples...")
-        start_time = time.time()
-        
-        save_path = args.save_data or data_path
-        theta, x = npe.generate_training_data(
-            simulator=simulator,
-            n_simulations=args.n_samples,
-            T=args.T,
-            output_path=save_path,
-            random_seed=args.seed
-        )
-        
-        elapsed = time.time() - start_time
-        print(f"✅ Data generation completed in {elapsed:.1f} seconds")
-        print(f"   Parameter range: U ∈ [{theta[:, 0].min():.3f}, {theta[:, 0].max():.3f}], "
-              f"P ∈ [{theta[:, 1].min():.3f}, {theta[:, 1].max():.3f}]")
-        print(f"   Observation range: [{x.min():.0f}, {x.max():.0f}] agents per column")
-        
-    else:
-        print(f"\n📂 Loading training data from {data_path}")
-        theta, x, metadata = RandomWalkNPE.load_training_data(data_path)
-        print(f"✅ Loaded {len(theta)} training samples")
-        print(f"   Simulation metadata: {metadata}")
-    
-    # Step 2: Train model
-    if not args.skip_training:
-        print(f"\n🧠 Training NPE model...")
-        start_time = time.time()
-        
-        # Setup neural network configuration
-        neural_net_kwargs = {
-            'hidden_features': args.hidden_features,
-            'num_transforms': args.num_transforms
-        }
-        
-        training_info = npe.train(
-            theta=theta,
-            x=x,
-            training_batch_size=args.batch_size,
-            learning_rate=args.learning_rate,
-            max_num_epochs=args.max_epochs,
-            validation_fraction=args.validation_fraction,
-            stop_after_epochs=args.stop_after_epochs,
-            neural_net_kwargs=neural_net_kwargs
-        )
-        
-        elapsed = time.time() - start_time
-        print(f"✅ Training completed in {elapsed:.1f} seconds")
-        
-        # Save model
-        metadata = {
-            'training_samples': len(theta),
-            'lattice_size': (args.Lx, args.Ly),
-            'time_steps': args.T,
-            'training_time': elapsed,
-            'training_epochs': args.max_epochs
-        }
-        npe.save_model(model_path, metadata)
-        
-    else:
-        print(f"\n📂 Loading trained model from {model_path}")
-        npe = RandomWalkNPE.load_model(model_path, device=device)
-        print("✅ Model loaded successfully")
-    
-    # Step 3: Generate test observation
+    # Step 0: Generate test observation (needed for SNPE)
     print(f"\n🎯 Generating test observation with true parameters U={args.theta_true[0]}, P={args.theta_true[1]}")
     true_theta = torch.tensor(args.theta_true, dtype=torch.float32)
     
@@ -245,7 +201,106 @@ def main():
     x_obs = torch.tensor(column_counts, dtype=torch.float32).unsqueeze(0)  # Add batch dimension
     print(f"   Observed data: {len(column_counts)} columns, {column_counts.sum()} total agents")
     
-    # Step 4: Perform inference
+    # Step 1: Training workflow - different for NPE vs SNPE
+    if not args.skip_training:
+        start_time = time.time()
+        
+        # Setup neural network configuration
+        neural_net_kwargs = {
+            'hidden_features': args.hidden_features,
+            'num_transforms': args.num_transforms
+        }
+        
+        if args.use_snpe:
+            # Sequential NPE workflow
+            samples_per_round = args.samples_per_round or (args.n_samples // args.snpe_rounds)
+            
+            training_info = npe.train_sequential(
+                simulator=simulator,
+                n_rounds=args.snpe_rounds,
+                n_simulations_per_round=samples_per_round,
+                T=args.T,
+                x_obs=x_obs,
+                training_batch_size=args.batch_size,
+                learning_rate=args.learning_rate,
+                max_num_epochs=args.max_epochs,
+                validation_fraction=args.validation_fraction,
+                stop_after_epochs=args.stop_after_epochs,
+                neural_net_kwargs=neural_net_kwargs,
+                convergence_threshold=args.convergence_threshold,
+                random_seed=args.seed,
+                output_dir=str(output_dir)
+            )
+            
+        else:
+            # Standard NPE workflow
+            if not args.skip_data and args.data_path is None:
+                print(f"\n📊 Generating {args.n_samples} training samples...")
+                
+                save_path = args.save_data or data_path
+                theta, x = npe.generate_training_data(
+                    simulator=simulator,
+                    n_simulations=args.n_samples,
+                    T=args.T,
+                    output_path=save_path,
+                    random_seed=args.seed
+                )
+                
+                print(f"✅ Data generation completed")
+                print(f"   Parameter range: U ∈ [{theta[:, 0].min():.3f}, {theta[:, 0].max():.3f}], "
+                      f"P ∈ [{theta[:, 1].min():.3f}, {theta[:, 1].max():.3f}]")
+                print(f"   Observation range: [{x.min():.0f}, {x.max():.0f}] agents per column")
+                
+            else:
+                print(f"\n📂 Loading training data from {data_path}")
+                theta, x, metadata = RandomWalkNPE.load_training_data(data_path)
+                print(f"✅ Loaded {len(theta)} training samples")
+                print(f"   Simulation metadata: {metadata}")
+            
+            # Train standard NPE
+            print(f"\n🧠 Training NPE model...")
+            training_info = npe.train(
+                theta=theta,
+                x=x,
+                training_batch_size=args.batch_size,
+                learning_rate=args.learning_rate,
+                max_num_epochs=args.max_epochs,
+                validation_fraction=args.validation_fraction,
+                stop_after_epochs=args.stop_after_epochs,
+                neural_net_kwargs=neural_net_kwargs
+            )
+        
+        elapsed = time.time() - start_time
+        print(f"✅ Training completed in {elapsed:.1f} seconds")
+        
+        # Save model
+        metadata = {
+            'training_approach': 'SNPE' if args.use_snpe else 'NPE',
+            'lattice_size': (args.Lx, args.Ly),
+            'time_steps': args.T,
+            'training_time': elapsed,
+            'training_epochs': args.max_epochs
+        }
+        
+        if args.use_snpe:
+            metadata.update({
+                'snpe_rounds': args.snpe_rounds,
+                'samples_per_round': samples_per_round,
+                'convergence_threshold': args.convergence_threshold,
+                'rounds_completed': training_info['total_rounds_completed'],
+                'converged': training_info['converged']
+            })
+        else:
+            metadata['training_samples'] = len(theta)
+            
+        npe.save_model(model_path, metadata)
+        
+    else:
+        print(f"\n📂 Loading trained model from {model_path}")
+        npe = RandomWalkNPE.load_model(model_path, device=device)
+        print("✅ Model loaded successfully")
+    
+    # Step 2: Perform inference
     print(f"\n🔍 Sampling {args.num_samples} posterior samples...")
     start_time = time.time()
     
@@ -255,7 +310,7 @@ def main():
     print(f"✅ Posterior sampling completed in {elapsed:.1f} seconds")
     
     # Compute summary statistics
-    samples_np = posterior_samples.numpy()
+    samples_np = posterior_samples.cpu().numpy()
     U_mean, U_std = samples_np[:, 0].mean(), samples_np[:, 0].std()
     P_mean, P_std = samples_np[:, 1].mean(), samples_np[:, 1].std()
     
@@ -306,7 +361,7 @@ def main():
     
     # Save results
     results = {
-        'posterior_samples': posterior_samples.numpy(),
+        'posterior_samples': posterior_samples.cpu().numpy(),
         'true_parameters': args.theta_true,
         'observed_data': column_counts,
         'summary_statistics': {
@@ -317,9 +372,19 @@ def main():
             'n_samples': args.num_samples,
             'lattice_size': (args.Lx, args.Ly),
             'time_steps': args.T,
-            'seed': args.seed
+            'seed': args.seed,
+            'training_approach': 'SNPE' if args.use_snpe else 'NPE'
         }
     }
+    
+    # Add SNPE-specific results if applicable
+    if args.use_snpe and 'training_info' in locals():
+        results['snpe_results'] = {
+            'rounds_completed': training_info.get('total_rounds_completed', 0),
+            'converged': training_info.get('converged', False),
+            'final_convergence_metric': training_info.get('final_convergence_metric'),
+            'round_results': npe.get_round_results()
+        }
     
     import pickle
     with open(results_dir / "results.pkl", 'wb') as f:
@@ -342,8 +407,22 @@ def main():
     print(f"   - observed_data.png")
     print(f"   - simulation_comparison.png")
     
+    # Print SNPE-specific summary if applicable
+    if args.use_snpe and 'training_info' in locals():
+        print(f"\n🔄 SNPE Summary:")
+        print(f"   Rounds completed: {training_info.get('total_rounds_completed', 0)}")
+        print(f"   Converged: {'Yes' if training_info.get('converged', False) else 'No'}")
+        if training_info.get('final_convergence_metric'):
+            print(f"   Final convergence metric: {training_info['final_convergence_metric']:.6f}")
+        print(f"   Round results saved in: {output_dir}/round_*")
+    
     print(f"\n🔍 Next steps:")
     print(f"   - Examine posterior plots for parameter estimates")
+    if args.use_snpe:
+        print(f"   - Review round-by-round convergence in {output_dir}/round_* directories")
+        print(f"   - Try different convergence thresholds or number of rounds")
+    else:
+        print(f"   - Try SNPE with --use_snpe for potentially better inference")
     print(f"   - Try different lattice sizes or time steps")
     print(f"   - Test with different true parameter values")
     print(f"   - Analyze model performance with validation data")
