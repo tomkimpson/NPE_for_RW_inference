@@ -28,23 +28,6 @@ NPE_for_RW_Inference/
 └── notebooks/                # Development notebooks
 ```
 
-## Installation
-
-1. **Clone this repository:**
-   ```bash
-   git clone <repository-url>
-   cd NPE_for_RW_Inference
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Verify installation:**
-   ```bash
-   python src/main.py --help
-   ```
 
 ## Quick Start
 
@@ -61,6 +44,9 @@ python src/main.py --device cpu --n_samples 10000
 
 # Force NVIDIA GPU usage (CUDA)
 python src/main.py --device cuda --n_samples 10000
+
+# Generate 10k training samples, train for 100 epochs, infer parameters
+python src/main.py --n_samples 10000 --max_epochs 100
 ```
 
 ### Sequential NPE (SNPE) - Recommended for better inference:
@@ -71,14 +57,27 @@ python src/main.py --use_snpe --snpe_rounds 5
 # Advanced SNPE with custom parameters
 python src/main.py --use_snpe --snpe_rounds 10 --samples_per_round 2000 \
   --convergence_threshold 0.001 --max_epochs 300
+
+# SNPE with larger neural networks (for complex problems)
+python src/main.py --use_snpe --hidden_features 768 --num_transforms 15 \
+  --learning_rate 5e-6 --batch_size 128
+
 ```
 
-### Get help:
+
+### Resume from existing models:
 ```bash
-python src/main.py --help  # See all available options
+# Skip training, use existing model for inference
+python src/main.py --skip_training --model_path results/previous_run/npe_model.pkl
 ```
 
-## Workflow Steps
+### HPC/Cluster usage:
+```bash
+# Submit SNPE job to SLURM cluster
+sbatch slurm/run_main.sh
+```
+
+## NPE vs SNPE
 
 The complete pipeline supports two training approaches:
 
@@ -93,61 +92,7 @@ The complete pipeline supports two training approaches:
 3. **Convergence**: Stop when posterior estimates stabilize or max rounds reached
 4. **Inference**: Use final trained model for parameter inference
 
-## Key Features
 
-- **Dual Training Modes**: Standard NPE and Sequential NPE (SNPE) for improved inference
-- **Flexible simulator**: 2D lattice random walk with configurable dimensions and boundary conditions
-- **Neural Posterior Estimation**: Using the `sbi` library with Neural Spline Flows
-- **Smart device detection**: Automatically uses CUDA if available, falls back to CPU
-- **Sequential convergence**: SNPE with automatic convergence detection and early stopping
-- **Comprehensive logging**: Round-by-round tracking for SNPE with intermediate results
-- **Data persistence**: Save/load training data and models as pickle files
-- **Comprehensive validation**: Coverage assessment and posterior visualization
-- **HPC ready**: SLURM job scripts included for cluster computing
-- **Modular design**: Easy to extend and modify individual components
-
-## Usage Examples
-
-### Standard NPE workflow:
-```bash
-# Generate 10k training samples, train for 100 epochs, infer parameters
-python src/main.py --n_samples 10000 --max_epochs 100
-```
-
-### Sequential NPE (SNPE) workflows:
-```bash
-# Basic SNPE - 5 rounds with auto-determined samples per round
-python src/main.py --use_snpe --snpe_rounds 5
-
-# Advanced SNPE with custom configuration
-python src/main.py --use_snpe --snpe_rounds 10 --samples_per_round 2000 \
-  --convergence_threshold 0.001 --max_epochs 300 --stop_after_epochs 80
-
-# SNPE with larger neural networks (for complex problems)
-python src/main.py --use_snpe --hidden_features 768 --num_transforms 15 \
-  --learning_rate 5e-6 --batch_size 128
-```
-
-### Resume from existing models:
-```bash
-# Skip training, use existing model for inference
-python src/main.py --skip_training --model_path results/previous_run/npe_model.pkl
-```
-
-### Test different lattice sizes:
-```bash
-# Larger lattice, more time steps
-python src/main.py --Lx 100 --Ly 50 --T 200
-
-# SNPE on large lattice (recommended for better scaling)
-python src/main.py --use_snpe --Lx 100 --Ly 50 --T 200 --snpe_rounds 8
-```
-
-### HPC/Cluster usage:
-```bash
-# Submit SNPE job to SLURM cluster
-sbatch slurm/run_main.sh
-```
 
 ## Output Structure
 
