@@ -543,50 +543,51 @@ def plot_simulation_comparison(
     plt.Figure
         Matplotlib figure object
     """
-    fig, axes = plt.subplots(1, 3, figsize=figsize)
+    fig = plt.figure(figsize=figsize)
+    gs = fig.add_gridspec(2, 2, hspace=0.1, wspace=0.3)
+    ax_initial = fig.add_subplot(gs[0, 0])
+    ax_final = fig.add_subplot(gs[1, 0], sharex=ax_initial)
+    ax_counts = fig.add_subplot(gs[:, 1])
     
     # Calculate x boundaries (centered around 0)
     x_min = -(Lx // 2)
     x_max = Lx // 2 if Lx % 2 == 1 else (Lx // 2) - 1
     
-    # Initial state
-    lattice_initial = np.zeros((Ly, Lx))
-    for x, y in initial_positions:
-        if x_min <= x <= x_max and 0 <= y < Ly:
-            array_index = x - x_min
-            lattice_initial[y, array_index] += 1
+    # Initial state - scatter plot
+    if initial_positions:
+        x_coords, y_coords = zip(*initial_positions)
+        ax_initial.scatter(x_coords, y_coords, c='blue', s=20, alpha=0.7, edgecolors='darkblue', linewidth=0.5)
     
-    im1 = axes[0].imshow(lattice_initial, cmap='Blues', origin='lower', aspect='equal',
-                        extent=[x_min, x_max+1, 0, Ly])
-    axes[0].set_title(f'Initial State\n({len(initial_positions)} agents)')
-    axes[0].set_xlabel('x (centered)')
-    axes[0].set_ylabel('y (row)')
-    axes[0].axvline(x=0, color='red', linestyle='--', alpha=0.7, linewidth=1)
-    plt.colorbar(im1, ax=axes[0], label='Agents')
+    ax_initial.set_xlim(x_min - 0.5, x_max + 0.5)
+    ax_initial.set_ylim(-0.5, Ly - 0.5)
+    ax_initial.set_title(f'Initial State\n({len(initial_positions)} agents)')
+    ax_initial.set_ylabel('y (row)')
+    ax_initial.axvline(x=0, color='red', linestyle='--', alpha=0.7, linewidth=1)
+    ax_initial.tick_params(labelbottom=False)
+    ax_initial.grid(True, alpha=0.3)
+    ax_initial.set_aspect('equal')
     
-    # Final state
-    lattice_final = np.zeros((Ly, Lx))
-    for x, y in final_positions:
-        if x_min <= x <= x_max and 0 <= y < Ly:
-            array_index = x - x_min
-            lattice_final[y, array_index] += 1
+    # Final state - scatter plot
+    if final_positions:
+        x_coords, y_coords = zip(*final_positions)
+        ax_final.scatter(x_coords, y_coords, c='blue', s=20, alpha=0.7, edgecolors='darkblue', linewidth=0.5)
     
-    im2 = axes[1].imshow(lattice_final, cmap='Blues', origin='lower', aspect='equal',
-                        extent=[x_min, x_max+1, 0, Ly])
-    axes[1].set_title(f'Final State (T={T})\n({len(final_positions)} agents)')
-    axes[1].set_xlabel('x (centered)')
-    axes[1].set_ylabel('y (row)')
-    axes[1].axvline(x=0, color='red', linestyle='--', alpha=0.7, linewidth=1)
-    plt.colorbar(im2, ax=axes[1], label='Agents')
+    ax_final.set_xlim(x_min - 0.5, x_max + 0.5)
+    ax_final.set_ylim(-0.5, Ly - 0.5)
+    ax_final.set_title(f'Final State (T={T})\n({len(final_positions)} agents)')
+    ax_final.set_xlabel('x (centered)')
+    ax_final.set_ylabel('y (row)')
+    ax_final.axvline(x=0, color='red', linestyle='--', alpha=0.7, linewidth=1)
+    ax_final.grid(True, alpha=0.3)
+    ax_final.set_aspect('equal')
     
     # Column counts
     x_positions = np.arange(x_min, x_max + 1)
-    axes[2].bar(x_positions, column_counts, alpha=0.7, color='skyblue', edgecolor='navy')
-    axes[2].set_title(f'Final Column Counts\nU={U:.3f}, P={P:.3f}')
-    axes[2].set_xlabel('Column (x, centered)')
-    axes[2].set_ylabel('Number of agents')
-    axes[2].axvline(x=0, color='red', linestyle='--', alpha=0.7, linewidth=1)
-    axes[2].grid(True, alpha=0.3)
-    
-    plt.tight_layout()
+    ax_counts.bar(x_positions, column_counts, alpha=0.7, color='skyblue', edgecolor='navy')
+    ax_counts.set_title(f'Final Column Counts\nU={U:.3f}, P={P:.3f}')
+    ax_counts.set_xlabel('Column (x, centered)')
+    ax_counts.set_ylabel('Number of agents')
+    ax_counts.axvline(x=0, color='red', linestyle='--', alpha=0.7, linewidth=1)
+    ax_counts.grid(True, alpha=0.3)
+
     return fig

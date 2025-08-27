@@ -198,9 +198,6 @@ class RandomWalkNPE:
                 parameters[i] = [U, P]
                 observations[i] = column_counts
             
-            # Progress indication
-            # if n_simulations > 100 and (i + 1) % max(1, n_simulations // 10) == 0:
-            #     print(f"Generated {i + 1}/{n_simulations} simulations ({100*(i+1)/n_simulations:.1f}%)")
         
         # Convert to tensors
         theta = torch.tensor(parameters, dtype=torch.float32)
