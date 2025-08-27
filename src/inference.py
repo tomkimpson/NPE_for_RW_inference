@@ -1021,6 +1021,94 @@ class RandomWalkNPE:
         
         plt.tight_layout()
         return fig
+    
+    def posterior_predictive_sample(self,
+                                   simulator: "RandomWalkSimulator",
+                                   x_obs: torch.Tensor,
+                                   T: int,
+                                   n_posterior_samples: int = 1000,
+                                   n_simulations_per_sample: int = 1,
+                                   random_seed: Optional[int] = None) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Generate posterior predictive samples by running simulator with posterior samples.
+        
+        Parameters:
+        -----------
+        simulator : RandomWalkSimulator
+            Simulator instance configured with appropriate lattice parameters
+        x_obs : torch.Tensor
+            Observed data that was used for posterior inference
+        T : int
+            Number of time steps for simulation
+        n_posterior_samples : int
+            Number of posterior samples to draw for prediction
+        n_simulations_per_sample : int
+            Number of forward simulations per posterior sample (for averaging)
+        random_seed : int, optional
+            Random seed for reproducibility
+            
+        Returns:
+        --------
+        Tuple containing:
+        - posterior_samples : torch.Tensor of shape (n_posterior_samples, 2)
+            Posterior parameter samples used for prediction [U, P]
+        - predictions : torch.Tensor of shape (n_posterior_samples, n_columns)
+            Predicted column counts for each posterior sample
+            
+        Notes:
+        ------
+        This method provides a convenient interface to posterior predictive sampling
+        directly from the NPE object. For more advanced options and analysis,
+        consider using the standalone predict.py script.
+        """
+        if self.posterior is None:
+            raise RuntimeError("Must train model before generating predictions")
+        
+        if random_seed is not None:
+            torch.manual_seed(random_seed)
+            np.random.seed(random_seed)
+        
+        # Sample from posterior
+        posterior_samples = self.sample_posterior(x_obs, num_samples=n_posterior_samples)
+        posterior_samples_np = posterior_samples.cpu().numpy()
+        
+        # Initialize predictions array
+        n_columns = simulator.Lx
+        predictions = np.zeros((n_posterior_samples, n_columns))
+        
+        print(f"🔮 Generating {n_posterior_samples} posterior predictive samples...")
+        if n_simulations_per_sample > 1:
+            print(f"   Using {n_simulations_per_sample} simulations per posterior sample (averaged)")
+        
+        # Generate predictions for each posterior sample
+        for i, (U, P) in enumerate(posterior_samples_np):
+            if i % max(1, n_posterior_samples // 10) == 0:
+                progress = 100 * (i + 1) / n_posterior_samples
+                print(f"   Progress: {i+1}/{n_posterior_samples} ({progress:.1f}%)")
+            
+            # Run multiple simulations per posterior sample if requested
+            sample_predictions = []
+            for sim_idx in range(n_simulations_per_sample):
+                seed_offset = i * n_simulations_per_sample + sim_idx if random_seed is not None else None
+                seed = random_seed + seed_offset if seed_offset is not None else None
+                
+                column_counts, _, _ = simulator.simulate(
+                    U=float(U), 
+                    P=float(P), 
+                    T=T,
+                    random_seed=seed
+                )
+                sample_predictions.append(column_counts)
+            
+            # Average across simulations for this posterior sample
+            predictions[i] = np.mean(sample_predictions, axis=0)
+        
+        print(f"✅ Posterior predictive sampling completed")
+        
+        # Convert predictions back to tensor
+        predictions_tensor = torch.tensor(predictions, dtype=torch.float32)
+        
+        return posterior_samples, predictions_tensor
 
 
 # Legacy functions for backward compatibility
