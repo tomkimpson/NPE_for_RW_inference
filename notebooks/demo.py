@@ -1,7 +1,7 @@
 import marimo
 
 __generated_with = "0.14.17"
-app = marimo.App(width="full", auto_download=["ipynb"])
+app = marimo.App(width="full")
 
 
 @app.cell
@@ -296,6 +296,7 @@ def _(mo):
     ## Sequential NPE (SNPE)
 
     **Sequential NPE** improves upon standard NPE by iteratively refining the posterior estimate:
+
     - **Round 1**: Sample from priors, train initial posterior estimate
     - **Round 2+**: Sample from previous posterior estimate, retrain with focused data
     - **Convergence**: Stop when posterior estimates stabilize
@@ -309,14 +310,16 @@ def _(mo):
     - **Target parameters**: U=0.3 (occupancy), P=0.7 (movement probability) 
     - **Sequential rounds**: 10 rounds with convergence monitoring
     - **Lattice size**: 100×50 with 100 time steps
-    - **Training**: 2000 simulations per round, advanced neural architecture
+    - **Training**: 2000 simulations per round
+
+    These training hyperparamters were chosen somewhat arbitrarily, just as a proof of concept. 
     """
     )
     return
 
 
 @app.cell
-def _(np, os, sys):
+def _(os, sys):
     """
     Import required modules for NPE analysis and visualization
     """
@@ -335,11 +338,6 @@ def _(np, os, sys):
     from inference import RandomWalkNPE
 
 
-    print("✅ Successfully imported NPE analysis modules!")
-    print(f"🔧 NumPy version: {np.__version__}")
-    print(f"🔥 PyTorch version: {torch.__version__}")
-    print(f"📊 Corner version: Available for posterior visualization")
-
     return RandomWalkNPE, corner, pickle, torch
 
 
@@ -352,12 +350,6 @@ def _(mo):
     We'll load the results from our successful SNPE workflow run `workflow_20250826_130359`. 
     This run used Sequential NPE to infer the parameters U and P from simulated random walk data.
 
-    The results contain:
-    - **Posterior samples**: 5000 samples from the final posterior distribution
-    - **True parameters**: The ground truth values used to generate the test data
-    - **Observed data**: The column counts that served as our observation
-    - **Summary statistics**: Means, standard deviations, and credible intervals
-    - **SNPE metadata**: Information about the sequential training process
     """
     )
     return
@@ -433,25 +425,6 @@ def _(corner, plt, posterior_samples, true_parameters):
     plt.xlim(0,1)
     plt.show()
 
-    return
-
-
-@app.cell
-def _(mo):
-    mo.md(
-        r"""
-    ## Sequential NPE Training Details
-
-    Let's examine how the Sequential NPE process worked for this inference. SNPE iteratively refines 
-    the posterior estimate by focusing training data in the most relevant parameter regions.
-
-    **Training Process:**
-    1. **Round 1**: Sample uniformly from priors, train initial network
-    2. **Rounds 2-N**: Sample from previous posterior, retrain with focused data
-    3. **Convergence**: Monitor posterior changes between rounds
-    4. **Final Result**: Converged posterior ready for inference
-    """
-    )
     return
 
 
