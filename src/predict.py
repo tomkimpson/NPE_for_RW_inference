@@ -339,7 +339,9 @@ def plot_prediction_intervals(
     # Add smoothing info to title if applicable
     title = f'Posterior Predictive Distribution{title_suffix}'
     if smooth_sigma is not None:
-        title += f' (smoothed, σ={smooth_sigma})'
+        title += fr' (smoothed, $\sigma$={smooth_sigma})'
+
+
     ax1.set_title(title)
     
     ax1.legend()
@@ -535,6 +537,8 @@ def main():
         # Apply smoothing if requested (even in load mode)
         if args.smooth_sigma is not None:
             print(f"\n📊 Re-computing intervals with smoothing (σ = {args.smooth_sigma})...")
+
+            print(prediction_results['metadata'])
             # Extract the raw predictions from loaded results
             raw_predictions = prediction_results['predictions'] 
             # Re-compute intervals with smoothing
@@ -622,6 +626,7 @@ def main():
     # Create visualizations
     print(f"\n📊 Creating visualizations...")
     
+
     # Main prediction plot
     fig = plot_prediction_intervals(
         prediction_results=prediction_results,
@@ -750,11 +755,6 @@ def main():
         print(f"   95% interval: [{p2_5:.1f}, {p97_5:.1f}]")
         print(f"   Observed in interval: {'Yes' if in_interval else 'No'}")
     
-    print(f"\n🔍 Next steps:")
-    print(f"   - Examine prediction_intervals.png for spatial uncertainty patterns")
-    print(f"   - Check if observed data falls within prediction intervals")
-    print(f"   - Compare predictions with different T values or parameter ranges")
-    print(f"   - Use predictions for model validation or experimental design")
 
 
 if __name__ == '__main__':

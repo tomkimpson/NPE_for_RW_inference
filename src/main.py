@@ -495,16 +495,6 @@ def main():
             print(f"   Final convergence metric: {training_info['final_convergence_metric']:.6f}")
         print(f"   Round results saved in: {output_dir}/round_*")
     
-    print(f"\n🔍 Next steps:")
-    print(f"   - Examine posterior plots for parameter estimates")
-    if args.use_snpe:
-        print(f"   - Review round-by-round convergence in {output_dir}/round_* directories")
-        print(f"   - Try different convergence thresholds or number of rounds")
-    else:
-        print(f"   - Try SNPE with --use_snpe for potentially better inference")
-    print(f"   - Try different lattice sizes or time steps")
-    print(f"   - Test with different true parameter values")
-    print(f"   - Analyze model performance with validation data")
     
     print(f"\n🔮 Posterior Predictive Results:")
     global_stats = prediction_results['global_stats']

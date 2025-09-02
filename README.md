@@ -8,29 +8,12 @@ The goal is to infer two key parameters from observation data:
 - **U**: Initial occupancy probability (probability that a site contains an agent at t=0)  
 - **P**: Movement probability (probability that an agent moves during a time step)
 
-## Repository Structure
-
-```
-NPE_for_RW_Inference/
-├── README.md                   # This file
-├── src/                        # Main source code
-│   ├── __init__.py            # Package initialization
-│   ├── main.py                # Main workflow script (entry point)
-│   ├── predict.py             # Posterior predictive sampling
-│   ├── simulator.py           # Random walk simulator
-│   ├── inference.py           # NPE/SNPE training and inference
-│   └── utils.py               # Utility functions
-├── results/                   # Analysis results and outputs
-├── docs/                      # Documentation
-│   └── summary.md            # Problem description
-├── slurm/                     # HPC job scripts
-│   └── run_main.sh           # SLURM job script for GPU deployment
-├── test/                      # Testing and validation
-└── notebooks/                # Development notebooks
-```
-
 
 ## Quick Start
+
+Please see `notebooks/demo.py` for a pedagogical walkthrough.
+
+This is a [marimo](https://marimo.io) notebook and can be launched (editable) as `marimo edit notebooks/demo.py`
 
 ### Run the complete workflow:
 ```bash
@@ -211,12 +194,3 @@ The `external_code/RandomWalkInference/` directory contains reference implementa
 
 SNPE typically achieves better posterior estimates by iteratively refining the training data distribution, focusing simulations on parameter regions more likely given the observed data.
 
-## Citation
-
-If you use this code in your research, please cite the original paper:
-
-> Simpson, M.J., & Planck, P. (2025). [Paper title]. bioRxiv. DOI: 10.1101/2025.05.25.656057v4
-
-## License
-
-This project's code is provided for research purposes. The external code in `external_code/` retains its original license from the source repository.

@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.14.17"
+__generated_with = "0.15.2"
 app = marimo.App(width="full")
 
 
@@ -12,12 +12,15 @@ def _():
 
     # Neural Posterior Estimation for Lattice Random Walk model
 
-    This notebook demonstrates the use of [neural posterior estimation](https://arxiv.org/abs/1912.02762) for paramter estimation of a lattice random walk model. It builds off earlier work by [Simpson & Planck 2025](https://www.biorxiv.org/content/10.1101/2025.05.25.656057v4) (see also https://github.com/ProfMJSimpson/RandomWalkInference).
+    This notebook demonstrates the use of [neural posterior estimation](https://arxiv.org/abs/1912.02762) for parameter estimation of a lattice random walk model. It builds off earlier work by [Simpson & Planck 2025](https://www.biorxiv.org/content/10.1101/2025.05.25.656057v4) (see also https://github.com/ProfMJSimpson/RandomWalkInference).
 
     The notebook is organised as follows:
 
     1. Demonstrate the simulator
     2. Demonstrate NPE for Bayesian parameter estimation
+
+
+    Note that this notebook is not self-contained, but calls modules from `src/`. 
 
     ---""")
     return (mo,)
@@ -27,7 +30,9 @@ def _():
 def _(mo):
     mo.md(
         r"""
-    ## 1. Simulator 
+    ## 1. Simulator (non-interacting, unbiased)
+
+    Our simulator is a classical non-interacting, unbiased random walk model, cf. Section 2.2 Simpson & Planck.
 
     - **Centered coordinate system**: x ∈ [-Lx/2, Lx/2], y ∈ [0, Ly-1]
     - **Initial placement**: Agents placed with probability U in central region around x=0
@@ -53,7 +58,7 @@ def _():
     from collections import defaultdict
 
     # Add src directory to path
-    sys.path.append(os.path.join(os.path.dirname(os.getcwd()), 'src'))
+    sys.path.append(os.path.join(os.getcwd(), 'src')) # Assumes notebook launched from project root
 
     import numpy as np
     import matplotlib.pyplot as plt
@@ -63,7 +68,7 @@ def _():
     np.random.seed(42)
 
     print("✅ Successfully imported simulator modules and timing utilities!")
-    return RandomWalkSimulator, np, os, plot_simulation_comparison, plt, sys
+    return RandomWalkSimulator, np, plot_simulation_comparison, plt
 
 
 @app.cell
@@ -82,7 +87,6 @@ def _(RandomWalkSimulator):
     print(f"✅ Created simulator with lattice size {Lx} x {Ly}")
     print(f"📍 Coordinate system: x ∈ [{-(Lx//2)}, {Lx//2 if Lx%2==1 else Lx//2-1}], y ∈ [0, {Ly-1}]")
     print(f"🎯 Initial region: x ∈ [{-initial_region_half_width}, {initial_region_half_width}]")
-
     return Lx, Ly, simulator
 
 
@@ -116,7 +120,6 @@ def _():
     print(f"   U (occupancy probability): {U}")
     print(f"   P (movement probability): {P}")
     print(f"   T (time steps): {T}")
-
     return P, T, U
 
 
@@ -154,7 +157,6 @@ def _(P, T, U, np, simulator):
     print(f"🔢 Final agents: {len(final_positions)}")
     print(f"🔢 Total agents in columns: {np.sum(column_counts)}")
     print(f"✅ Agent conservation: {'Yes' if len(initial_positions) == len(final_positions) == np.sum(column_counts) else 'No'}")
-
     return column_counts, final_positions, initial_positions
 
 
@@ -203,7 +205,6 @@ def _(
         figsize=(18, 6)
     )
     fig_comparison.suptitle('Random Walk Simulation Results', fontsize=16, y=1.02)
-
     return
 
 
@@ -275,7 +276,6 @@ def _(P, T, U, np, simulator):
         print("🎉 Reproducibility test passed!")
     else:
         print("❌ Reproducibility test failed!")
-
     return
 
 
@@ -303,65 +303,38 @@ def _(mo):
 
     This focuses computational effort on the most relevant parameter regions, leading to more accurate inference.
 
-    ## Our Results
+    ## Running NPE
 
-    We'll examine results from a successful **SNPE run** with:
+    Running NPE is typically more compute-intensive than doing a standard linear regression or MCMC. Accordingly we do not run the NPE workflow in this notebook. In general, the workflow can be run by calling `src/main.py` with the relevant command line arguments set. You can see an example of how to run this via a slurm scheduler with some specific arguments in `slurm/run_main.sh`.
 
-    - **Target parameters**: U=0.3 (occupancy), P=0.7 (movement probability) 
-    - **Sequential rounds**: 10 rounds with convergence monitoring
-    - **Lattice size**: 100×50 with 100 time steps
-    - **Training**: 2000 simulations per round
-
-    These training hyperparamters were chosen somewhat arbitrarily, just as a proof of concept. 
+    Please see the `README` for some additional notes on running the workflow.
     """
     )
     return
-
-
-@app.cell
-def _(os, sys):
-    """
-    Import required modules for NPE analysis and visualization
-    """
-
-    import pickle
-
-    import torch
-
-    import corner
-    from pathlib import Path
-
-    # Add src directory to path for our modules
-    sys.path.append(os.path.join(os.path.dirname(os.getcwd()), 'src'))
-
-    # Import our NPE and simulator modules
-    from inference import RandomWalkNPE
-
-
-    return RandomWalkNPE, corner, pickle, torch
 
 
 @app.cell
 def _(mo):
     mo.md(
         r"""
-    ## Loading Inference Results
+    ## 2.1 Loading Inference Results
 
-    We'll load the results from our successful SNPE workflow run `workflow_20250826_130359`. 
+    We'll load and examine the results from a successful SNPE workflow run `workflow_20250827_224139`. 
     This run used Sequential NPE to infer the parameters U and P from simulated random walk data.
-
+    You can see the settings
     """
     )
     return
 
 
 @app.cell
-def _(pickle):
+def _():
     """
     Load the inference results from the workflow run.
-    We only have the compressed results here. See full .pkl on cluster.
+    We only have the compressed results here. See full results on cluster.
     """
-    results_path = "/Users/tkimpson/projects/NPE_for_RW_Inference/results/workflow_20250826_130359/inference_results/results_extracted.pkl"
+    import pickle 
+    results_path = "notebooks/example_results/results_extracted.pkl"
 
     print("📂 Loading inference results...")
 
@@ -376,22 +349,28 @@ def _(pickle):
     print(f"✅ Successfully loaded results!")
     print(f"📊 Posterior samples shape: {posterior_samples.shape}")
     print(f"🎯 True parameters: U={true_parameters[0]}, P={true_parameters[1]}")
-
-
     return posterior_samples, true_parameters
 
 
 @app.cell
 def _(mo):
-    mo.md(r"""## Corner Plot""")
+    mo.md(
+        r"""
+    ## Corner Plot
+
+    Lets see how well our network did at obtaining posteriors on the parameters
+    """
+    )
     return
 
 
 @app.cell
-def _(corner, plt, posterior_samples, true_parameters):
+def _(plt, posterior_samples, true_parameters):
     """
     Create a corner plot of the posterior distribution
+    See also `results/nice_corner_plot.py`
     """
+    import corner 
     import scienceplots
     plt.style.use('science')
 
@@ -422,9 +401,8 @@ def _(corner, plt, posterior_samples, true_parameters):
         fill_contours=True,
         max_n_ticks=5
     )
-    plt.xlim(0,1)
-    plt.show()
 
+    fig 
     return
 
 
@@ -432,47 +410,54 @@ def _(corner, plt, posterior_samples, true_parameters):
 def _(mo):
     mo.md(
         r"""
-    ## Comparison with Built-in SBI Visualization
+    ## Posterior predictive checks
 
-    Let's also create the standard SBI posterior plots for comparison. The `sbi` library (which powers our NPE implementation) 
-    has built-in visualization functions that provide a different perspective on the same posterior distribution.
+    We can then take this posterior and push it through our simulator. This is a useful additional check that our probabilistic prediction matches the observed data. See also `src/predict.py`
     """
     )
     return
 
 
 @app.cell
-def _(RandomWalkNPE, plt, posterior_samples, torch, true_parameters):
-    """
-    Create SBI-style posterior visualizations for comparison
-    """
-    print("🔧 Creating SBI-style posterior plots...")
+def _():
+    from predict import load_prediction_results,compute_prediction_intervals,plot_prediction_intervals
 
-    # Convert to torch tensors for SBI plotting functions
-    posterior_tensor = torch.tensor(posterior_samples, dtype=torch.float32)
-    true_tensor = torch.tensor(true_parameters, dtype=torch.float32)
+    #Load the precomputed simulations that were obtained by pushing the posterior through the simulator
+    prediction_data = load_prediction_results('notebooks/example_results/predictive_results.pkl')
 
-    # Create a temporary NPE object to access plotting methods
-    npe_viz = RandomWalkNPE(device='cpu')
 
-    # Plot marginal distributions
-    fig1 = npe_viz.plot_posterior_samples(
-        posterior_tensor, 
-        true_tensor,
-        figsize=(12, 5)
+    # Extract
+    prediction_results = prediction_data['prediction_results']
+    input_metadata = prediction_data['input_metadata']
+    observed_data = prediction_data.get('observed_data', None)
+
+    # Extract simulation parameters from loaded metadata
+    sim_params = input_metadata['simulation_params']
+    actual_Lx = sim_params['Lx']
+    actual_Ly = sim_params['Ly']
+    actual_T = sim_params['T']
+
+    print(f"⚙️  Using simulation settings from loaded data: Lx={actual_Lx}, Ly={actual_Ly}, T={actual_T}")
+
+    #Recompute prediction intervals with a smoothing kernel (optional)
+    raw_predictions = prediction_results['predictions'] 
+    prediction_results = compute_prediction_intervals(
+                    predictions=raw_predictions,
+                    percentiles=prediction_results['metadata']['percentiles'],
+                    smooth_sigma=1.0)
+
+
+    # Main prediction plot
+    plot_prediction_intervals(
+        prediction_results=prediction_results,
+        observed_data=observed_data,
+        Lx=actual_Lx
     )
-    fig1.suptitle('SBI-style Marginal Posterior Distributions', fontsize=14, y=1.02)
-    plt.show()
+    return
 
-    # Plot pairwise relationships
-    fig2 = npe_viz.plot_pairwise(
-        posterior_tensor,
-        true_tensor, 
-        figsize=(8, 8)
-    )
-    fig2.suptitle('SBI-style Pairwise Posterior Relationships', fontsize=14, y=0.98)
-    plt.show()
 
+@app.cell
+def _():
     return
 
 
