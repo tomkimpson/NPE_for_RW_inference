@@ -1,0 +1,337 @@
+\documentclass{article}
+
+\usepackage{arxiv}
+\usepackage{amsmath}
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{cleveref}       % smart cross-referencing
+\usepackage{lipsum}         % Can be removed after putting your text content
+\usepackage{graphicx}
+\usepackage{natbib}
+\usepackage{doi}
+\usepackage{xcolor}
+
+
+\title{Amortized Likelihood-Free Inference for Stochastic Biological Models: A Neural Posterior Estimation Approach}
+
+% Here you can change the date presented in the paper title
+%\date{September 9, 1985}
+% Or remove it
+%\date{}
+
+\newif\ifuniqueAffiliation
+% Comment to use multiple affiliations variant of author block 
+%\uniqueAffiliationtrue
+
+\ifuniqueAffiliation % Standard variant of author block
+\author{ \href{https://orcid.org/0000-0000-0000-0000}{\includegraphics[scale=0.06]{orcid.pdf}\hspace{1mm}David S.~Hippocampus}\thanks{Use footnote for providing further
+		information about author (webpage, alternative
+		address)---\emph{not} for acknowledging funding agencies.} \\
+	Department of Computer Science\\
+	Cranberry-Lemon University\\
+	Pittsburgh, PA 15213 \\
+	\texttt{hippo@cs.cranberry-lemon.edu} \\
+	%% examples of more authors
+	\And
+	\href{https://orcid.org/0000-0000-0000-0000}{\includegraphics[scale=0.06]{orcid.pdf}\hspace{1mm}Elias D.~Striatum} \\
+	Department of Electrical Engineering\\
+	Mount-Sheikh University\\
+	Santa Narimana, Levand \\
+	\texttt{stariate@ee.mount-sheikh.edu} \\
+	%% \AND
+	%% Coauthor \\
+	%% Affiliation \\
+	%% Address \\
+	%% \texttt{email} \\
+	%% \And
+	%% Coauthor \\
+	%% Affiliation \\
+	%% Address \\
+	%% \texttt{email} \\
+	%% \And
+	%% Coauthor \\
+	%% Affiliation \\
+	%% Address \\
+	%% \texttt{email} \\
+}
+\else
+% Multiple affiliations variant of author block
+\usepackage{authblk}
+\renewcommand\Authfont{\bfseries}
+\setlength{\affilsep}{0em}
+% box is needed for correct spacing with authblk
+\newbox{\orcid}\sbox{\orcid}{\includegraphics[scale=0.06]{orcid.pdf}} 
+\author[1]{%
+	\href{https://orcid.org/0000-0000-0000-0000}{\usebox{\orcid}\hspace{1mm}Kimpson\thanks{\texttt{kimpson email}}}%
+}
+\author[1]{%
+	\href{https://orcid.org/0000-0000-0000-0000}{\usebox{\orcid}\hspace{1mm}Flegg}}
+	
+\author[2]{%
+	\href{https://orcid.org/0000-0000-0000-0000}{\usebox{\orcid}\hspace{1mm}Simpson}}
+	
+\author[2]{%
+	\href{https://orcid.org/0000-0000-0000-0000}{\usebox{\orcid}\hspace{1mm}Others...}}	
+
+\affil[1]{Unimelb, etc}
+\affil[2]{QUT, etc}
+\fi
+
+% Uncomment to override  the `A preprint' in the header
+%\renewcommand{\headeright}{Technical Report}
+%\renewcommand{\undertitle}{Technical Report}
+\renewcommand{\shorttitle}{NPE for stochastic bio models}
+
+%%% Add PDF metadata to help others organize their library
+%%% Once the PDF is generated, you can check the metadata with
+%%% $ pdfinfo template.pdf
+\hypersetup{
+pdftitle={Amortized Likelihood-Free Inference for Stochastic Biological Models: A Neural Posterior Estimation Approach},
+pdfsubject={q-bio.NC, q-bio.QM},
+pdfauthor={David S.~Hippocampus, Elias D.~Striatum},
+pdfkeywords={First keyword, Second keyword, More},
+}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Parameter inference is essential for translating sparse, noisy biological measurements into quantitative, mechanistic insights. While inference methods are well-established for deterministic models, many biological applications require stochastic approaches to capture inherent randomness. Agent-based random walk models are particularly effective for simulating spatiotemporal processes like ecological dynamics, molecular transport, and multicellular phenomena. However, inference for these models is challenging due to intractable likelihoods, which often necessitate surrogate approximations, pre-specified noise models, or likelihood-free algorithms like Approximate Bayesian Computation (ABC) that are sensitive to the choice of distance metrics and tolerances. We present a machine learning workflow using Neural Posterior Estimation (NPE) that overcomes these challenges. By learning the posterior distribution directly from simulations, NPE enables amortized inference for near-instantaneous posterior estimation. Our pipeline delivers well-calibrated posteriors and uncertainty-aware forecasts through posterior predictive sampling. It also includes principled diagnostics via simulation-based calibration and coverage assessment, all without committing to a potentially misspecified likelihood or a continuum surrogate. We replicate previous baselines (ABC and likelihood-based methods) and demonstrate that NPE achieves improved calibration and predictive validity on both synthetic and experimental datasets with competitive simulation budgets. To facilitate adoption and extension, we release an open, reproducible implementation with configuration files, plots, and artifact logs, compatible with command-line and SLURM execution.
+\end{abstract}
+
+
+% keywords can be removed
+\keywords{First keyword \and Second keyword \and More}
+
+
+\section{Introduction}
+Mathematical and computational models are central to how the life sciences turn noisy, partial measurements into mechanistic insight and quantitative predictions. Across problems as diverse as disease progression, ecological population dynamics, and gene regulation, inference methods are used to estimate unknown parameters, test hypotheses, and quantify uncertainty.  For deterministic continuum models (ODEs/PDEs), both Bayesian and frequentist inference pipelines are mature and widely applied.
+
+
+Biological applications, however, pose distinctive challenges for inference. Experimental protocols vary, data are often sparse and noisy, and governing equations are rarely known from first principles. These realities complicate estimation, identifiability analysis, and model-based prediction, motivating stochastic descriptions that better reflect intrinsic variability. Furthermore, high-resolution imaging now exposes fluctuations that coarse-grained frameworks tend to mask, driving the prominence of random-walk and other agent-based models for studying animal movement, multicellular phenomena, and molecular transport. \textcolor{red}{TK: not sure if this is actually true, but sounds reasonable. Need to check literature.}
+
+\cite{Simpson2025.05.25.656057} (S\&P2025 hereafter) provides an comprehensive survey of this landscape, focusing on inference, identifiability, and prediction for stochastic agent-based models of migration and proliferation. Their motivating example uses barrier-assay data to calibrate a high-fidelity discrete random-walk model, highlighting applications where stochasticity is visible and decision-relevant. Their analysis highlights the critical need for robust inference methods but also illuminates the formidable challenges that have historically limited the application of these powerful models. These canonical challenges can be summarized as follows. First, the intractable likelihood of most agent-based models precludes the use of standard methods like Maximum Likelihood Estimation or many MCMC algorithms. Second, a common strategy to make inference tractable, explored in depth in S\&P2025, is to replace the computationally expensive stochastic simulator with a computationally cheap, surrogate model, typically a deterministic Partial Differential Equation (PDE) that describes the mean-field behavior of the system. While this enables the use of efficient MCMC or MLE techniques, it introduces a significant source of potential error. The resulting inference is conditional on the surrogate being a faithful approximation of the true stochastic process, an assumption that may be violated and can lead to biased parameter estimates and inaccurate predictions. Third, the use of a deterministic surrogate creates the problem of specifying a noise model to connect its clean output to noisy data—a choice that, if misspecified, can lead to non-physical predictions and poorly calibrated uncertainties. Finally, classical likelihoodlikelihood-free alternatives like Approximate Bayesian Computation (ABC) are notoriously computationally expensive and sensitive to the choice of summary statistics and distance metrics. 
+
+In this paper, we propose that these fundamental challenges can be addressed in a unified manner using Neural Posterior Estimation (NPE), a modern simulation-based inference (SBI) paradigm. NPE leverages flexible neural density estimators to learn the posterior distribution $p\left(\theta | x\right)$ directly from simulator-generated $(\theta,x)$ pairs. This approach offers a direct solution to each of the aforementioned challenges. (1) It is likelihood-free, circumventing intractability. (2) It learns directly from the high-fidelity simulator, eliminating surrogate model bias and removing the PDE as a source of approximation error. (3) It implicitly learns the full, complex, stochastic relationship between parameters and data, obviating the need for an explicit noise model. (4) It provides amortized inference: after an initial, one-time training phase, it can generate posterior estimates for new observations almost instantaneously, overcoming the high per-inference cost of methods like ABC.
+
+The central thesis of this work is that NPE provides a more robust, efficient, and direct framework for parameter inference in stochastic biological models than the classical methods reviewed by S\&P2025. We demonstrate this by applying a state-of-the-art Sequential NPE (SNPE) workflow to the full suite of random walk models from their study. 
+
+
+Building on their modelling program, our contributions are to: (i) itroduce an amortized, simulator-native NPE pipeline for the migration and proliferation random-walk model; (ii) demonstrate that this NPE pipeline circumvents ABC tolerance tuning and surrogate-model bias while improving calibration and coverage; (iii) introduce a novel inference strategy that uses a Convolutional Neural Network (CNN) to learn directly from the raw 2D spatial data generated by the simulator. This approach avoids the information loss inherent in using 1D summary statistics (such as column counts), leading to more precise and reliable posterior estimates; (iv) Release an open, reproducible implementation with configuration files, plots, and posterior-predictive utilities to facilitate adoption and extension.
+
+
+The remainder of this paper is structured as follows. Section 2 reviews the stochastic models and classical inference paradigms. Section 3 details our NPE methodology. Section 4 presents our results, directly comparing the performance of NPE against the classical methods on the S\&P benchmarks. Finally, Section 5 discusses the broader implications of our work for the future of simulation-based inference in biology.
+
+
+
+\section{Review of classical methods}
+i.e. quick review of what simpson and Planck did
+
+\section{NPE for mathematical biologists}
+
+NPE for Mathematical Biologists: A Technical Perspective
+
+Many models in mathematical biology are characterized by their complexity, often defined as stochastic simulators for which a tractable likelihood function is unavailable. A central task is **inference**: using experimental data to determine the model parameters that plausibly generated that data. Bayesian inference provides a principled framework for this, and recent advances in machine learning, particularly Neural Posterior Estimation (NPE), have unlocked this framework for the complex simulator-based models common in our field.
+
+
+Bayesian Inference: The Logic of Parameter Estimation
+
+The goal of Bayesian inference is to compute the **posterior distribution**, $p(\theta | x_o)$, which represents our updated belief about model parameters $\theta$ after observing data $x_o$. This is governed by **Bayes' theorem**:
+
+$$p(\theta | x_o) = \frac{p(x_o | \theta) p(\theta)}{p(x_o)}$$
+
+Where:
+* $p(\theta | x_o)$ is the **posterior**, our inferential target.
+* $p(x_o | \theta)$ is the **likelihood** of observing data $x_o$ given parameters $\theta$.
+* $p(\theta)$ is the **prior**, encoding our beliefs before seeing data.
+* $p(x_o) = \int p(x_o | \theta) p(\theta) d\theta$ is the **evidence**, a normalization constant.
+
+For many complex, high-dimensional biological systems, both the likelihood $p(x_o|\theta)$ and the evidence $p(x_o)$ are intractable to compute. This intractability has historically been a major barrier to applying Bayesian methods. Simulation-based inference (SBI) techniques, such as NPE, are designed specifically to overcome this barrier.
+
+
+ Neural Posterior Estimation (NPE)
+
+Neural Posterior Estimation (NPE) directly approximates the posterior distribution using a powerful neural network known as a conditional density estimator (Cranmer et al., 2020). The core idea is to learn the mapping from an observation $x$ to the full posterior distribution $p(\theta|x)$ in an amortized fashion, meaning a single trained network can provide posteriors for any observation without retraining.
+
+
+
+
+
+The Core Engine: Conditional Normalizing Flows
+
+The most common and effective architecture for this task is a **normalizing flow**. A normalizing flow learns a complex probability distribution by transforming samples from a simple, easy-to-evaluate base distribution (e.g., a standard multivariate Gaussian, $\mathcal{N}(u; 0, I)$) through a series of invertible and differentiable functions.
+
+Let $u \in \mathbb{R}^D$ be a random variable with a simple base density $p_u(u)$. A normalizing flow constructs a more complex random variable $\theta \in \mathbb{R}^D$ via an invertible transformation $\theta = f_{\phi}(u)$, where $\phi$ are the parameters of the transformation (i.e., the neural network weights). The probability density of $\theta$ can be calculated exactly using the **change of variables formula**:
+
+$$q_{\phi}(\theta) = p_u(f_{\phi}^{-1}(\theta)) \left| \det J_{f_{\phi}^{-1}}(\theta) \right|$$
+
+where $J_{f_{\phi}^{-1}}(\theta)$ is the **Jacobian matrix** of the inverse transformation $f_{\phi}^{-1}$ evaluated at $\theta$. The determinant of the Jacobian, $\left| \det J \right|$, measures how the transformation locally stretches or compresses volume, which is crucial for ensuring the resulting density is properly normalized.
+
+
+
+For NPE, we need this process to be **conditional** on the observation $x$. Therefore, the network learns a conditional transformation $\theta = f_{\phi}(u; x)$ and its inverse $u = f_{\phi}^{-1}(\theta; x)$. The resulting approximate posterior density is:
+
+$$q_{\phi}(\theta | x) = p_u(f_{\phi}^{-1}(\theta; x)) \left| \det J_{f_{\phi}^{-1}}(\theta; x) \right|$$
+
+For efficient computation, we typically work with the log-density and the forward transformation:
+
+$$\log q_{\phi}(\theta | x) = \log p_u(u) - \log \left| \det J_{f_{\phi}}(u; x) \right| \quad \text{where } \theta = f_{\phi}(u; x)$$
+
+The brilliance of normalizing flow architectures (e.g., RealNVP, MAF) lies in constructing the transformation $f_{\phi}$ as a composition of simple layers whose Jacobians are triangular, making the determinant trivial to compute (simply the product of the diagonal elements).
+
+Training Procedure
+
+The network is trained on a dataset $\{(\theta_i, x_i)\}_{i=1}^N$ generated by repeatedly sampling from the prior and running the simulator: $\theta_i \sim p(\theta)$ and $x_i \sim p(x|\theta_i)$. The training objective is to maximize the log-likelihood of the parameters given the corresponding simulated data. This is equivalent to minimizing the negative log-likelihood loss:
+
+$$\mathcal{L}(\phi) = - \mathbb{E}_{p(\theta, x)} [\log q_{\phi}(\theta | x)]$$
+
+Substituting the expression for the normalizing flow density, the loss for a single $(\theta, x)$ pair becomes:
+
+$$\mathcal{L}_{\text{single}}(\phi) = - \left( \log p_u(f_{\phi}^{-1}(\theta; x)) + \log \left| \det J_{f_{\phi}^{-1}}(\theta; x) \right| \right)$$
+
+This loss function is fully differentiable with respect to the network parameters $\phi$ and can be minimized with standard stochastic gradient descent algorithms. Once trained, we can obtain an approximate posterior for our real data $x_o$ by simply evaluating $q_{\phi}(\theta | x_o)$. We can draw samples from it by first sampling $u \sim p_u(u)$ and then passing it through the forward transformation $\theta = f_{\phi}(u; x_o)$.
+
+---
+
+Efficiency via Sequential NPE (SNPE)
+
+A practical challenge is simulation efficiency. If the prior $p(\theta)$ is diffuse and the true posterior $p(\theta|x_o)$ is concentrated, most simulations generated from the prior will be in regions of low posterior probability, and thus uninformative. **Sequential Neural Posterior Estimation (SNPE)** addresses this by adaptively focusing simulations (Papamakarios \& Murray, 2016; Greenberg et al., 2019).
+
+SNPE works in rounds:
+1.  **Round 1:** Run the standard NPE procedure. Generate simulations by drawing from the prior, $(\theta \sim p(\theta), x \sim p(x|\theta))$, and train a normalizing flow to obtain an initial posterior approximation, $q_{\phi_1}(\theta | x_o)$.
+2.  **Round 2+:** Use the posterior from the previous round as a targeted **proposal distribution**. Generate a new set of simulations by first drawing parameters from this focused distribution, $\theta \sim q_{\phi_{r-1}}(\theta | x_o)$, and then running the simulator, $x \sim p(x|\theta)$.
+3.  **Retraining:** A new, more accurate density estimator $q_{\phi_r}(\theta|x)$ is trained using the simulations from the latest round (or sometimes all previous rounds, with appropriate weighting).
+
+This iterative process concentrates computational effort on the parameter regions that are most consistent with the observed data $x_o$, leading to a much more accurate and simulation-efficient approximation of the final posterior.  This makes SNPE a state-of-the-art method for performing robust Bayesian inference on complex biological models.
+
+---
+Software Implementation
+
+The methods described here have been implemented in several high-quality, open-source software packages. The growing accessibility of these tools has been a major driver of their adoption in the scientific community. For all analyses presented in this work, we use the `sbi` Python package, a flexible and powerful library for simulation-based inference (Tejero-Cantero et al., 2020). It can be found at: [https://github.com/sbi-dev/sbi](https://github.com/sbi-dev/sbi).
+
+References
+
+* Cranmer, K., Brehmer, J., \& Louppe, G. (2020). The frontier of simulation-based inference. *Proceedings of the National Academy of Sciences*, *117*(48), 30055-30062.
+* Greenberg, J. A., Nonnenmacher, M., \& Macke, J. H. (2019). Automatic posterior transformation for likelihood-free inference. *Proceedings of the 36th International Conference on Machine Learning*, PMLR 97, 2404-2414.
+* Papamakarios, G., \& Murray, I. (2016). Fast $\epsilon$-free inference of simulation models with Bayesian conditional density estimation. *Advances in Neural Information Processing Systems*, *29*.
+* Tejero-Cantero, A., Boelts, J., Deistler, M., Lueckmann, J. M., Durkan, C., Gonçalves, P. J., Greenberg, D., \& Macke, J. H. (2020). sbi: A toolkit for simulation-based inference. *Journal of Open Source Software*, *5*(52), 2505.
+
+
+\section{Application to barrier assay}
+
+We follow simpson and planck. For full details ee their paper
+
+Need to think about which experiements to replicate. Also mention different noises
+
+
+\section{Headings: first level}
+\label{sec:headings}
+
+\lipsum[4] See Section \ref{sec:headings}.
+
+\subsection{Headings: second level}
+\lipsum[5]
+\begin{equation}
+	\xi _{ij}(t)=P(x_{t}=i,x_{t+1}=j|y,v,w;\theta)= {\frac {\alpha _{i}(t)a^{w_t}_{ij}\beta _{j}(t+1)b^{v_{t+1}}_{j}(y_{t+1})}{\sum _{i=1}^{N} \sum _{j=1}^{N} \alpha _{i}(t)a^{w_t}_{ij}\beta _{j}(t+1)b^{v_{t+1}}_{j}(y_{t+1})}}
+\end{equation}
+
+\subsubsection{Headings: third level}
+\lipsum[6]
+
+\paragraph{Paragraph}
+\lipsum[7]
+
+
+
+\section{Examples of citations, figures, tables, references}
+\label{sec:others}
+
+\subsection{Citations}
+Citations use \verb+natbib+. The documentation may be found at
+\begin{center}
+	\url{http://mirrors.ctan.org/macros/latex/contrib/natbib/natnotes.pdf}
+\end{center}
+
+Here is an example usage of the two main commands (\verb+citet+ and \verb+citep+): Some people thought a thing \citep{kour2014real, keshet2016prediction} but other people thought something else \citep{kour2014fast}. Many people have speculated that if we knew exactly why \citet{kour2014fast} thought this\dots
+
+\subsection{Figures}
+\lipsum[10]
+See Figure \ref{fig:fig1}. Here is how you add footnotes. \footnote{Sample of the first footnote.}
+\lipsum[11]
+
+\begin{figure}
+	\centering
+	\fbox{\rule[-.5cm]{4cm}{4cm} \rule[-.5cm]{4cm}{0cm}}
+	\caption{Sample figure caption.}
+	\label{fig:fig1}
+\end{figure}
+
+\subsection{Tables}
+See awesome Table~\ref{tab:table}.
+
+The documentation for \verb+booktabs+ (`Publication quality tables in LaTeX') is available from:
+\begin{center}
+	\url{https://www.ctan.org/pkg/booktabs}
+\end{center}
+
+
+\begin{table}
+	\caption{Sample table title}
+	\centering
+	\begin{tabular}{lll}
+		\toprule
+		\multicolumn{2}{c}{Part}                   \\
+		\cmidrule(r){1-2}
+		Name     & Description     & Size ($\mu$m) \\
+		\midrule
+		Dendrite & Input terminal  & $\sim$100     \\
+		Axon     & Output terminal & $\sim$10      \\
+		Soma     & Cell body       & up to $10^6$  \\
+		\bottomrule
+	\end{tabular}
+	\label{tab:table}
+\end{table}
+
+\subsection{Lists}
+\begin{itemize}
+	\item Lorem ipsum dolor sit amet
+	\item consectetur adipiscing elit.
+	\item Aliquam dignissim blandit est, in dictum tortor gravida eget. In ac rutrum magna.
+\end{itemize}
+
+
+\bibliographystyle{unsrtnat}
+\bibliography{references}  %%% Uncomment this line and comment out the ``thebibliography'' section below to use the external .bib file (using bibtex) .
+
+
+%%% Uncomment this section and comment out the \bibliography{references} line above to use inline references.
+% \begin{thebibliography}{1}
+
+% 	\bibitem{kour2014real}
+% 	George Kour and Raid Saabne.
+% 	\newblock Real-time segmentation of on-line handwritten arabic script.
+% 	\newblock In {\em Frontiers in Handwriting Recognition (ICFHR), 2014 14th
+% 			International Conference on}, pages 417--422. IEEE, 2014.
+
+% 	\bibitem{kour2014fast}
+% 	George Kour and Raid Saabne.
+% 	\newblock Fast classification of handwritten on-line arabic characters.
+% 	\newblock In {\em Soft Computing and Pattern Recognition (SoCPaR), 2014 6th
+% 			International Conference of}, pages 312--318. IEEE, 2014.
+
+% 	\bibitem{keshet2016prediction}
+% 	Keshet, Renato, Alina Maor, and George Kour.
+% 	\newblock Prediction-Based, Prioritized Market-Share Insight Extraction.
+% 	\newblock In {\em Advanced Data Mining and Applications (ADMA), 2016 12th International 
+%                       Conference of}, pages 81--94,2016.
+
+% \end{thebibliography}
+
+
+\end{document}
