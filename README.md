@@ -8,28 +8,12 @@ The goal is to infer two key parameters from observation data:
 - **U**: Initial occupancy probability (probability that a site contains an agent at t=0)  
 - **P**: Movement probability (probability that an agent moves during a time step)
 
-## Repository Structure
-
-```
-NPE_for_RW_Inference/
-├── README.md                   # This file
-├── src/                        # Main source code
-│   ├── __init__.py            # Package initialization
-│   ├── main.py                # Main workflow script (entry point)
-│   ├── simulator.py           # Random walk simulator
-│   ├── inference.py           # NPE/SNPE training and inference
-│   └── utils.py               # Utility functions
-├── results/                   # Analysis results and outputs
-├── docs/                      # Documentation
-│   └── summary.md            # Problem description
-├── slurm/                     # HPC job scripts
-│   └── run_main.sh           # SLURM job script for GPU deployment
-├── test/                      # Testing and validation
-└── notebooks/                # Development notebooks
-```
-
 
 ## Quick Start
+
+Please see `notebooks/demo.py` for a pedagogical walkthrough.
+
+This is a [marimo](https://marimo.io) notebook and can be launched (editable) as `marimo edit notebooks/demo.py`
 
 ### Run the complete workflow:
 ```bash
@@ -77,6 +61,31 @@ python src/main.py --skip_training --model_path results/previous_run/npe_model.p
 sbatch slurm/run_main.sh
 ```
 
+### Posterior Predictive Sampling:
+After running the main workflow, you can generate posterior predictive samples to quantify uncertainty and validate your model:
+
+```bash
+# Basic posterior predictive sampling (uses all posterior samples)
+python src/predict.py results/workflow_YYYYMMDD_HHMMSS/inference_results/results.pkl
+
+# Generate fewer predictive samples for faster computation
+python src/predict.py results/workflow_YYYYMMDD_HHMMSS/inference_results/results.pkl --n_pred_samples 1000
+
+# Custom simulation parameters (must match training data)
+python src/predict.py results/workflow_YYYYMMDD_HHMMSS/inference_results/results.pkl \
+  --T 100 --Lx 21 --Ly 21
+
+# Specify output directory
+python src/predict.py results/workflow_YYYYMMDD_HHMMSS/inference_results/results.pkl \
+  --output_dir custom_predictions/
+```
+
+The posterior predictive sampling generates:
+- **Prediction intervals**: Uncertainty bands showing the range of possible outcomes
+- **Probabilistic forecasts**: Multiple realizations from the posterior predictive distribution  
+- **Model validation**: Compare observed data against predictive distribution
+- **Uncertainty quantification**: Visualize model confidence in different regions
+
 ## NPE vs SNPE
 
 The complete pipeline supports two training approaches:
@@ -110,6 +119,10 @@ results/workflow_YYYYMMDD_HHMMSS/
 │   ├── observed_data.png         # Observed column counts
 │   ├── simulation_comparison.png # Initial vs final states
 │   └── results.pkl               # Numerical results
+└── predictions/                  # Posterior predictive sampling (optional)
+    ├── prediction_intervals.png  # Prediction intervals plot
+    ├── predictive_results.pkl    # Full predictive results
+    └── prediction_summary.txt    # Summary statistics
 ```
 
 **Sequential NPE (SNPE) Output:**
@@ -130,6 +143,10 @@ results/workflow_YYYYMMDD_HHMMSS/
 │   ├── observed_data.png         # Observed column counts
 │   ├── simulation_comparison.png # Initial vs final states
 │   └── results.pkl               # Numerical results + SNPE metadata
+└── predictions/                  # Posterior predictive sampling (optional)
+    ├── prediction_intervals.png  # Prediction intervals plot
+    ├── predictive_results.pkl    # Full predictive results
+    └── prediction_summary.txt    # Summary statistics
 ```
 
 ## Key Parameters
@@ -177,12 +194,3 @@ The `external_code/RandomWalkInference/` directory contains reference implementa
 
 SNPE typically achieves better posterior estimates by iteratively refining the training data distribution, focusing simulations on parameter regions more likely given the observed data.
 
-## Citation
-
-If you use this code in your research, please cite the original paper:
-
-> Simpson, M.J., & Planck, P. (2025). [Paper title]. bioRxiv. DOI: 10.1101/2025.05.25.656057v4
-
-## License
-
-This project's code is provided for research purposes. The external code in `external_code/` retains its original license from the source repository.
