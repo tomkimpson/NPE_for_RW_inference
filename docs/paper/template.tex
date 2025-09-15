@@ -291,27 +291,32 @@ All NPE analyses in this work use the \texttt{sbi} Python package \cite{2020JOSS
 
 
 
+
+
+
+
 \section{Application to Barrier Assay Experiments}\label{sec:results}
 
 \subsection{Experimental Setup and Data}
 
-We demonstrate the effectiveness of NPE by applying it to the barrier assay experiments that serve as the motivating example in S\&P2025. These experiments involve a circular monolayer of cells initially confined within a barrier, which upon removal spreads outward through combined migration and proliferation (Figure 1). Following S\&P2025's protocol, we focus on synthetic data generated from their stochastic random walk model with parameters representative of typical cell migration experiments.
+We demonstrate the effectiveness of NPE by applying it to the barrier assay experiments that serve as the motivating example in S\&P2025. These experiments involve a circular monolayer of cells initially confined within a barrier, which upon removal spreads outward through combined migration and proliferation. Following S\&P2025's protocol, we focus on synthetic data generated from their stochastic random walk model with parameters representative of typical cell migration experiments.
 
 The experimental configuration consists of a two-dimensional lattice with dimensions $H = 50$ and $W = 200$, where agents are initially placed within the region $|x| \leq 25$ with probability $U = 0.5$. The system evolves for 100 time steps with movement probability $P$ and proliferation probability $R$, corresponding to macroscopic diffusivity $D = P\Delta^2/(4\tau)$ and growth rate $r = R/\tau$ in the continuum limit.
 
-\subsection{NPE Implementation}
+\subsection{NPE Implementation with Column Counts}
+
+For direct comparison with S\&P2025's classical methods, we first implement NPE using the same 1D column count summary statistics $N_i$. This represents the number of agents in each vertical column of the lattice, reducing the 2D spatial configuration to a 201-dimensional vector.
 
 We implement NPE using neural spline flows with the following specifications:
-
 \begin{itemize}
-	\item \textbf{Prior distributions:} We adopt uniform priors consistent with S\&P2025: $D \sim \mathcal{U}(0.05, 0.40)$, $U \sim \mathcal{U}(0.30, 0.70)$, and when applicable, $r \sim \mathcal{U}(0, 0.02)$.
+	\item \textbf{Prior distributions:} Uniform priors consistent with S\&P2025: $D \sim \mathcal{U}(0.05, 0.40)$ and $U \sim \mathcal{U}(0.30, 0.70)$.
 	
-	\item \textbf{Data representation:} Unlike S\&P2025's use of 1D column counts, we explore two data modalities: (i) the standard column count vector $N_i$ for direct comparison, and (ii) the full 2D spatial configuration of agents.
-	
-	\item \textbf{Network architecture:} We employ a neural spline flow with XXX coupling layers, XXX bins per spline, and embedding networks consisting of XXX hidden layers with XXX units each.
+	\item \textbf{Network architecture:} Neural spline flow with XXX coupling layers, XXX bins per spline, and embedding networks of XXX hidden layers with XXX units each.
 	
 	\item \textbf{Training protocol:} SNPE is run for XXX rounds, with XXX simulations per round. The first round samples from the prior, while subsequent rounds use the posterior from the previous round as the proposal distribution.
 \end{itemize}
+
+
 
 \subsection{Parameter Inference Results}
 
@@ -355,6 +360,78 @@ The NPE-based predictions demonstrate several advantages:
 	\item \textbf{Heteroscedastic uncertainty:} The prediction intervals naturally adapt to local agent density, narrowing in low-density regions without producing negative bounds.
 \end{itemize}
 
+
+
+\subsection{Extension to Complex Models}
+
+We further test NPE on S\&P2025's more complex models, including biased random walks and interacting models with crowding effects. For the exclusion process model with growth (S\&P2025 Section 4), NPE successfully recovers multimodal posterior structure that reflects the model's non-identifiability, while classical methods struggle with convergence. Detailed results for these extensions are provided in Supplementary Material. \textcolor{magenta}{TK: this is all TBD, just leaving as a placeholder for now and we can decide if we want to include or not}
+
+
+
+
+
+
+
+
+
+
+\section{Learning from Raw Spatial Data}\label{sec:results_2d}
+
+\subsection{Motivation for Full Spatial Data}
+
+While column counts provide a natural summary of the spreading process, they necessarily discard information about the vertical distribution of agents. In principle, the spatial correlation structure within the 2D configuration contains additional information about the underlying parameters. For instance, the clustering patterns and local density fluctuations may help distinguish between different combinations of $D$ and $U$ that produce similar column counts.
+
+Traditional inference methods require hand-crafted summary statistics, making it challenging to leverage such high-dimensional spatial information. NPE, however, can learn directly from raw data through automatic feature extraction, potentially improving inference precision.
+
+\subsection{Architectural Adaptations for 2D Data}
+
+Processing 2D spatial data requires architectural modifications to handle the increased dimensionality and spatial structure. We treat the lattice configuration as a binary image of size $H \times W$, where each pixel indicates agent presence/absence. To extract relevant features while maintaining computational tractability, we employ a convolutional neural network (CNN) as the embedding network within our normalizing flow architecture:
+
+\begin{itemize}
+	\item \textbf{Embedding network:} A CNN with XXX convolutional layers, each with XXX filters of size XXX, followed by ReLU activations and max pooling. The convolutional features are flattened and passed through XXX fully connected layers to produce the embedding.
+	
+	\item \textbf{Dimensionality reduction:} The CNN compresses the $H \times W = 10,000$ dimensional input to a XXX-dimensional embedding that captures relevant spatial features.
+	
+	\item \textbf{Translation invariance:} The convolutional architecture naturally handles the translation-invariant nature of the spreading process, learning features that are consistent across spatial locations.
+\end{itemize}
+
+The embedding network learns to automatically extract features relevant for parameter inference, potentially identifying patterns that would be difficult to specify a priori. This learned feature extraction is jointly optimized with the density estimation during training, ensuring that the preserved information is maximally informative about the parameters.
+
+\subsection{Comparative Results}
+
+Table \ref{tab:data_comparison} compares NPE performance using 1D column counts versus full 2D spatial data:
+
+\begin{table}[h]
+	\centering
+	\begin{tabular}{lccc}
+		\hline
+		Data Type & Posterior SD ($D$) & Posterior SD ($U$) & Training Time \\
+		\hline
+		1D Column counts & XXX & XXX & XXX hours \\
+		2D Spatial data & XXX & XXX & XXX hours \\
+		\hline
+	\end{tabular}
+	\caption{Comparison of NPE performance using different data representations. The 2D spatial data provides XXX\% reduction in posterior uncertainty at the cost of XXX\% increase in training time.}
+	\label{tab:data_comparison}
+\end{table}
+
+The full spatial data consistently yields tighter posteriors, with approximately XXX\% reduction in posterior variance for both parameters. This improvement comes at a computational cost, with training time increasing by a factor of XXX due to the larger embedding network and increased data dimensionality.
+
+\subsection{Learned Features Analysis}
+
+To understand what spatial features the CNN extracts, we analyze the learned embedding through visualization of activation patterns [could add details about grad-CAM or similar if you plan to do this]. The network appears to learn features corresponding to:
+- Local density variations that distinguish stochastic fluctuations from systematic patterns
+- Edge characteristics that inform about the spreading rate
+- Spatial correlation lengths that relate to the underlying diffusivity
+
+These automatically learned features go beyond simple summary statistics, demonstrating NPE's ability to extract problem-specific information without manual feature engineering.
+
+\subsection{Implications for Experimental Design}
+
+The improved inference from 2D data has important implications for experimental design in cell biology. Many standard protocols reduce spatial data to simplified measurements (e.g., wound closure rate, cell counts) for practical reasons. Our results suggest that preserving full spatial information during data collection could substantially improve parameter identifiability, potentially justifying the additional experimental and computational costs.
+
+
+
 \subsection{Impact of Data Representation}
 
 A unique advantage of NPE is its ability to work directly with high-dimensional data through automatic feature extraction. We compare inference using the standard 1D column counts versus the full 2D spatial configuration:
@@ -375,10 +452,20 @@ A unique advantage of NPE is its ability to work directly with high-dimensional 
 
 The full spatial data consistently yields tighter posteriors, suggesting that column counts discard information relevant for parameter inference. This finding has important implications for experimental design, as it suggests that preserving spatial structure in data collection could improve parameter identifiability.
 
-\subsection{Extension to Complex Models}
 
-We further test NPE on S\&P2025's more complex models, including biased random walks and interacting models with crowding effects. For the exclusion process model with growth (S\&P2025 Section 4), NPE successfully recovers multimodal posterior structure that reflects the model's non-identifiability, while classical methods struggle with convergence. Detailed results for these extensions are provided in Supplementary Material. \textcolor{magenta}{TK: this is all TBD, just leaving as a placeholder for now and we can decide if we want to include or not}
 
+
+
+
+
+
+
+
+
+
+
+
+\section{Conclusion}
 
 \bibliographystyle{unsrtnat}
 \bibliography{references}  %%% Uncomment this line and comment out the ``thebibliography'' section below to use the external .bib file (using bibtex) .
