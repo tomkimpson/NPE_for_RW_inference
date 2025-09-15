@@ -402,7 +402,7 @@ def _(plt, posterior_samples, true_parameters):
         max_n_ticks=5
     )
 
-    fig 
+    plt.savefig('notebooks/images/example_corner_plot_for_paper.png',dpi=300, bbox_inches='tight')
     return
 
 
@@ -419,7 +419,7 @@ def _(mo):
 
 
 @app.cell
-def _():
+def _(plt):
     from predict import load_prediction_results,compute_prediction_intervals,plot_prediction_intervals
 
     #Load the precomputed simulations that were obtained by pushing the posterior through the simulator
@@ -448,11 +448,12 @@ def _():
 
 
     # Main prediction plot
-    plot_prediction_intervals(
+    fig2 = plot_prediction_intervals(
         prediction_results=prediction_results,
         observed_data=observed_data,
         Lx=actual_Lx
     )
+    plt.savefig('notebooks/images/example_predictive_plot_for_paper.png',dpi=300, bbox_inches='tight')
     return
 
 
