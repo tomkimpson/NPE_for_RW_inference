@@ -153,10 +153,11 @@ class RandomWalkSimulator:
         
         return new_positions
     
-    def simulate(self, U: float, P: float, T: int, random_seed: Optional[int] = None) -> Tuple[np.ndarray, List[Tuple[int, int]], List[Tuple[int, int]]]:
+    def simulate(self, U: float, P: float, T: int, random_seed: Optional[int] = None,
+                 use_2d_output: bool = False) -> Tuple[np.ndarray, List[Tuple[int, int]], List[Tuple[int, int]]]:
         """
         Run complete simulation from initialization to final time.
-        
+
         Parameters:
         -----------
         U : float
@@ -167,12 +168,14 @@ class RandomWalkSimulator:
             Number of time steps
         random_seed : int, optional
             Random seed for reproducibility
-            
+        use_2d_output : bool, default False
+            If True, return 2D grid (Ly, Lx). If False, return 1D column counts (Lx,)
+
         Returns:
         --------
         Tuple containing:
-        - column_counts : np.ndarray
-            Final observation vector (agent counts per column)
+        - observation : np.ndarray
+            Final observation - either 1D column counts (Lx,) or 2D grid (Ly, Lx)
         - initial_positions : List[Tuple[int, int]]
             Initial agent positions
         - final_positions : List[Tuple[int, int]]
@@ -180,47 +183,80 @@ class RandomWalkSimulator:
         """
         if T < 0:
             raise ValueError("Number of time steps T must be non-negative")
-            
+
         # Initialize agents
         positions = self.initialize_lattice(U, random_seed)
         initial_positions = positions.copy()
-        
+
         # Run simulation
         for t in range(T):
             positions = self.simulate_step(positions, P)
-        
-        # Get final column counts
-        column_counts = self.get_column_counts(positions)
-        
-        return column_counts, initial_positions, positions
+
+        # Get final observation in requested format
+        if use_2d_output:
+            observation = self.get_2d_grid(positions)
+        else:
+            observation = self.get_column_counts(positions)
+
+        return observation, initial_positions, positions
     
     def get_column_counts(self, positions: List[Tuple[int, int]]) -> np.ndarray:
         """
         Count agents in each column (observation vector).
-        
+
         Parameters:
         -----------
         positions : List[Tuple[int, int]]
             Agent positions with centered coordinates
-            
+
         Returns:
         --------
         np.ndarray
             Count of agents in each column, indexed from left to right
         """
         counts = np.zeros(self.Lx, dtype=int)
-        
+
         # Calculate x boundaries (centered around 0)
         x_min = -(self.Lx // 2)
         x_max = self.Lx // 2 if self.Lx % 2 == 1 else (self.Lx // 2) - 1
-        
+
         for x, y in positions:
             if x_min <= x <= x_max:  # Safety check
                 # Convert centered coordinate to array index
                 array_index = x - x_min
                 counts[array_index] += 1
-                
+
         return counts
+
+    def get_2d_grid(self, positions: List[Tuple[int, int]]) -> np.ndarray:
+        """
+        Generate 2D grid of agent counts (no vertical compression).
+
+        Parameters:
+        -----------
+        positions : List[Tuple[int, int]]
+            Agent positions with centered coordinates
+
+        Returns:
+        --------
+        np.ndarray of shape (Ly, Lx)
+            2D grid where grid[y, x] contains the count of agents at position (x, y).
+            Rows correspond to y-coordinates (0 to Ly-1), columns to x-coordinates.
+        """
+        grid = np.zeros((self.Ly, self.Lx), dtype=int)
+
+        # Calculate x boundaries (centered around 0)
+        x_min = -(self.Lx // 2)
+        x_max = self.Lx // 2 if self.Lx % 2 == 1 else (self.Lx // 2) - 1
+
+        for x, y in positions:
+            if x_min <= x <= x_max and 0 <= y < self.Ly:  # Safety check
+                # Convert centered x-coordinate to array index
+                x_array_index = x - x_min
+                # y-coordinate is already in array format (0 to Ly-1)
+                grid[y, x_array_index] += 1
+
+        return grid
 
 
 # Plotting functions
@@ -419,4 +455,126 @@ def plot_simulation_comparison(
     ax_counts.axvline(x=0, color='red', linestyle='--', alpha=0.7, linewidth=1)
     ax_counts.grid(True, alpha=0.3)
 
+    return fig
+
+
+def plot_2d_grid(
+    grid: np.ndarray,
+    Lx: int,
+    Ly: int,
+    title: str = "2D Agent Distribution",
+    figsize: Tuple[int, int] = (10, 8)
+) -> plt.Figure:
+    """
+    Visualize 2D agent distribution on the lattice.
+
+    Parameters:
+    -----------
+    grid : np.ndarray of shape (Ly, Lx)
+        2D grid where grid[y, x] contains the count of agents at position (x, y)
+    Lx, Ly : int
+        Lattice dimensions
+    title : str
+        Plot title
+    figsize : Tuple[int, int]
+        Figure size
+
+    Returns:
+    --------
+    plt.Figure
+        Matplotlib figure object
+    """
+    fig, ax = plt.subplots(figsize=figsize)
+
+    # Calculate x boundaries (centered around 0)
+    x_min = -(Lx // 2)
+    x_max = Lx // 2 if Lx % 2 == 1 else (Lx // 2) - 1
+
+    # Create image plot
+    im = ax.imshow(grid, cmap='Blues', origin='lower', aspect='equal',
+                   extent=[x_min, x_max+1, 0, Ly],
+                   interpolation='nearest')
+
+    ax.set_xlabel('x (centered coordinates)')
+    ax.set_ylabel('y (row)')
+    ax.set_title(f'{title} (Total: {np.sum(grid)} agents)')
+
+    # Add colorbar
+    plt.colorbar(im, ax=ax, label='Number of agents')
+
+    # Set grid with centered ticks
+    x_ticks = range(x_min, x_max+1, max(1, Lx//10))
+    y_ticks = range(0, Ly, max(1, Ly//10))
+    ax.set_xticks(x_ticks)
+    ax.set_yticks(y_ticks)
+    ax.grid(True, alpha=0.3)
+
+    # Add vertical line at x=0
+    ax.axvline(x=0, color='red', linestyle='--', alpha=0.7, linewidth=1)
+
+    plt.tight_layout()
+    return fig
+
+
+def plot_2d_comparison(
+    initial_grid: np.ndarray,
+    final_grid: np.ndarray,
+    Lx: int,
+    Ly: int,
+    U: float,
+    P: float,
+    T: int,
+    figsize: Tuple[int, int] = (15, 6)
+) -> plt.Figure:
+    """
+    Create side-by-side comparison of initial and final 2D distributions.
+
+    Parameters:
+    -----------
+    initial_grid, final_grid : np.ndarray of shape (Ly, Lx)
+        Initial and final 2D agent distributions
+    Lx, Ly : int
+        Lattice dimensions
+    U, P : float
+        Simulation parameters
+    T : int
+        Number of time steps
+    figsize : Tuple[int, int]
+        Figure size
+
+    Returns:
+    --------
+    plt.Figure
+        Matplotlib figure object
+    """
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
+
+    # Calculate x boundaries (centered around 0)
+    x_min = -(Lx // 2)
+    x_max = Lx // 2 if Lx % 2 == 1 else (Lx // 2) - 1
+
+    # Initial state
+    im1 = ax1.imshow(initial_grid, cmap='Blues', origin='lower', aspect='equal',
+                     extent=[x_min, x_max+1, 0, Ly], interpolation='nearest')
+    ax1.set_title(f'Initial State\n({np.sum(initial_grid)} agents)')
+    ax1.set_xlabel('x (centered)')
+    ax1.set_ylabel('y (row)')
+    ax1.axvline(x=0, color='red', linestyle='--', alpha=0.7, linewidth=1)
+    plt.colorbar(im1, ax=ax1, label='Number of agents')
+
+    # Final state
+    im2 = ax2.imshow(final_grid, cmap='Blues', origin='lower', aspect='equal',
+                     extent=[x_min, x_max+1, 0, Ly], interpolation='nearest')
+    ax2.set_title(f'Final State (T={T})\nU={U:.3f}, P={P:.3f}\n({np.sum(final_grid)} agents)')
+    ax2.set_xlabel('x (centered)')
+    ax2.set_ylabel('y (row)')
+    ax2.axvline(x=0, color='red', linestyle='--', alpha=0.7, linewidth=1)
+    plt.colorbar(im2, ax=ax2, label='Number of agents')
+
+    # Set consistent color scale
+    vmax = max(initial_grid.max(), final_grid.max())
+    im1.set_clim(0, vmax)
+    im2.set_clim(0, vmax)
+
+    plt.tight_layout()
     return fig

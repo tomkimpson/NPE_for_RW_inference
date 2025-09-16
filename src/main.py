@@ -83,6 +83,10 @@ def main():
     parser.add_argument('--convergence_threshold', type=float, default=0.01,
                        help='Convergence threshold for early stopping in SNPE')
     
+    # Data format parameters
+    parser.add_argument('--use_2d_data', action='store_true',
+                       help='Use 2D spatial data instead of 1D column counts (enables CNN processing)')
+
     # General parameters
     parser.add_argument('--device', type=str, default='auto',
                        choices=['cpu', 'cuda', 'auto'],
@@ -186,23 +190,29 @@ def main():
         initial_region_half_width=args.initial_region_half_width
     )
     
-    # Initialize NPE
-    npe = RandomWalkNPE(device=device, seed=args.seed)
+    # Initialize NPE with 2D configuration if requested
+    spatial_dims = (args.Ly, args.Lx) if args.use_2d_data else None
+    npe = RandomWalkNPE(device=device, seed=args.seed, use_2d_data=args.use_2d_data, spatial_dims=spatial_dims)
     
     # Step 0: Generate test observation (needed for SNPE)
     print(f"\n🎯 Generating test observation with true parameters U={args.theta_true[0]}, P={args.theta_true[1]}")
     true_theta = torch.tensor(args.theta_true, dtype=torch.float32)
     
     # Generate observed data using true parameters
-    column_counts, initial_positions, final_positions = simulator.simulate(
-        U=args.theta_true[0], 
-        P=args.theta_true[1], 
+    observation, initial_positions, final_positions = simulator.simulate(
+        U=args.theta_true[0],
+        P=args.theta_true[1],
         T=args.T,
-        random_seed=args.seed + 1000
+        random_seed=args.seed + 1000,
+        use_2d_output=args.use_2d_data
     )
-    
-    x_obs = torch.tensor(column_counts, dtype=torch.float32).unsqueeze(0)  # Add batch dimension
-    print(f"   Observed data: {len(column_counts)} columns, {column_counts.sum()} total agents")
+
+    x_obs = torch.tensor(observation, dtype=torch.float32).unsqueeze(0)  # Add batch dimension
+
+    if args.use_2d_data:
+        print(f"   Observed data: {observation.shape} 2D grid, {observation.sum()} total agents")
+    else:
+        print(f"   Observed data: {len(observation)} columns, {observation.sum()} total agents")
     
     # Step 1: Training workflow - different for NPE vs SNPE
     if not args.skip_training:
@@ -348,15 +358,44 @@ def main():
     plt.close(fig2)
     
     # Plot observed data
-    from simulator import plot_column_counts, plot_simulation_comparison
-    
-    fig3 = plot_column_counts(column_counts, args.Lx, title="Observed Data")
-    fig3.savefig(results_dir / "observed_data.png", dpi=150, bbox_inches='tight')
-    plt.close(fig3)
-    
-    # Plot simulation comparison
+    from simulator import plot_column_counts, plot_simulation_comparison, plot_2d_grid, plot_2d_comparison
+
+    if args.use_2d_data:
+        # For 2D data, create both 2D and 1D visualizations
+        # 2D grid visualization
+        fig3a = plot_2d_grid(observation, args.Lx, args.Ly, title="Observed 2D Data")
+        fig3a.savefig(results_dir / "observed_data_2d.png", dpi=150, bbox_inches='tight')
+        plt.close(fig3a)
+
+        # Column counts for compatibility
+        column_counts_for_plot = simulator.get_column_counts(final_positions)
+        fig3b = plot_column_counts(column_counts_for_plot, args.Lx, title="Observed Data (Column Sums from 2D)")
+        fig3b.savefig(results_dir / "observed_data_columns.png", dpi=150, bbox_inches='tight')
+        plt.close(fig3b)
+
+        # 2D comparison visualization
+        initial_grid = simulator.get_2d_grid(initial_positions)
+        final_grid = observation
+        fig4a = plot_2d_comparison(
+            initial_grid, final_grid, args.Lx, args.Ly,
+            args.theta_true[0], args.theta_true[1], args.T
+        )
+        fig4a.savefig(results_dir / "simulation_comparison_2d.png", dpi=150, bbox_inches='tight')
+        plt.close(fig4a)
+    else:
+        fig3 = plot_column_counts(observation, args.Lx, title="Observed Data")
+        fig3.savefig(results_dir / "observed_data.png", dpi=150, bbox_inches='tight')
+        plt.close(fig3)
+        column_counts_for_plot = observation
+
+    # 1D simulation comparison (always available)
+    if args.use_2d_data:
+        column_counts_for_plot = simulator.get_column_counts(final_positions)
+    else:
+        column_counts_for_plot = observation
+
     fig4 = plot_simulation_comparison(
-        initial_positions, final_positions, column_counts,
+        initial_positions, final_positions, column_counts_for_plot,
         args.Lx, args.Ly, args.theta_true[0], args.theta_true[1], args.T
     )
     fig4.savefig(results_dir / "simulation_comparison.png", dpi=150, bbox_inches='tight')
@@ -385,23 +424,29 @@ def main():
     print(f"\n🔮 Generating posterior predictive samples...")
     pred_start_time = time.time()
     
-    # Generate predictive samples 
+    # Generate predictive samples
     n_pred = args.n_pred_samples or args.num_samples
     predictions = posterior_predictive_sample(
         posterior_samples=posterior_samples.cpu().numpy(),
         simulator=simulator,
         T=args.T,
         n_pred_samples=n_pred,
-        random_seed=args.seed + 2000
+        random_seed=args.seed + 2000,
+        use_2d_output=args.use_2d_data
     )
     
     # Compute prediction intervals
     prediction_results = compute_prediction_intervals(predictions)
     
-    # Create prediction visualization  
+    # Create prediction visualization
+    if args.use_2d_data:
+        observed_data_for_plot = simulator.get_column_counts(final_positions)
+    else:
+        observed_data_for_plot = observation
+
     fig5 = plot_prediction_intervals(
         prediction_results=prediction_results,
-        observed_data=column_counts,
+        observed_data=observed_data_for_plot,
         Lx=args.Lx,
         title_suffix=f" (T={args.T})"
     )
@@ -423,7 +468,7 @@ def main():
                 'seed': args.seed + 2000
             }
         },
-        'observed_data': column_counts
+        'observed_data': observed_data_for_plot
     }
     
     with open(results_dir / "predictive_results.pkl", 'wb') as f:
@@ -436,7 +481,7 @@ def main():
     results = {
         'posterior_samples': posterior_samples.cpu().numpy(),
         'true_parameters': args.theta_true,
-        'observed_data': column_counts,
+        'observed_data': observed_data_for_plot,
         'summary_statistics': {
             'U_mean': U_mean, 'U_std': U_std, 'U_ci': U_ci,
             'P_mean': P_mean, 'P_std': P_std, 'P_ci': P_ci
@@ -500,7 +545,7 @@ def main():
     global_stats = prediction_results['global_stats']
     print(f"   Total agents: {global_stats['total_agents_mean']:.1f} ± {global_stats['total_agents_std']:.1f}")
     print(f"   Range: [{global_stats['total_agents_min']}, {global_stats['total_agents_max']}]")
-    observed_total = np.sum(column_counts)
+    observed_total = np.sum(observed_data_for_plot)
     predictions_total = np.sum(predictions, axis=1) 
     p2_5 = np.percentile(predictions_total, 2.5)
     p97_5 = np.percentile(predictions_total, 97.5)

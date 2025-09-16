@@ -10,7 +10,7 @@ import numpy as np
 import torch
 import pickle
 import warnings
-from typing import Tuple, Dict, Any, Optional, List
+from typing import Tuple, Dict, Any, Optional, List, Union
 from pathlib import Path
 from scipy import stats
 import matplotlib.pyplot as plt
@@ -25,6 +25,7 @@ from sbi.neural_nets import posterior_nn
 from sbi.utils import BoxUniform
 
 from simulator import RandomWalkSimulator
+from cnn_utils import create_spatial_embedding_net, compute_2d_tensor_shape, validate_2d_input
 
 import tqdm
 
@@ -32,65 +33,94 @@ import tqdm
 class RandomWalkNPE:
     """Sequential Neural Posterior Estimation for Random Walk parameter inference."""
     
-    def __init__(self, 
+    def __init__(self,
                  device: str = 'cpu',
-                 seed: Optional[int] = None):
+                 seed: Optional[int] = None,
+                 use_2d_data: bool = False,
+                 spatial_dims: Optional[Tuple[int, int]] = None):
         """
         Initialize SNPE inference.
-        
+
         Parameters:
         -----------
         device : str
             Device for training ('cpu' or 'cuda')
         seed : int, optional
             Random seed
+        use_2d_data : bool
+            Whether to use 2D spatial data (True) or 1D column counts (False)
+        spatial_dims : Tuple[int, int], optional
+            (Ly, Lx) dimensions for 2D data. Required if use_2d_data=True
         """
         self.device = device
-        
+        self.use_2d_data = use_2d_data
+        self.spatial_dims = spatial_dims
+
+        if use_2d_data and spatial_dims is None:
+            raise ValueError("spatial_dims must be provided when use_2d_data=True")
+
         if seed is not None:
             torch.manual_seed(seed)
             np.random.seed(seed)
-            
+
         # Define prior for U and P parameters on the correct device
         # U: initial occupancy probability (0.01, 1.0)
         # P: movement probability (0.0, 1.0)
         self.prior = BoxUniform(
-            low=torch.tensor([0.01, 0.0], device=device), 
+            low=torch.tensor([0.01, 0.0], device=device),
             high=torch.tensor([1.0, 1.0], device=device)
         )
-        
+
         self.inference = None
         self.posterior = None
-        
+
         # Sequential training attributes
         self.posteriors_by_round = []  # Store posterior from each round
         self.training_history = []  # Store training info from each round
         self.current_round = 0
         
-    def setup_inference(self, x_dim: int, **kwargs):
+    def setup_inference(self, x_shape: Union[int, Tuple[int, ...]], **kwargs):
         """
         Set up SBI inference object.
-        
+
         Parameters:
         -----------
-        x_dim : int
-            Dimension of observations (number of columns)
+        x_shape : int or Tuple[int, ...]
+            Shape of observations - int for 1D (number of columns) or tuple for 2D (Ly, Lx)
         **kwargs : additional arguments for SNPE
         """
-        # Default neural network configuration
+        # Prepare neural network configuration based on data type
         neural_net_kwargs = {
             'hidden_features': 128,
             'num_transforms': 5,
-            'embedding_net': torch.nn.Identity(),
         }
+
+        if self.use_2d_data:
+            # Use CNN embedding for 2D spatial data
+            if isinstance(x_shape, int):
+                raise ValueError("x_shape must be tuple (Ly, Lx) for 2D data")
+
+            Ly, Lx = x_shape
+            spatial_embedding = create_spatial_embedding_net(
+                input_height=Ly,
+                input_width=Lx,
+                output_dim=neural_net_kwargs['hidden_features'],
+                dropout=kwargs.get('cnn_dropout', 0.1)
+            )
+            neural_net_kwargs['embedding_net'] = spatial_embedding
+        else:
+            # Use identity embedding for 1D data
+            neural_net_kwargs['embedding_net'] = torch.nn.Identity()
+
+        # Update with user-provided settings
         neural_net_kwargs.update(kwargs.get('neural_net_kwargs', {}))
-        
+
         # Create neural posterior estimator
         neural_posterior = posterior_nn(
             model='nsf',  # Neural Spline Flow
             **neural_net_kwargs
         )
-        
+
         self.inference = SNPE(
             prior=self.prior,
             density_estimator=neural_posterior,
@@ -164,39 +194,47 @@ class RandomWalkNPE:
         
         # Initialize storage
         parameters = np.zeros((n_simulations, 2))
-        observations = np.zeros((n_simulations, simulator.Lx))
-        
+
+        # Determine observation shape and initialize storage
+        if self.use_2d_data:
+            if self.spatial_dims is None:
+                raise ValueError("spatial_dims must be set for 2D data mode")
+            Ly, Lx = self.spatial_dims
+            observations = np.zeros((n_simulations, Ly, Lx))
+        else:
+            observations = np.zeros((n_simulations, simulator.Lx))
+
         # Sample all parameters at once if using proposal
         if proposal_distribution is not None:
             print(f"   Drawing {n_simulations} parameter samples from proposal distribution...")
             # Sample all parameters at once to avoid multiple progress bars
             theta_samples = proposal_distribution.sample((n_simulations,))
             theta_samples_np = theta_samples.cpu().numpy()
-            
+
             # Generate training data
             for i in tqdm.tqdm(range(n_simulations), desc="Running simulations"):
                 U = float(theta_samples_np[i, 0])
                 P = float(theta_samples_np[i, 1])
-                
-                # Run simulation
-                column_counts, _, _ = simulator.simulate(U, P, T)
-                
+
+                # Run simulation with appropriate output format
+                observation, _, _ = simulator.simulate(U, P, T, use_2d_output=self.use_2d_data)
+
                 # Store results
                 parameters[i] = [U, P]
-                observations[i] = column_counts
+                observations[i] = observation
         else:
             # Generate training data with prior sampling
             for i in tqdm.tqdm(range(n_simulations), desc="Running simulations"):
                 # Sample parameters from priors (uniform distributions)
                 U = np.random.uniform(*prior_bounds['U'])
                 P = np.random.uniform(*prior_bounds['P'])
-                
-                # Run simulation
-                column_counts, _, _ = simulator.simulate(U, P, T)
-                
+
+                # Run simulation with appropriate output format
+                observation, _, _ = simulator.simulate(U, P, T, use_2d_output=self.use_2d_data)
+
                 # Store results
                 parameters[i] = [U, P]
-                observations[i] = column_counts
+                observations[i] = observation
             
         
         # Convert to tensors
@@ -299,7 +337,12 @@ class RandomWalkNPE:
             setup_kwargs = {}
             if neural_net_kwargs is not None:
                 setup_kwargs['neural_net_kwargs'] = neural_net_kwargs
-            self.setup_inference(x_dim=x.shape[1], **setup_kwargs)
+            # Determine x_shape based on data type
+            if self.use_2d_data:
+                x_shape = x.shape[1:]  # (Ly, Lx) for 2D data
+            else:
+                x_shape = x.shape[1]   # int for 1D data
+            self.setup_inference(x_shape=x_shape, **setup_kwargs)
             
         print(f"Training NPE with {len(theta)} samples...")
         print(f"Parameter shape: {theta.shape}")
@@ -385,7 +428,12 @@ class RandomWalkNPE:
             setup_kwargs = {}
             if neural_net_kwargs is not None:
                 setup_kwargs['neural_net_kwargs'] = neural_net_kwargs
-            self.setup_inference(x_dim=x.shape[1], **setup_kwargs)
+            # Determine x_shape based on data type
+            if self.use_2d_data:
+                x_shape = x.shape[1:]  # (Ly, Lx) for 2D data
+            else:
+                x_shape = x.shape[1]   # int for 1D data
+            self.setup_inference(x_shape=x_shape, **setup_kwargs)
             
         print(f"Training SNPE round with {len(theta)} samples...")
         print(f"Parameter shape: {theta.shape}")
@@ -714,6 +762,8 @@ class RandomWalkNPE:
             'inference': self.inference,
             'prior': self.prior,
             'device': self.device,
+            'use_2d_data': self.use_2d_data,
+            'spatial_dims': self.spatial_dims,
             'metadata': metadata or {}
         }
         
@@ -747,7 +797,11 @@ class RandomWalkNPE:
         # Use provided device or fall back to saved device
         target_device = device or data['device']
         
-        obj = cls(device=target_device)
+        # Recreate object with saved configuration
+        use_2d_data = data.get('use_2d_data', False)
+        spatial_dims = data.get('spatial_dims', None)
+
+        obj = cls(device=target_device, use_2d_data=use_2d_data, spatial_dims=spatial_dims)
         obj.posterior = data['posterior']
         obj.inference = data['inference']
         obj.prior = data['prior']

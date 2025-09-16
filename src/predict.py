@@ -134,14 +134,15 @@ def load_prediction_results(prediction_path: str) -> Dict[str, Any]:
 
 def posterior_predictive_sample(
     posterior_samples: np.ndarray,
-    simulator: RandomWalkSimulator, 
+    simulator: RandomWalkSimulator,
     T: int,
     n_pred_samples: Optional[int] = None,
-    random_seed: Optional[int] = None
+    random_seed: Optional[int] = None,
+    use_2d_output: bool = False
 ) -> np.ndarray:
     """
     Generate posterior predictive samples by running simulator with posterior parameter samples.
-    
+
     Parameters:
     -----------
     posterior_samples : np.ndarray of shape (n_samples, 2)
@@ -154,11 +155,15 @@ def posterior_predictive_sample(
         Number of predictive samples to generate (default: all posterior samples)
     random_seed : int, optional
         Random seed for reproducibility
-        
+    use_2d_output : bool, default False
+        If True, return 2D grid outputs. If False, return 1D column counts
+
     Returns:
     --------
-    np.ndarray of shape (n_pred_samples, n_columns)
-        Predicted column counts for each parameter sample
+    np.ndarray
+        Predicted outputs for each parameter sample:
+        - If use_2d_output=False: shape (n_pred_samples, n_columns)
+        - If use_2d_output=True: shape (n_pred_samples, Ly, Lx)
     """
     if random_seed is not None:
         np.random.seed(random_seed)
@@ -175,11 +180,14 @@ def posterior_predictive_sample(
         n_pred = n_posterior
     
     print(f"🔮 Generating {n_pred} posterior predictive samples...")
-    
-    # Initialize results array
-    n_columns = simulator.Lx
-    predictions = np.zeros((n_pred, n_columns), dtype=int)
-    
+
+    # Initialize results array based on output type
+    if use_2d_output:
+        predictions = np.zeros((n_pred, simulator.Ly, simulator.Lx), dtype=int)
+    else:
+        n_columns = simulator.Lx
+        predictions = np.zeros((n_pred, n_columns), dtype=int)
+
     # Generate predictions
     start_time = time.time()
     for i, (U, P) in enumerate(selected_samples):
@@ -189,16 +197,17 @@ def posterior_predictive_sample(
             eta = (n_pred - i - 1) / rate if rate > 0 else 0
             print(f"   Progress: {i+1}/{n_pred} ({100*(i+1)/n_pred:.1f}%) - "
                   f"{rate:.1f} samples/sec - ETA: {eta:.1f}s")
-        
+
         # Run simulation with current parameter sample
-        column_counts, _, _ = simulator.simulate(
-            U=float(U), 
-            P=float(P), 
+        observation, _, _ = simulator.simulate(
+            U=float(U),
+            P=float(P),
             T=T,
-            random_seed=random_seed + i if random_seed is not None else None
+            random_seed=random_seed + i if random_seed is not None else None,
+            use_2d_output=use_2d_output
         )
-        
-        predictions[i] = column_counts
+
+        predictions[i] = observation
     
     elapsed = time.time() - start_time
     print(f"✅ Predictive sampling completed in {elapsed:.1f} seconds")
@@ -210,33 +219,48 @@ def posterior_predictive_sample(
 def compute_prediction_intervals(
     predictions: np.ndarray,
     percentiles: List[float] = [2.5, 25, 50, 75, 97.5],
-    smooth_sigma: Optional[float] = None
+    smooth_sigma: Optional[float] = None,
+    convert_2d_to_columns: bool = True
 ) -> Dict[str, Any]:
     """
     Compute prediction intervals and summary statistics.
-    
+
     Parameters:
     -----------
-    predictions : np.ndarray of shape (n_samples, n_columns)
-        Predicted column counts
+    predictions : np.ndarray
+        Predicted outputs - either (n_samples, n_columns) for 1D or (n_samples, Ly, Lx) for 2D
     percentiles : List[float]
         Percentiles to compute for intervals
     smooth_sigma : Optional[float]
         Standard deviation for Gaussian smoothing of percentiles.
         If None, no smoothing is applied (maintains backward compatibility).
-        
+    convert_2d_to_columns : bool
+        If True and predictions are 2D (3D array), convert to column sums before analysis
+
     Returns:
     --------
     Dict containing intervals, summary statistics, and metadata
     """
     print("📊 Computing prediction intervals...")
-    
-    n_pred, n_columns = predictions.shape
+
+    # Handle 2D predictions by converting to column sums if requested
+    if predictions.ndim == 3 and convert_2d_to_columns:
+        print("   Converting 2D predictions to column sums for interval analysis...")
+        # Sum over y-axis (rows) to get column counts
+        predictions_to_analyze = np.sum(predictions, axis=1)
+    else:
+        predictions_to_analyze = predictions
+
+    n_pred = predictions_to_analyze.shape[0]
+    if predictions_to_analyze.ndim == 1:
+        n_columns = 1
+    else:
+        n_columns = predictions_to_analyze.shape[1]
     
     # Compute percentiles for each column
     intervals = {}
     for p in percentiles:
-        intervals[f"p{p}"] = np.percentile(predictions, p, axis=0)
+        intervals[f"p{p}"] = np.percentile(predictions_to_analyze, p, axis=0)
     
     # Apply smoothing if requested
     if smooth_sigma is not None:
@@ -252,18 +276,25 @@ def compute_prediction_intervals(
     
     # Summary statistics
     stats = {
-        'mean': np.mean(predictions, axis=0),
-        'std': np.std(predictions, axis=0),
-        'min': np.min(predictions, axis=0),
-        'max': np.max(predictions, axis=0)
+        'mean': np.mean(predictions_to_analyze, axis=0),
+        'std': np.std(predictions_to_analyze, axis=0),
+        'min': np.min(predictions_to_analyze, axis=0),
+        'max': np.max(predictions_to_analyze, axis=0)
     }
-    
-    # Global summary statistics
+
+    # Global summary statistics - use original predictions for total count
+    if predictions.ndim == 3:
+        # For 2D predictions, sum over spatial dimensions to get total agents per sample
+        total_agents_per_sample = np.sum(predictions, axis=(1, 2))
+    else:
+        # For 1D predictions, sum over columns
+        total_agents_per_sample = np.sum(predictions, axis=1)
+
     global_stats = {
-        'total_agents_mean': np.mean(np.sum(predictions, axis=1)),
-        'total_agents_std': np.std(np.sum(predictions, axis=1)),
-        'total_agents_min': np.min(np.sum(predictions, axis=1)),
-        'total_agents_max': np.max(np.sum(predictions, axis=1))
+        'total_agents_mean': np.mean(total_agents_per_sample),
+        'total_agents_std': np.std(total_agents_per_sample),
+        'total_agents_min': np.min(total_agents_per_sample),
+        'total_agents_max': np.max(total_agents_per_sample)
     }
     
     results = {
