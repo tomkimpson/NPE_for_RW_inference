@@ -386,7 +386,7 @@ def _(
         print(f"✅ Loaded {abc_stochastic_results['n_keep']} samples from {abc_stochastic_file}")
     else:
         # Run ABC with stochastic simulator
-        abc_stochastic_results = abc_stochastic(observed_column_counts,U_limits,P_limits, n_samples=10, n_keep=10)
+        abc_stochastic_results = abc_stochastic(observed_column_counts,U_limits,P_limits, n_samples=10000, n_keep=1000)
 
         # Save results
         with open(abc_stochastic_file, 'wb') as f:
@@ -495,7 +495,7 @@ def _(
         print(f"✅ Loaded {abc_surrogate_results['n_keep']} samples from {abc_surrogate_file}")
     else:
         # Run ABC with surrogate model
-        abc_surrogate_results = abc_surrogate(observed_column_counts,U_limits,P_limits, n_samples=10, n_keep=10)
+        abc_surrogate_results = abc_surrogate(observed_column_counts,U_limits,P_limits, n_samples=10000, n_keep=1000)
 
         # Save results
         with open(abc_surrogate_file, 'wb') as f1:
