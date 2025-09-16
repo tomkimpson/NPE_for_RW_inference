@@ -849,6 +849,7 @@ def _(np, plt):
 
     from pathlib import Path
     import corner 
+    import scienceplots
     def create_professional_corner_plot(
         posterior_samples,
         param_names,
@@ -860,7 +861,7 @@ def _(np, plt):
     ):
         """
         Create a professional, publication-quality corner plot.
-    
+
         Parameters:
         -----------
         posterior_samples : array-like, shape (n_samples, n_params)
@@ -878,12 +879,12 @@ def _(np, plt):
             Will save both .png and .pdf versions if path provided.
         **kwargs : dict
             Additional keyword arguments passed to corner.corner()
-        
+
         Returns:
         --------
         fig : matplotlib.figure.Figure
             The corner plot figure
-        
+
         Examples:
         ---------
         >>> samples = np.random.randn(1000, 2)
@@ -892,7 +893,7 @@ def _(np, plt):
         >>> fig = create_professional_corner_plot(samples, param_names, true_vals, 
         ...                                       savefig_path='corner_plot')
         """
-    
+
         # Set up professional styling
         plt.style.use(['science', 'no-latex'])  # Add 'no-latex' if LaTeX not available
         plt.rcParams.update({
@@ -905,15 +906,15 @@ def _(np, plt):
             'figure.dpi': 100,
             'savefig.dpi': 300,
         })
-    
+
         # Convert inputs to numpy arrays
         posterior_samples = np.array(posterior_samples)
         true_parameters = np.array(true_parameters)
-    
+
         # Professional color scheme
         posterior_color = '#2E86C1'   # Professional blue
         contour_colors = ['#AED6F1', '#5DADE2', '#2E86C1']  # Gradient blues
-    
+
         # Default corner plot arguments
         corner_defaults = {
             'labels': param_names,
@@ -934,7 +935,7 @@ def _(np, plt):
             'bins': nbins,
             'quantiles': [0.16, 0.5, 0.84],  # 68% credible intervals
             'plot_density': True,
-            'plot_datapoints': False,  # Clean look without individual points
+            'plot_datapoints': True,  # Clean look without individual points
             'fill_contours': True,
             'contour_kwargs': {
                 'colors': contour_colors, 
@@ -954,16 +955,16 @@ def _(np, plt):
                 'linestyle': '--'
             }
         }
-    
+
         # Update defaults with any user-provided kwargs
         corner_defaults.update(kwargs)
-    
+
         # Create the corner plot
         fig = corner.corner(posterior_samples, **corner_defaults)
-    
+
         # Post-processing improvements
         axes = fig.get_axes()
-    
+
         # Enhance axis appearance
         for ax in axes:
             if ax is not None:
@@ -985,13 +986,13 @@ def _(np, plt):
                     top=True, 
                     right=True
                 )
-            
+
                 # Add minor ticks
                 ax.minorticks_on()
-            
+
                 # Add subtle grid
                 ax.grid(True, alpha=0.3, linewidth=0.5, linestyle=':')
-        
+
         # Adjust layout
         plt.tight_layout()
 
@@ -1000,7 +1001,7 @@ def _(np, plt):
             hspace=0.05,  # Reduce vertical spacing between subplots
             wspace=0.05   # Reduce horizontal spacing between subplots
         )
-    
+
         # Save figure if path provided
         if savefig_path is not None:
             savefig_path = Path(savefig_path)
@@ -1008,14 +1009,14 @@ def _(np, plt):
             png_path = savefig_path.with_suffix('.png')
             fig.savefig(png_path, dpi=300, bbox_inches='tight', 
                        facecolor='white', edgecolor='none')
-        
+
             # Save PDF version for publications
             pdf_path = savefig_path.with_suffix('.pdf')
             fig.savefig(pdf_path, bbox_inches='tight', 
                        facecolor='white', edgecolor='none')
-        
+
             print(f"Figures saved as:\n  - {png_path}\n  - {pdf_path}")
-    
+
         return fig
 
 
@@ -1048,7 +1049,7 @@ def _(
         true_parameters=true_parameters,
         nbins=25,
         truth_color='orange',
-        savefig_path='corner_plot_abc_stochastic',
+        savefig_path='notebooks/images/corner_plot_abc_stochastic',
         range=(U_limits,D_limits)  # Custom ranges as additional kwarg
     )
 
@@ -1076,7 +1077,7 @@ def _(
         true_parameters=true_parameters,
         nbins=25,
         truth_color='orange',
-        savefig_path='corner_plot_abc_surrogate',
+        savefig_path='notebooks/images/corner_plot_abc_surrogate',
         range=(U_limits,D_limits)  # Custom ranges as additional kwarg
     )
 
@@ -1114,7 +1115,7 @@ def _(
         true_parameters=true_parameters_mcmc,
         nbins=25,
         truth_color='orange',
-        savefig_path='corner_plot_mcmc_surrogate',
+        savefig_path='notebooks/images/corner_plot_mcmc_surrogate',
         range=(U_limits,D_limits,sigma_limits)  # Custom ranges as additional kwarg
     )
 
@@ -1129,7 +1130,7 @@ def _(
 
 @app.cell
 def _(mo):
-    mo.md(r"""### MCMC trace plots """)
+    mo.md(r"""### MCMC trace plots""")
     return
 
 
