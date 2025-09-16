@@ -27,6 +27,9 @@
 	linkcolor = magenta
 }
 
+\usepackage{subcaption}
+
+
 \title{Inference from Stochastic Biological Simulators Using Neural Posterior Estimation}
 
 % Here you can change the date presented in the paper title
@@ -196,6 +199,58 @@ eliminating the additional variance parameter and ensuring non-negative predicti
 \end{equation}
 
 S\&P2025's extensive comparisons reveal that noise model misspecification can bias parameter estimates and lead to poorly calibrated prediction intervals. The Gaussian model consistently produces unphysical negative predictions in low-density regions, while the Poisson and binomial models better respect the discrete, non-negative nature of count data.
+
+
+
+Example results are presented in 
+%
+%
+%\begin{figure}[h]
+%	\centering
+%	\includegraphics[width=\textwidth]{images/corner_plot_abc_stochastic}
+%	\caption{some caption}
+%	\label{fig:posterior_abc_stochastic}
+%\end{figure}
+%
+
+
+\begin{figure}[h]
+	\centering
+	\begin{subfigure}{0.45\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{images/corner_plot_abc_stochastic}
+		\caption{Caption for figure 1}
+		\label{fig:sub1}
+	\end{subfigure}
+	\hfill
+	\begin{subfigure}{0.45\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{images/corner_plot_abc_surrogate}
+		\caption{Caption for figure 2}
+		\label{fig:sub2}
+	\end{subfigure}
+	
+	 % Add vertical space
+	\vspace{1em}
+	
+	
+	\begin{subfigure}{0.55\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{images/corner_plot_mcmc_surrogate}
+		\caption{Caption for figure 3}
+		\label{fig:sub3}
+	\end{subfigure}
+	\caption{Overall caption for all three figures}
+	\label{fig:three_figures}
+\end{figure}
+
+
+
+
+
+
+
+
 
 \subsection{Identifiability Analysis}
 
