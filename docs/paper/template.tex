@@ -16,6 +16,7 @@
 \usepackage{natbib}
 \usepackage{doi}
 \usepackage{xcolor}
+\usepackage{enumerate}% http://ctan.org/pkg/enumerate
 
 % Hyperlinks (load near end to avoid conflicts)
 \usepackage{hyperref}                 % Hyperlinks
@@ -122,23 +123,39 @@ Parameter inference is essential for translating sparse, noisy biological measur
 \keywords{First keyword \and Second keyword \and More}
 
 
+
 \section{Introduction}
-Mathematical and computational models are central to how the life sciences turn noisy, partial measurements into mechanistic insight and quantitative predictions. Across problems as diverse as disease progression, ecological population dynamics, and gene regulation, inference methods are used to estimate unknown parameters, test hypotheses, and quantify uncertainty.  For deterministic continuum models (ODEs/PDEs), both Bayesian and frequentist inference pipelines are mature and widely applied.
+Parameter inference is the critical link between mathematical models and biological understanding, enabling quantitative insights from noisy experimental data. Inference methods provide researchers with a powerful toolkit to generate predictions about system behavior, estimate unknown parameters, test competing hypotheses, and rigorously quantify uncertainty. These applications are critical across a wide range of fields, including epidemiology \citep{Dunson2005,Semochkina2025}, ecology \citep{Qian2009,Rosen2001}, cellular biology \citep{Vallejos2015}, gene regulatory networks \citep{Liu2016,Wang2019}, systems biology \citep{Rabinowitz2013} phylogenetics \citep{Nascimento2017}, and neuroscience \citep{Coventry2024}.
+
+For deterministic continuum models described by ordinary and partial differential equations, inference methodologies are mature and well-established. Both Bayesian \citep{Bernardo1994,Gelman1995} and frequentist \citep{Cox1974,Casella1990} approaches provide robust foundations for parameter estimation, model validation, and uncertainty quantification. The sophistication of these inference techniques has enabled reliable parameter estimation and prediction across numerous scientific disciplines including climate science \citep{Vrugt2014}, cosmology \citep{Planck2018Params}, fluid dynamics \citep{Cheung2011} gravitatinal wave astrophysics \citep{Veitch2015}. 
+
+Stochastic biological models, however, present fundamental inferential challenges that resist these established approaches. Agent-based models and discrete stochastic processes, while capturing essential biological variability and heterogeneity, typically possess intractable likelihoods that preclude standard statistical methods. Experimental protocols exhibit substantial variation, datasets are frequently sparse and noisy, and the stochastic nature of biological processes introduces complex dependencies that deterministic frameworks cannot adequately represent. These characteristics create a disconnect between the sophisticated stochastic models needed to represent biological reality and the inference tools available to calibrate them from data.
 
 
-Biological applications, however, pose distinctive challenges for inference. Experimental protocols vary, data are often sparse and noisy, and governing equations are rarely known from first principles. These realities complicate estimation, identifiability analysis, and model-based prediction, motivating stochastic descriptions that better reflect intrinsic variability. Furthermore, high-resolution imaging now exposes fluctuations that coarse-grained frameworks tend to mask, driving the prominence of random-walk and other agent-based models for studying animal movement, multicellular phenomena, and molecular transport. \textcolor{red}{TK: not sure if this is actually true, but sounds reasonable. Need to check literature.}
+Several recent developments have attempted to address these inferential challenges while preserving the biological realism of stochastic models \citep{Carr2021,SIMPSON2022111201,Simpson2025.05.25.656057}, typically focusing on inference, identifiability, and prediction for stochastic agent-based models of migration and proliferation. These approaches often use experimental data such as scratch (barrier) assay experiments to calibrate high-fidelity discrete random-walk models, highlighting applications where stochasticity is visible and decision-relevant. At the same time, these successes have clarified several canonical challenges that have historically limited the broader application of stochastic models. While these approaches demonstrate the potential of sophisticated inference frameworks, they also reveal fundamental limitations that must be addressed to fully realize the promise of stochastic biological modeling. These canonical challenges can be summarized as follows. 
+\begin{enumerate} 
+	\item \textbf{Intractable likelihoods:} The likelihood function for most agent-based models is intractable, precluding the use of standard methods like Maximum Likelihood Estimation or many Markov chain Monte Carlo (MCMC) algorithms. 
+	\item \textbf{Surrogate-model error:} A common strategy to make inference tractable is to replace the computationally expensive stochastic simulator with a cheap surrogate, typically a deterministic Partial Differential Equation (PDE) describing mean-field behavior. While this enables efficient MCMC or MLE techniques, the resulting inference is conditional on the surrogate being a faithful approximation, an assumption that, if violated, can lead to biased parameter estimates and inaccurate predictions. 
+	\item \textbf{Noise-model misspecification:} The use of a deterministic surrogate creates the problem of specifying a noise model to connect its clean output to noisy data. A misspecified choice can lead to non-physical predictions and poorly calibrated uncertainties. 
+	\item \textbf{Likelihood-free inefficiency:} Classical likelihood-free alternatives like Approximate Bayesian Computation (ABC) are notoriously computationally expensive and sensitive to the choice of summary statistics, distance metrics, and tolerance thresholds.
+	\item \textbf{Information loss from summary statistics:} Classical methods often require reducing complex, high-dimensional data (e.g., the full 2D spatial arrangement of cells) to lower-dimensional summary statistics (e.g., a 1D cell density profile). This step risks a significant loss of information, and the choice of statistics can heavily bias the inference. 
+	 \end{enumerate}
 
-\cite{Simpson2025.05.25.656057} (S\&P2025 hereafter) provides an comprehensive survey of this landscape, focusing on inference, identifiability, and prediction for stochastic agent-based models of migration and proliferation. Their motivating example uses barrier-assay data to calibrate a high-fidelity discrete random-walk model, highlighting applications where stochasticity is visible and decision-relevant. Their analysis highlights the critical need for robust inference methods but also illuminates the formidable challenges that have historically limited the application of these powerful models. These canonical challenges can be summarized as follows. First, the intractable likelihood of most agent-based models precludes the use of standard methods like Maximum Likelihood Estimation or many MCMC algorithms. Second, a common strategy to make inference tractable, explored in depth in S\&P2025, is to replace the computationally expensive stochastic simulator with a computationally cheap, surrogate model, typically a deterministic Partial Differential Equation (PDE) that describes the mean-field behavior of the system. While this enables the use of efficient MCMC or MLE techniques, it introduces a significant source of potential error. The resulting inference is conditional on the surrogate being a faithful approximation of the true stochastic process, an assumption that may be violated and can lead to biased parameter estimates and inaccurate predictions. Third, the use of a deterministic surrogate creates the problem of specifying a noise model to connect its clean output to noisy data—a choice that, if misspecified, can lead to non-physical predictions and poorly calibrated uncertainties. Finally, classical likelihoodlikelihood-free alternatives like Approximate Bayesian Computation (ABC) are notoriously computationally expensive and sensitive to the choice of summary statistics and distance metrics. 
+In this paper, we propose that these fundamental challenges can be addressed in a unified manner using Neural Posterior Estimation (NPE), a modern simulation-based inference (SBI) paradigm. NPE leverages flexible neural density estimators to learn the posterior distribution $p\left(\theta \mid x\right)$ directly from simulator-generated $(\theta,x)$ pairs. This approach offers direct remedies to each of the aforementioned challenges. 
+\begin{enumerate} 
+	\item It is likelihood-free, circumventing intractability.
+	 \item It learns directly from the high-fidelity simulator, eliminating surrogate model bias and removing the PDE as a source of approximation error. 
+	 \item It implicitly learns the full, complex, stochastic relationship between parameters and data, obviating the need for an explicit noise model. 
+	 \item It can ingest high-dimensional data directly (e.g., raw 2D images), preserving information and avoiding manual selection of summary statistics.
+	 \item It provides amortized inference: after an initial, one-time training phase, it can generate posterior estimates for new observations almost instantaneously, overcoming the high per-inference cost of methods like ABC. 
+	 \end{enumerate}
+The central thesis of this work is that NPE provides a more robust, efficient, and direct framework for parameter inference in stochastic biological models than the classical methods reviewed in \citet{Simpson2025.05.25.656057} (\emph{S\&P2025} hereafter). We demonstrate this by applying a state-of-the-art Sequential NPE (SNPE) workflow to the full suite of random walk models from their study. Building on their modelling program, our contributions are to: (i) introduce an amortized, simulator-native NPE pipeline for the migration and proliferation random-walk model; (ii) demonstrate that this NPE pipeline circumvents ABC tolerance tuning and surrogate-model bias while improving calibration and coverage; (iii) introduce a novel inference strategy that uses a Convolutional Neural Network (CNN) to learn directly from the raw 2D spatial data generated by the simulator. This approach avoids the information loss inherent in using 1D summary statistics (such as column counts), leading to more precise and reliable posterior estimates; (iv) Release an open, reproducible implementation with configuration files, plots, and posterior-predictive utilities to facilitate adoption and extension. While we use scratch assay experiments as our primary motivating application, the inference framework developed here is applicable to the broader class of spatially-explicit stochastic models commonly used throughout biology and ecology.
 
-In this paper, we propose that these fundamental challenges can be addressed in a unified manner using Neural Posterior Estimation (NPE), a modern simulation-based inference (SBI) paradigm. NPE leverages flexible neural density estimators to learn the posterior distribution $p\left(\theta | x\right)$ directly from simulator-generated $(\theta,x)$ pairs. This approach offers a direct solution to each of the aforementioned challenges. (1) It is likelihood-free, circumventing intractability. (2) It learns directly from the high-fidelity simulator, eliminating surrogate model bias and removing the PDE as a source of approximation error. (3) It implicitly learns the full, complex, stochastic relationship between parameters and data, obviating the need for an explicit noise model. (4) It provides amortized inference: after an initial, one-time training phase, it can generate posterior estimates for new observations almost instantaneously, overcoming the high per-inference cost of methods like ABC.
 
-The central thesis of this work is that NPE provides a more robust, efficient, and direct framework for parameter inference in stochastic biological models than the classical methods reviewed by S\&P2025. We demonstrate this by applying a state-of-the-art Sequential NPE (SNPE) workflow to the full suite of random walk models from their study. 
-
-
-Building on their modelling program, our contributions are to: (i) itroduce an amortized, simulator-native NPE pipeline for the migration and proliferation random-walk model; (ii) demonstrate that this NPE pipeline circumvents ABC tolerance tuning and surrogate-model bias while improving calibration and coverage; (iii) introduce a novel inference strategy that uses a Convolutional Neural Network (CNN) to learn directly from the raw 2D spatial data generated by the simulator. This approach avoids the information loss inherent in using 1D summary statistics (such as column counts), leading to more precise and reliable posterior estimates; (iv) Release an open, reproducible implementation with configuration files, plots, and posterior-predictive utilities to facilitate adoption and extension.
+The remainder of this paper is structured as follows. Section \ref{sec:classical_inference} reviews the stochastic models and classical inference paradigms and reproduices s subset of the core results of \emph{S\&P2025}. Section \ref{sec:NPE} details our NPE methodology. Section 4 presents our results, directly comparing the performance of NPE against the classical methods on the \emph{S\&P2025} benchmarks. Finally, Section 5 discusses the broader implications of our work for the future of simulation-based inference in biology.
 
 
-The remainder of this paper is structured as follows. Section \ref{sec:classical_inference} reviews the stochastic models and classical inference paradigms. Section 3 details our NPE methodology. Section 4 presents our results, directly comparing the performance of NPE against the classical methods on the S\&P benchmarks. Finally, Section 5 discusses the broader implications of our work for the future of simulation-based inference in biology.
+
 
 \section{Classical Approaches to Inference in Stochastic Biological Models}\label{sec:classical_inference}
 
@@ -203,15 +220,7 @@ S\&P2025's extensive comparisons reveal that noise model misspecification can bi
 
 
 Example results are presented in 
-%
-%
-%\begin{figure}[h]
-%	\centering
-%	\includegraphics[width=\textwidth]{images/corner_plot_abc_stochastic}
-%	\caption{some caption}
-%	\label{fig:posterior_abc_stochastic}
-%\end{figure}
-%
+
 
 
 \begin{figure}[h]
@@ -424,6 +433,14 @@ We further test NPE on S\&P2025's more complex models, including biased random w
 
 
 
+
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=\textwidth]{images/NPE_corner_plot}
+	\caption{some caption}
+	\label{fig:posterior_abc_stochastic}
+\end{figure}
 
 
 
