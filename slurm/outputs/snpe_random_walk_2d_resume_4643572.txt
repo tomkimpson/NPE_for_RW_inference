@@ -1,0 +1,73 @@
+Starting 2D NPE Random Walk RESUME workflow...
+Resuming from: results/workflow_20250917_144333
+Configuration: 2D spatial data with CNN processing
+Lattice size: 200x50, Time steps: 100
+Target SNPE rounds: 10 (resuming from completed rounds)
+/fred/oz022/tkimpson/SNPE/NPE_for_RW_inference/src/inference.py:977: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  training_info = torch.load(training_info_path, map_location=self.device)
+/fred/oz022/tkimpson/SNPE/NPE_for_RW_inference/src/inference.py:1014: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  training_info = torch.load(training_info_path, map_location=self.device)
+🔄 Resume mode: Found 5 round directories, attempting to resume from round 5
+   Note: If round 5 is incomplete, will automatically fall back to previous round
+🚀 Starting Sequential NPE (SNPE) Random Walk Workflow
+📁 Output directory: results/workflow_20250917_144333
+🎯 Target parameters: U=0.3, P=0.7
+📊 SNPE Configuration:
+   Rounds: 10
+   Samples per round: 10000
+   Convergence threshold: 0.001
+🌱 Random seed: 42
+📝 Note: PyTorch deprecation warnings are suppressed for cleaner output
+
+🔧 Device Configuration:
+   Using device: CUDA
+   ✅ CUDA available: 1 device(s)
+   GPU: NVIDIA A100-SXM4-80GB
+   GPU Memory: 85.1 GB total, 85.1 GB free
+
+📐 Setting up simulator (Lx=200, Ly=50, T=100)
+🔄 Loading checkpoint from round 5
+   🔧 Reconstructing inference state from density_estimator...
+Traceback (most recent call last):
+  File "/fred/oz022/tkimpson/SNPE/NPE_for_RW_inference/src/main.py", line 614, in <module>
+    main()
+  File "/fred/oz022/tkimpson/SNPE/NPE_for_RW_inference/src/main.py", line 232, in main
+    checkpoint_info = npe.load_checkpoint(str(output_dir), resume_info['latest_round'])
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/fred/oz022/tkimpson/SNPE/NPE_for_RW_inference/src/inference.py", line 1036, in load_checkpoint
+    self.inference = sbi_inference.SNPE(
+                     ^^^^^^^^^^^^^^^^^^^
+  File "/fred/oz022/tkimpson/conda_envs/NPE_LV/lib/python3.11/site-packages/sbi/inference/trainers/npe/npe_c.py", line 93, in __init__
+    super().__init__(**kwargs)
+  File "/fred/oz022/tkimpson/conda_envs/NPE_LV/lib/python3.11/site-packages/sbi/inference/trainers/npe/npe_base.py", line 90, in __init__
+    check_estimator_arg(density_estimator)
+  File "/fred/oz022/tkimpson/conda_envs/NPE_LV/lib/python3.11/site-packages/sbi/utils/user_input_checks.py", line 677, in check_estimator_arg
+    assert isinstance(estimator, str) or (
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: The passed density estimator / classifier must be a string or a function returning a nn.Module, but is <class 'sbi.neural_nets.estimators.nflows_flow.NFlowsFlow'>
+
+real	4m35.107s
+user	0m4.046s
+sys	0m4.162s
+2D NPE resume workflow completed!
+
++------------------ Job Report: 4643572 (COMPLETED) -------------------+
+| Memory (RAM)  [                    ]  1.2% (397.6 MB peak / 32 GB)   |
+| CPU           [                    ]  0.2% average                   |
+| GPU           [                    ]  0.0% average                   |
+| Time          [>                   ]  1.4% (0-00:04:53 / 0-06:00:00) |
+|                                                                      |
+| Lustre Filesystem:                                                   |
+|   Path    Total Read    Total Write    Total IOPS                    |
+|   ------  ------------  -------------  ------------                  |
+|   /apps   0 B           0 B            12                            |
+|   /fred   369.2 MB      240 B          16.4 K                        |
+|   /home   27.4 MB       0 B            12                            |
+|   OS      964 KB        0 B            14                            |
+|                                                                      |
+| Warnings:                                                            |
+|   - Too much memory requested                                        |
+|   - CPU usage is low                                                 |
+|   - GPU usage is low                                                 |
+|   - Too much time requested                                          |
++----------------------------------------------------------------------+

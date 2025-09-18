@@ -1,0 +1,41 @@
+NPE Random Walk Workflow Configuration
+==================================================
+Timestamp: 2025-09-17 15:45:16.465453
+Output directory: results/workflow_20250917_154516
+
+Arguments:
+  Lx: 200
+  Ly: 50
+  T: 100
+  initial_region_half_width: 25
+  n_samples: 10000
+  data_path: None
+  save_data: None
+  max_epochs: 300
+  batch_size: 128
+  learning_rate: 0.0001
+  hidden_features: 128
+  num_transforms: 8
+  validation_fraction: 0.1
+  stop_after_epochs: 10
+  theta_true: [0.3, 0.7]
+  num_samples: 10000
+  n_pred_samples: 2000
+  use_snpe: True
+  snpe_rounds: 5
+  samples_per_round: 10000
+  convergence_threshold: 0.001
+  use_2d_data: True
+  device: auto
+  seed: 42
+  output_dir: None
+  skip_data: False
+  skip_training: False
+  model_path: None
+  resume_from_dir: None
+
+Device Information:
+  device_used: cuda
+  cuda_available: True
+  cuda_device_name: NVIDIA A100-SXM4-80GB
+  cuda_memory_total_gb: 85.1

@@ -1,0 +1,59 @@
+Starting 2D NPE Random Walk RESUME workflow...
+Resuming from: results/workflow_20250916_191537
+Configuration: 2D spatial data with CNN processing
+Lattice size: 200x50, Time steps: 100
+Target SNPE rounds: 10 (resuming from completed rounds)
+🔄 Resume mode: Found 7 completed rounds, will start from round 8
+🚀 Starting Sequential NPE (SNPE) Random Walk Workflow
+📁 Output directory: results/workflow_20250916_191537
+🎯 Target parameters: U=0.3, P=0.7
+📊 SNPE Configuration:
+   Rounds: 10
+   Samples per round: 10000
+   Convergence threshold: 0.001
+🌱 Random seed: 42
+📝 Note: PyTorch deprecation warnings are suppressed for cleaner output
+
+🔧 Device Configuration:
+   Using device: CUDA
+   ✅ CUDA available: 1 device(s)
+   GPU: NVIDIA A100-SXM4-80GB
+   GPU Memory: 85.1 GB total, 85.1 GB free
+
+📐 Setting up simulator (Lx=200, Ly=50, T=100)
+🔄 Loading checkpoint from round 7
+Traceback (most recent call last):
+  File "/fred/oz022/tkimpson/SNPE/NPE_for_RW_inference/src/main.py", line 607, in <module>
+    main()
+  File "/fred/oz022/tkimpson/SNPE/NPE_for_RW_inference/src/main.py", line 230, in main
+    checkpoint_info = npe.load_checkpoint(str(output_dir), resume_info['latest_round'])
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/fred/oz022/tkimpson/SNPE/NPE_for_RW_inference/src/inference.py", line 985, in load_checkpoint
+    raise ValueError(f"No posterior found in training info for round {resume_from_round}")
+ValueError: No posterior found in training info for round 7
+
+real	6m11.700s
+user	0m3.700s
+sys	0m4.338s
+2D NPE resume workflow completed!
+
++------------------ Job Report: 4628305 (COMPLETED) -------------------+
+| Memory (RAM)  [                    ]  1.2% (391.2 MB peak / 32 GB)   |
+| CPU           [                    ]  0.1% average                   |
+| GPU           [#                   ]  6.3% average                   |
+| Time          [>                   ]  1.9% (0-00:06:55 / 0-06:00:00) |
+|                                                                      |
+| Lustre Filesystem:                                                   |
+|   Path    Total Read    Total Write    Total IOPS                    |
+|   ------  ------------  -------------  ------------                  |
+|   /apps   4 KB          0 B            9                             |
+|   /fred   366.8 MB      41.1 KB        15.8 K                        |
+|   /home   27.4 MB       0 B            11                            |
+|   OS      0 B           0 B            13                            |
+|                                                                      |
+| Warnings:                                                            |
+|   - Too much memory requested                                        |
+|   - CPU usage is low                                                 |
+|   - GPU usage is low                                                 |
+|   - Too much time requested                                          |
++----------------------------------------------------------------------+

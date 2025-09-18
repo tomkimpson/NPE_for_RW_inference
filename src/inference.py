@@ -26,6 +26,7 @@ from sbi.utils import BoxUniform
 
 from simulator import RandomWalkSimulator
 from cnn_utils import create_spatial_embedding_net, compute_2d_tensor_shape, validate_2d_input
+from training_monitor import TrainingMonitor
 
 import tqdm
 
@@ -91,7 +92,7 @@ class RandomWalkNPE:
         """
         # Prepare neural network configuration based on data type
         neural_net_kwargs = {
-            'hidden_features': 128,
+            'hidden_features': 256 if self.use_2d_data else 128,  # Larger hidden features for 2D
             'num_transforms': 5,
         }
 
@@ -105,7 +106,7 @@ class RandomWalkNPE:
                 input_height=Ly,
                 input_width=Lx,
                 output_dim=neural_net_kwargs['hidden_features'],
-                dropout=kwargs.get('cnn_dropout', 0.1)
+                dropout=kwargs.get('cnn_dropout', 0.05)  # Reduced dropout
             )
             neural_net_kwargs['embedding_net'] = spatial_embedding
         else:
@@ -382,8 +383,8 @@ class RandomWalkNPE:
         
         return training_info
     
-    def train_round(self, 
-                   theta: torch.Tensor, 
+    def train_round(self,
+                   theta: torch.Tensor,
                    x: torch.Tensor,
                    proposal_distribution = None,
                    training_batch_size: int = 512,
@@ -392,6 +393,7 @@ class RandomWalkNPE:
                    validation_fraction: float = 0.1,
                    stop_after_epochs: int = 20,
                    neural_net_kwargs: Optional[Dict[str, Any]] = None,
+                   monitor: Optional[TrainingMonitor] = None,
                    **kwargs) -> Dict[str, Any]:
         """
         Train neural posterior estimator for a single SNPE round.
@@ -452,16 +454,36 @@ class RandomWalkNPE:
             # First round: no proposal
             self.inference = self.inference.append_simulations(theta, x)
         
-        # Train
-        density_estimator = self.inference.train(
-            training_batch_size=training_batch_size,
-            learning_rate=learning_rate,
-            max_num_epochs=max_num_epochs,
-            validation_fraction=validation_fraction,
-            stop_after_epochs=stop_after_epochs,
-            show_train_summary=True,
-            **kwargs
-        )
+        # Train with optional monitoring
+        training_kwargs = {
+            'training_batch_size': training_batch_size,
+            'learning_rate': learning_rate,
+            'max_num_epochs': max_num_epochs,
+            'validation_fraction': validation_fraction,
+            'stop_after_epochs': stop_after_epochs,
+            'show_train_summary': True,
+        }
+
+        # Add monitoring callback if provided
+        if monitor is not None and self.use_2d_data:
+            print("   Enabling CNN training monitoring...")
+
+        training_kwargs.update(kwargs)
+        density_estimator = self.inference.train(**training_kwargs)
+
+        # Analyze training if monitor was used
+        if monitor is not None:
+            monitor.save_logs()
+            monitor.plot_training_progress()
+
+            # Check for convergence issues
+            issues = monitor.check_convergence_issues()
+            if issues:
+                print("   ⚠️  Training issues detected:")
+                for issue in issues:
+                    print(f"      - {issue}")
+            else:
+                print("   ✅ No major training issues detected")
         
         # Build posterior
         self.posterior = self.inference.build_posterior()
@@ -478,7 +500,7 @@ class RandomWalkNPE:
         
         return training_info
     
-    def train_sequential(self, 
+    def train_sequential(self,
                         simulator: RandomWalkSimulator,
                         n_rounds: int,
                         n_simulations_per_round: int,
@@ -493,6 +515,7 @@ class RandomWalkNPE:
                         convergence_threshold: float = 0.01,
                         random_seed: Optional[int] = None,
                         output_dir: Optional[str] = None,
+                        start_round: int = 1,
                         **kwargs) -> Dict[str, Any]:
         """
         Train SNPE model through multiple sequential rounds.
@@ -527,26 +550,31 @@ class RandomWalkNPE:
             Random seed for reproducibility
         output_dir : str, optional
             Directory to save intermediate results
+        start_round : int, optional
+            Round number to start from (1-indexed). Use with checkpointing.
         **kwargs : additional training arguments
-            
+
         Returns:
         --------
         sequential_training_info : dict
             Comprehensive training information across all rounds
         """
-        print(f"\n🔄 Starting Sequential NPE with {n_rounds} rounds")
+        if start_round == 1:
+            print(f"\n🔄 Starting Sequential NPE with {n_rounds} rounds")
+            self.posteriors_by_round = []
+            self.training_history = []
+        else:
+            print(f"\n🔄 Resuming Sequential NPE from round {start_round} (target: {n_rounds} rounds)")
+
         print(f"   Simulations per round: {n_simulations_per_round}")
         print(f"   Convergence threshold: {convergence_threshold}")
-        
-        self.posteriors_by_round = []
-        self.training_history = []
-        
-        for round_idx in range(n_rounds):
+
+        for round_idx in range(start_round - 1, n_rounds):
             self.current_round = round_idx + 1
             print(f"\n📊 ROUND {self.current_round}/{n_rounds}")
             
             # Determine proposal distribution for this round
-            if round_idx == 0:
+            if self.current_round == 1:
                 proposal_distribution = None  # Use priors for first round
                 print("   Using prior distributions for parameter sampling")
             else:
@@ -567,6 +595,13 @@ class RandomWalkNPE:
             
             # Train model for this round
             print(f"   Training neural network...")
+
+            # Set up monitoring for 2D data
+            monitor = None
+            if self.use_2d_data and output_dir is not None:
+                monitor_dir = Path(output_dir) / f"round_{self.current_round}" / "training_monitor"
+                monitor = TrainingMonitor(str(monitor_dir))
+
             training_info = self.train_round(
                 theta=theta,
                 x=x,
@@ -577,6 +612,7 @@ class RandomWalkNPE:
                 validation_fraction=validation_fraction,
                 stop_after_epochs=stop_after_epochs,
                 neural_net_kwargs=neural_net_kwargs,
+                monitor=monitor,
                 **kwargs
             )
             
@@ -599,23 +635,23 @@ class RandomWalkNPE:
             print(f"     U: {U_mean:.4f} ± {U_std:.4f}")
             print(f"     P: {P_mean:.4f} ± {P_std:.4f}")
             
-            # Check for convergence (if not the first round)
-            if round_idx > 0:
-                convergence_metric = self._compute_convergence_metric(round_idx)
+            # Check for convergence (if we have previous rounds to compare against)
+            if len(self.posteriors_by_round) > 1:
+                convergence_metric = self._compute_convergence_metric(len(self.posteriors_by_round) - 1)
                 print(f"     Convergence metric: {convergence_metric:.6f}")
-                
+
                 if convergence_metric < convergence_threshold:
                     print(f"   ✅ Convergence achieved after {self.current_round} rounds!")
                     break
-            
+
             # Save intermediate results if output directory provided
             if output_dir is not None:
-                self._save_round_results(output_dir, round_idx, posterior_samples, training_info)
+                self._save_round_results(output_dir, self.current_round - 1, posterior_samples, training_info)
         
         # Prepare comprehensive results
         sequential_training_info = {
             'total_rounds_completed': self.current_round,
-            'converged': round_idx > 0 and convergence_metric < convergence_threshold if 'convergence_metric' in locals() else False,
+            'converged': len(self.posteriors_by_round) > 1 and convergence_metric < convergence_threshold if 'convergence_metric' in locals() else False,
             'final_convergence_metric': convergence_metric if 'convergence_metric' in locals() else None,
             'training_history': self.training_history,
             'posteriors_by_round': len(self.posteriors_by_round)
@@ -659,24 +695,28 @@ class RandomWalkNPE:
         metric = float(mean_diff + std_diff)
         return metric
     
-    def _save_round_results(self, output_dir: str, round_idx: int, 
-                           posterior_samples: torch.Tensor, 
+    def _save_round_results(self, output_dir: str, round_idx: int,
+                           posterior_samples: torch.Tensor,
                            training_info: Dict[str, Any]) -> None:
         """Save results for a specific round."""
         from pathlib import Path
         import pickle
-        
+
         round_dir = Path(output_dir) / f"round_{round_idx + 1}"
         round_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Save posterior samples
         samples_np = posterior_samples.cpu().numpy()
         np.save(round_dir / "posterior_samples.npy", samples_np)
-        
-        # Save training info
+
+        # Add the current posterior to training info for resuming
+        training_info_with_posterior = training_info.copy()
+        training_info_with_posterior['posterior'] = self.posterior
+
+        # Save training info with posterior
         with open(round_dir / "training_info.pkl", 'wb') as f:
-            pickle.dump(training_info, f)
-        
+            pickle.dump(training_info_with_posterior, f)
+
         print(f"     Round {round_idx + 1} results saved to {round_dir}")
     
     def get_round_results(self) -> List[Dict[str, Any]]:
@@ -923,6 +963,171 @@ class RandomWalkNPE:
         
         plt.tight_layout()
         return fig
-    
+
+    def load_checkpoint(self, output_dir: str, resume_from_round: int) -> Dict[str, Any]:
+        """
+        Load checkpoint from a previous SNPE run to resume training.
+
+        Parameters:
+        -----------
+        output_dir : str
+            Directory containing the saved SNPE rounds
+        resume_from_round : int
+            Round number to resume from (1-indexed)
+
+        Returns:
+        --------
+        Dict[str, Any]
+            Checkpoint information including loaded states
+        """
+        from pathlib import Path
+        import pickle
+        import numpy as np
+        import torch
+
+        output_path = Path(output_dir)
+
+        if not output_path.exists():
+            raise ValueError(f"Output directory {output_dir} does not exist")
+
+        # Find the latest valid round by checking backwards
+        valid_round = None
+        for round_num in range(resume_from_round, 0, -1):
+            round_dir = output_path / f"round_{round_num}"
+            training_info_path = round_dir / "training_info.pkl"
+            samples_path = round_dir / "posterior_samples.npy"
+
+            if training_info_path.exists() and samples_path.exists():
+                try:
+                    # Try to load the training info with different methods
+                    training_info = None
+
+                    # Method 1: Try torch.load without weights_only (for older PyTorch versions)
+                    try:
+                        training_info = torch.load(training_info_path, map_location=self.device)
+                    except Exception:
+                        # Method 2: Try with weights_only=False explicitly
+                        try:
+                            training_info = torch.load(training_info_path, map_location=self.device, weights_only=False)
+                        except Exception:
+                            # Method 3: Try standard pickle
+                            import pickle
+                            with open(training_info_path, 'rb') as f:
+                                training_info = pickle.load(f)
+
+                    if training_info is None:
+                        raise ValueError("Could not load training info with any method")
+
+                    # Check if it has a density estimator (required for reconstruction)
+                    if 'density_estimator' in training_info:
+                        valid_round = round_num
+                        print(f"🔄 Loading checkpoint from round {valid_round}")
+                        break
+                    else:
+                        print(f"   ⚠️ Round {round_num} missing density_estimator")
+
+                except Exception as e:
+                    print(f"   ❌ Round {round_num} load error: {e}")
+                    continue
+
+        if valid_round is None:
+            raise ValueError(f"No valid rounds found with density_estimator in {output_dir}")
+
+        # Load the valid round's data
+        round_dir = output_path / f"round_{valid_round}"
+        training_info_path = round_dir / "training_info.pkl"
+        samples_path = round_dir / "posterior_samples.npy"
+
+        # Load the training info with robust method
+        training_info = None
+        try:
+            training_info = torch.load(training_info_path, map_location=self.device)
+        except Exception:
+            try:
+                training_info = torch.load(training_info_path, map_location=self.device, weights_only=False)
+            except Exception:
+                import pickle
+                with open(training_info_path, 'rb') as f:
+                    training_info = pickle.load(f)
+
+        if training_info is None:
+            raise ValueError(f"Could not load training info from {training_info_path}")
+
+        posterior_samples = np.load(samples_path)
+
+        # Reconstruct the inference object and posterior from density estimator
+        print(f"   🔧 Reconstructing inference state from density_estimator...")
+
+        # The density_estimator contains the trained neural network
+        density_estimator = training_info['density_estimator']
+
+        # Create a new SNPE instance with the loaded density estimator
+        from sbi import inference as sbi_inference
+        self.inference = sbi_inference.SNPE(
+            prior=self.prior,
+            density_estimator=density_estimator,
+            device=self.device
+        )
+
+        # Build the posterior from the reconstructed inference
+        self.posterior = self.inference.build_posterior()
+        print(f"   ✅ Successfully reconstructed posterior from round {valid_round}")
+
+        # Initialize tracking lists for resumed training
+        self.posteriors_by_round = []
+        self.training_history = []
+
+        # Rebuild training history for all completed rounds up to valid_round
+        for round_idx in range(1, valid_round + 1):
+            prev_round_dir = output_path / f"round_{round_idx}"
+            if prev_round_dir.exists():
+                prev_training_path = prev_round_dir / "training_info.pkl"
+                if prev_training_path.exists():
+                    try:
+                        # Load with robust method
+                        prev_training_info = None
+                        try:
+                            prev_training_info = torch.load(prev_training_path, map_location=self.device)
+                        except Exception:
+                            try:
+                                prev_training_info = torch.load(prev_training_path, map_location=self.device, weights_only=False)
+                            except Exception:
+                                import pickle
+                                with open(prev_training_path, 'rb') as f:
+                                    prev_training_info = pickle.load(f)
+
+                        if prev_training_info is None:
+                            raise ValueError("Could not load previous training info")
+
+                        # Add to training history
+                        self.training_history.append({
+                            'round': round_idx,
+                            'n_simulations': prev_training_info.get('n_simulations', None),
+                            'training_info': prev_training_info
+                        })
+
+                        # For the final round, use the reconstructed posterior
+                        if round_idx == valid_round:
+                            self.posteriors_by_round.append(self.posterior)
+
+                    except Exception as e:
+                        print(f"   ⚠️ Could not load round {round_idx} history: {e}")
+
+        # Set current round
+        self.current_round = valid_round
+
+        checkpoint_info = {
+            'resumed_from_round': valid_round,
+            'output_dir': str(output_path),
+            'posterior_samples_shape': posterior_samples.shape,
+            'training_history_length': len(self.training_history),
+            'posteriors_loaded': len(self.posteriors_by_round),
+            'density_estimator_loaded': True
+        }
+
+        print(f"   ✅ Loaded {len(self.training_history)} rounds of training history")
+        print(f"   ✅ Ready to resume from round {valid_round + 1}")
+
+        return checkpoint_info
 
 

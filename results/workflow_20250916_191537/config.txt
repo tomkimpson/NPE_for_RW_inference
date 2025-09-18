@@ -1,7 +1,7 @@
 NPE Random Walk Workflow Configuration
 ==================================================
-Timestamp: 2025-08-27 19:12:51.580701
-Output directory: results/workflow_20250827_191251
+Timestamp: 2025-09-17 14:12:40.781695
+Output directory: results/workflow_20250916_191537
 
 Arguments:
   Lx: 200
@@ -20,17 +20,19 @@ Arguments:
   stop_after_epochs: 10
   theta_true: [0.3, 0.7]
   num_samples: 10000
-  n_pred_samples: None
+  n_pred_samples: 2000
   use_snpe: True
   snpe_rounds: 10
   samples_per_round: 10000
   convergence_threshold: 0.001
+  use_2d_data: True
   device: auto
   seed: 42
   output_dir: None
   skip_data: False
   skip_training: False
   model_path: None
+  resume_from_dir: results/workflow_20250916_191537
 
 Device Information:
   device_used: cuda

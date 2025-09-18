@@ -14,17 +14,17 @@ from typing import Tuple, Optional
 
 class SpatialCNN(nn.Module):
     """
-    Convolutional Neural Network for processing 2D spatial agent distributions.
+    Improved Convolutional Neural Network for processing 2D spatial agent distributions.
 
-    This network extracts spatial features from 2D grids and outputs
-    feature representations suitable for parameter estimation.
+    This network uses progressive downsampling instead of aggressive adaptive pooling
+    to preserve spatial information while extracting meaningful features.
     """
 
     def __init__(self,
                  input_height: int,
                  input_width: int,
-                 output_dim: int = 128,
-                 dropout: float = 0.1):
+                 output_dim: int = 256,
+                 dropout: float = 0.05):
         """
         Initialize the Spatial CNN.
 
@@ -35,9 +35,9 @@ class SpatialCNN(nn.Module):
         input_width : int
             Width of input 2D grid (Lx)
         output_dim : int
-            Dimension of output feature vector
+            Dimension of output feature vector (increased from 128 to 256)
         dropout : float
-            Dropout probability
+            Dropout probability (reduced from 0.1 to 0.05)
         """
         super().__init__()
 
@@ -45,31 +45,43 @@ class SpatialCNN(nn.Module):
         self.input_width = input_width
         self.output_dim = output_dim
 
-        # Convolutional layers
-        self.conv1 = nn.Conv2d(1, 32, kernel_size=3, padding=1)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
-        self.conv3 = nn.Conv2d(64, 128, kernel_size=3, padding=1)
-
-        # Batch normalization
+        # Progressive downsampling convolutional layers with residual connections
+        # Stage 1: 50x200 -> 25x100 (stride=2)
+        self.conv1 = nn.Conv2d(1, 32, kernel_size=3, stride=2, padding=1)
         self.bn1 = nn.BatchNorm2d(32)
+        self.conv1_residual = nn.Conv2d(1, 32, kernel_size=1, stride=2)  # Residual connection
+
+        # Stage 2: 25x100 -> 13x50 (stride=2)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1)
         self.bn2 = nn.BatchNorm2d(64)
+        self.conv2_residual = nn.Conv2d(32, 64, kernel_size=1, stride=2)
+
+        # Stage 3: 13x50 -> 7x25 (stride=2)
+        self.conv3 = nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1)
         self.bn3 = nn.BatchNorm2d(128)
+        self.conv3_residual = nn.Conv2d(64, 128, kernel_size=1, stride=2)
 
-        # Adaptive pooling to handle variable input sizes
-        self.adaptive_pool = nn.AdaptiveAvgPool2d((4, 4))
+        # Stage 4: 7x25 -> 4x13 (stride=2)
+        self.conv4 = nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1)
+        self.bn4 = nn.BatchNorm2d(256)
+        self.conv4_residual = nn.Conv2d(128, 256, kernel_size=1, stride=2)
 
-        # Calculate flattened size after adaptive pooling
-        self.flattened_size = 128 * 4 * 4  # 128 channels, 4x4 spatial
+        # Global average pooling instead of aggressive adaptive pooling
+        self.global_avg_pool = nn.AdaptiveAvgPool2d((1, 1))
 
-        # Fully connected layers
-        self.fc1 = nn.Linear(self.flattened_size, 256)
-        self.fc2 = nn.Linear(256, output_dim)
+        # Calculate flattened size after global average pooling
+        self.flattened_size = 256  # 256 channels, 1x1 spatial
+
+        # Fully connected layers with better capacity
+        self.fc1 = nn.Linear(self.flattened_size, 512)
+        self.fc2 = nn.Linear(512, 256)
+        self.fc3 = nn.Linear(256, output_dim)
 
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
-        Forward pass through the network.
+        Forward pass through the improved network with progressive downsampling.
 
         Parameters:
         -----------
@@ -85,13 +97,32 @@ class SpatialCNN(nn.Module):
         if x.dim() == 3:
             x = x.unsqueeze(1)  # (batch_size, 1, height, width)
 
-        # Convolutional layers with ReLU and batch norm
-        x = F.relu(self.bn1(self.conv1(x)))
-        x = F.relu(self.bn2(self.conv2(x)))
-        x = F.relu(self.bn3(self.conv3(x)))
+        # Normalize input data (per-sample normalization)
+        batch_size = x.size(0)
+        x_flat = x.view(batch_size, -1)
+        x_mean = x_flat.mean(dim=1, keepdim=True)
+        x_std = x_flat.std(dim=1, keepdim=True) + 1e-8  # Add epsilon to avoid division by zero
+        x_flat = (x_flat - x_mean) / x_std
+        x = x_flat.view(x.size())
 
-        # Adaptive pooling to standardize spatial dimensions
-        x = self.adaptive_pool(x)
+        # Stage 1: Progressive downsampling with residual connections
+        residual = self.conv1_residual(x)
+        x = F.relu(self.bn1(self.conv1(x)) + residual)
+
+        # Stage 2:
+        residual = self.conv2_residual(x)
+        x = F.relu(self.bn2(self.conv2(x)) + residual)
+
+        # Stage 3:
+        residual = self.conv3_residual(x)
+        x = F.relu(self.bn3(self.conv3(x)) + residual)
+
+        # Stage 4:
+        residual = self.conv4_residual(x)
+        x = F.relu(self.bn4(self.conv4(x)) + residual)
+
+        # Global average pooling to preserve all information
+        x = self.global_avg_pool(x)
 
         # Flatten for fully connected layers
         x = x.view(x.size(0), -1)
@@ -99,7 +130,9 @@ class SpatialCNN(nn.Module):
         # Fully connected layers with dropout
         x = F.relu(self.fc1(x))
         x = self.dropout(x)
-        x = self.fc2(x)
+        x = F.relu(self.fc2(x))
+        x = self.dropout(x)
+        x = self.fc3(x)
 
         return x
 
@@ -113,8 +146,8 @@ class SpatialEmbeddingNet(nn.Module):
     def __init__(self,
                  input_height: int,
                  input_width: int,
-                 output_dim: int = 128,
-                 dropout: float = 0.1):
+                 output_dim: int = 256,
+                 dropout: float = 0.05):
         """
         Initialize the spatial embedding network.
 
@@ -125,9 +158,9 @@ class SpatialEmbeddingNet(nn.Module):
         input_width : int
             Width of input 2D grid (Lx)
         output_dim : int
-            Dimension of output embedding
+            Dimension of output embedding (default: 256)
         dropout : float
-            Dropout probability
+            Dropout probability (default: 0.05)
         """
         super().__init__()
 
@@ -158,8 +191,8 @@ class SpatialEmbeddingNet(nn.Module):
 def create_spatial_embedding_net(
     input_height: int,
     input_width: int,
-    output_dim: int = 128,
-    dropout: float = 0.1
+    output_dim: int = 256,
+    dropout: float = 0.05
 ) -> SpatialEmbeddingNet:
     """
     Factory function to create a spatial embedding network.
@@ -171,9 +204,9 @@ def create_spatial_embedding_net(
     input_width : int
         Width of input 2D grid (Lx)
     output_dim : int
-        Dimension of output embedding
+        Dimension of output embedding (default: 256)
     dropout : float
-        Dropout probability
+        Dropout probability (default: 0.05)
 
     Returns:
     --------

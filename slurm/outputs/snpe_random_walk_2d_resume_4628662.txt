@@ -1,0 +1,89 @@
+Starting 2D NPE Random Walk RESUME workflow...
+Resuming from: results/workflow_20250916_191537
+Configuration: 2D spatial data with CNN processing
+Lattice size: 200x50, Time steps: 100
+Target SNPE rounds: 10 (resuming from completed rounds)
+🔄 Resume mode: Found 7 round directories, attempting to resume from round 7
+   Note: If round 7 is incomplete, will automatically fall back to previous round
+🚀 Starting Sequential NPE (SNPE) Random Walk Workflow
+📁 Output directory: results/workflow_20250916_191537
+🎯 Target parameters: U=0.3, P=0.7
+📊 SNPE Configuration:
+   Rounds: 10
+   Samples per round: 10000
+   Convergence threshold: 0.001
+🌱 Random seed: 42
+📝 Note: PyTorch deprecation warnings are suppressed for cleaner output
+
+🔧 Device Configuration:
+   Using device: CUDA
+   ✅ CUDA available: 1 device(s)
+   GPU: NVIDIA A100-SXM4-80GB
+   GPU Memory: 85.1 GB total, 85.1 GB free
+
+📐 Setting up simulator (Lx=200, Ly=50, T=100)
+🔄 Loading checkpoint from round 7
+   ⚠️ Round 7 appears incomplete (no posterior saved)
+   🔄 Attempting to fall back to round 6
+🔄 Loading checkpoint from round 6
+   ⚠️ Round 6 appears incomplete (no posterior saved)
+   🔄 Attempting to fall back to round 5
+🔄 Loading checkpoint from round 5
+   ⚠️ Round 5 appears incomplete (no posterior saved)
+   🔄 Attempting to fall back to round 4
+🔄 Loading checkpoint from round 4
+   ⚠️ Round 4 appears incomplete (no posterior saved)
+   🔄 Attempting to fall back to round 3
+🔄 Loading checkpoint from round 3
+   ⚠️ Round 3 appears incomplete (no posterior saved)
+   🔄 Attempting to fall back to round 2
+🔄 Loading checkpoint from round 2
+   ⚠️ Round 2 appears incomplete (no posterior saved)
+   🔄 Attempting to fall back to round 1
+🔄 Loading checkpoint from round 1
+   ⚠️ Round 1 appears incomplete (no posterior saved)
+Traceback (most recent call last):
+  File "/fred/oz022/tkimpson/SNPE/NPE_for_RW_inference/src/main.py", line 614, in <module>
+    main()
+  File "/fred/oz022/tkimpson/SNPE/NPE_for_RW_inference/src/main.py", line 232, in main
+    checkpoint_info = npe.load_checkpoint(str(output_dir), resume_info['latest_round'])
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/fred/oz022/tkimpson/SNPE/NPE_for_RW_inference/src/inference.py", line 993, in load_checkpoint
+    return self.load_checkpoint(output_dir, resume_from_round - 1)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/fred/oz022/tkimpson/SNPE/NPE_for_RW_inference/src/inference.py", line 993, in load_checkpoint
+    return self.load_checkpoint(output_dir, resume_from_round - 1)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/fred/oz022/tkimpson/SNPE/NPE_for_RW_inference/src/inference.py", line 993, in load_checkpoint
+    return self.load_checkpoint(output_dir, resume_from_round - 1)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  [Previous line repeated 3 more times]
+  File "/fred/oz022/tkimpson/SNPE/NPE_for_RW_inference/src/inference.py", line 995, in load_checkpoint
+    raise ValueError(f"No valid posterior found in any rounds up to round {resume_from_round}")
+ValueError: No valid posterior found in any rounds up to round 1
+
+real	2m51.667s
+user	0m4.152s
+sys	0m4.083s
+2D NPE resume workflow completed!
+
++------------------ Job Report: 4628662 (COMPLETED) -------------------+
+| Memory (RAM)  [                    ]  1.1% (370.8 MB peak / 32 GB)   |
+| CPU           [                    ]  0.3% average                   |
+| GPU           [                    ]  0.0% average                   |
+| Time          [>                   ]  1.0% (0-00:03:27 / 0-06:00:00) |
+|                                                                      |
+| Lustre Filesystem:                                                   |
+|   Path    Total Read    Total Write    Total IOPS                    |
+|   ------  ------------  -------------  ------------                  |
+|   /apps   4 KB          0 B            11                            |
+|   /fred   364.6 MB      41.6 KB        15.4 K                        |
+|   /home   27.4 MB       0 B            11                            |
+|   OS      0 B           0 B            13                            |
+|                                                                      |
+| Warnings:                                                            |
+|   - Too much memory requested                                        |
+|   - CPU usage is low                                                 |
+|   - GPU usage is low                                                 |
+|   - Too much time requested                                          |
++----------------------------------------------------------------------+

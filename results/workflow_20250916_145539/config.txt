@@ -1,30 +1,31 @@
 NPE Random Walk Workflow Configuration
 ==================================================
-Timestamp: 2025-08-27 21:35:54.250815
-Output directory: results/workflow_20250827_213554
+Timestamp: 2025-09-16 14:55:39.210068
+Output directory: results/workflow_20250916_145539
 
 Arguments:
-  Lx: 200
+  Lx: 100
   Ly: 50
   T: 100
-  initial_region_half_width: 25
+  initial_region_half_width: 12
   n_samples: 10000
   data_path: None
   save_data: None
-  max_epochs: 300
-  batch_size: 128
-  learning_rate: 0.0001
+  max_epochs: 200
+  batch_size: 64
+  learning_rate: 5e-05
   hidden_features: 128
-  num_transforms: 8
+  num_transforms: 6
   validation_fraction: 0.1
-  stop_after_epochs: 10
+  stop_after_epochs: 15
   theta_true: [0.3, 0.7]
-  num_samples: 10000
-  n_pred_samples: None
+  num_samples: 8000
+  n_pred_samples: 2000
   use_snpe: True
-  snpe_rounds: 10
-  samples_per_round: 10000
+  snpe_rounds: 8
+  samples_per_round: 5000
   convergence_threshold: 0.001
+  use_2d_data: True
   device: auto
   seed: 42
   output_dir: None
@@ -35,5 +36,5 @@ Arguments:
 Device Information:
   device_used: cuda
   cuda_available: True
-  cuda_device_name: Tesla P100-PCIE-12GB
-  cuda_memory_total_gb: 12.8
+  cuda_device_name: NVIDIA A100-SXM4-80GB
+  cuda_memory_total_gb: 85.1

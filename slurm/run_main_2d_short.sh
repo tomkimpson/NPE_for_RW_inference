@@ -4,7 +4,7 @@
 #SBATCH --output=slurm/outputs/snpe_random_walk_2d_%j.txt
 #SBATCH --export=ALL
 #SBATCH --gres=gpu:1
-#SBATCH --time=24:00:00
+#SBATCH --time=8:00:00
 #SBATCH --mem=32G
 #SBATCH --cpus-per-task=8
 
@@ -29,7 +29,7 @@ echo "Lattice size: 100x50, Time steps: 100"
 echo "SNPE rounds: 8, Samples per round: 5000"
 
 time python src/main.py --use_2d_data --use_snpe \
-      --snpe_rounds 10 --samples_per_round 10000 \
+      --snpe_rounds 5 --samples_per_round 10000 \
       --max_epochs 300 --stop_after_epochs 10 \
       --hidden_features 128 --num_transforms 8 \
       --convergence_threshold 0.001 \

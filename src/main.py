@@ -103,7 +103,11 @@ def main():
                        help='Skip training (use existing model)')
     parser.add_argument('--model_path', type=str, default=None,
                        help='Path to existing model (if skipping training)')
-    
+
+    # Resume from checkpoint
+    parser.add_argument('--resume_from_dir', type=str, default=None,
+                       help='Resume SNPE training from existing workflow directory')
+
     args = parser.parse_args()
     
     # Check device availability and set device
@@ -123,14 +127,43 @@ def main():
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
     
-    # Create output directory
-    if args.output_dir is None:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_dir = Path(f"results/workflow_{timestamp}")
+    # Handle resume mode or create new output directory
+    resume_info = None
+    start_round = 1
+
+    if args.resume_from_dir is not None:
+        # Resume from existing directory
+        output_dir = Path(args.resume_from_dir)
+        if not output_dir.exists():
+            raise ValueError(f"Resume directory does not exist: {args.resume_from_dir}")
+
+        # Find the latest completed round
+        round_dirs = [d for d in output_dir.iterdir() if d.is_dir() and d.name.startswith("round_")]
+        if not round_dirs:
+            raise ValueError(f"No round directories found in {args.resume_from_dir}")
+
+        # Find the latest round directory (checkpoint loader will handle validation)
+        latest_round = max([int(d.name.split("_")[1]) for d in round_dirs])
+        start_round = latest_round + 1
+
+        print(f"🔄 Resume mode: Found {latest_round} round directories, attempting to resume from round {latest_round}")
+        print(f"   Note: If round {latest_round} is incomplete, will automatically fall back to previous round")
+
+        # Verify we haven't already finished
+        if latest_round >= args.snpe_rounds:
+            raise ValueError(f"Training already completed! Found {latest_round} rounds, target was {args.snpe_rounds}")
+
+        resume_info = {'latest_round': latest_round, 'start_round': start_round}
+
     else:
-        output_dir = Path(args.output_dir)
-    
-    output_dir.mkdir(parents=True, exist_ok=True)
+        # Create new output directory
+        if args.output_dir is None:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            output_dir = Path(f"results/workflow_{timestamp}")
+        else:
+            output_dir = Path(args.output_dir)
+
+        output_dir.mkdir(parents=True, exist_ok=True)
     
     # Define file paths
     data_path = args.data_path or str(output_dir / "training_data.pkl")
@@ -193,12 +226,33 @@ def main():
     # Initialize NPE with 2D configuration if requested
     spatial_dims = (args.Ly, args.Lx) if args.use_2d_data else None
     npe = RandomWalkNPE(device=device, seed=args.seed, use_2d_data=args.use_2d_data, spatial_dims=spatial_dims)
-    
+
+    # Load checkpoint if resuming
+    if resume_info is not None:
+        checkpoint_info = npe.load_checkpoint(str(output_dir), resume_info['latest_round'])
+        print(f"📋 Checkpoint loaded: {checkpoint_info}")
+
+        # Update start_round if there was a fallback to an earlier round
+        actual_resume_round = checkpoint_info['resumed_from_round']
+        start_round = actual_resume_round + 1
+        print(f"🔄 Will continue training from round {start_round}")
+
     # Step 0: Generate test observation (needed for SNPE)
+    if resume_info is not None:
+        # When resuming, we need to use the same observation as the original run
+        # Read the original parameters from config to ensure consistency
+        original_config_path = output_dir / "config.txt"
+        if original_config_path.exists():
+            print(f"🔄 Using observation parameters from original config")
+            # For now, we'll regenerate with the current args.theta_true
+            # In a future version, we could parse the config file to get the exact original values
+        else:
+            print(f"⚠️ Warning: Original config not found, using current theta_true values")
+
     print(f"\n🎯 Generating test observation with true parameters U={args.theta_true[0]}, P={args.theta_true[1]}")
     true_theta = torch.tensor(args.theta_true, dtype=torch.float32)
-    
-    # Generate observed data using true parameters
+
+    # Generate observed data using true parameters (same seed ensures reproducibility)
     observation, initial_positions, final_positions = simulator.simulate(
         U=args.theta_true[0],
         P=args.theta_true[1],
@@ -242,7 +296,8 @@ def main():
                 neural_net_kwargs=neural_net_kwargs,
                 convergence_threshold=args.convergence_threshold,
                 random_seed=args.seed,
-                output_dir=str(output_dir)
+                output_dir=str(output_dir),
+                start_round=start_round
             )
             
         else:

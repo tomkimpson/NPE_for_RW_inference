@@ -1,0 +1,66 @@
+Starting 2D NPE Random Walk RESUME workflow...
+Resuming from: results/workflow_20250916_191537
+Configuration: 2D spatial data with CNN processing
+Lattice size: 200x50, Time steps: 100
+Target SNPE rounds: 10 (resuming from completed rounds)
+🔄 Resume mode: Found 7 round directories, attempting to resume from round 7
+   Note: If round 7 is incomplete, will automatically fall back to previous round
+🚀 Starting Sequential NPE (SNPE) Random Walk Workflow
+📁 Output directory: results/workflow_20250916_191537
+🎯 Target parameters: U=0.3, P=0.7
+📊 SNPE Configuration:
+   Rounds: 10
+   Samples per round: 10000
+   Convergence threshold: 0.001
+🌱 Random seed: 42
+📝 Note: PyTorch deprecation warnings are suppressed for cleaner output
+
+🔧 Device Configuration:
+   Using device: CUDA
+   ✅ CUDA available: 1 device(s)
+   GPU: NVIDIA A100-SXM4-80GB
+   GPU Memory: 85.1 GB total, 85.1 GB free
+
+📐 Setting up simulator (Lx=200, Ly=50, T=100)
+   ❌ Round 7 load error: Invalid magic number; corrupt file?
+   ❌ Round 6 load error: Invalid magic number; corrupt file?
+   ❌ Round 5 load error: Invalid magic number; corrupt file?
+   ❌ Round 4 load error: Invalid magic number; corrupt file?
+   ❌ Round 3 load error: Invalid magic number; corrupt file?
+   ❌ Round 2 load error: Invalid magic number; corrupt file?
+   ❌ Round 1 load error: Invalid magic number; corrupt file?
+Traceback (most recent call last):
+  File "/fred/oz022/tkimpson/SNPE/NPE_for_RW_inference/src/main.py", line 614, in <module>
+    main()
+  File "/fred/oz022/tkimpson/SNPE/NPE_for_RW_inference/src/main.py", line 232, in main
+    checkpoint_info = npe.load_checkpoint(str(output_dir), resume_info['latest_round'])
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/fred/oz022/tkimpson/SNPE/NPE_for_RW_inference/src/inference.py", line 989, in load_checkpoint
+    raise ValueError(f"No valid rounds found with density_estimator in {output_dir}")
+ValueError: No valid rounds found with density_estimator in results/workflow_20250916_191537
+
+real	3m5.048s
+user	0m9.406s
+sys	0m6.161s
+2D NPE resume workflow completed!
+
++------------------ Job Report: 4629957 (COMPLETED) -------------------+
+| Memory (RAM)  [                    ]  1.2% (394.4 MB peak / 32 GB)   |
+| CPU           [                    ]  0.6% average                   |
+| GPU           [                    ]  0.0% average                   |
+| Time          [>                   ]  0.9% (0-00:03:24 / 0-06:00:00) |
+|                                                                      |
+| Lustre Filesystem:                                                   |
+|   Path    Total Read    Total Write    Total IOPS                    |
+|   ------  ------------  -------------  ------------                  |
+|   /apps   0 B           0 B            2                             |
+|   /fred   363.1 MB      42.6 KB        15 K                          |
+|   /home   27.4 MB       0 B            11                            |
+|   OS      16.9 MB       0 B            20                            |
+|                                                                      |
+| Warnings:                                                            |
+|   - Too much memory requested                                        |
+|   - CPU usage is low                                                 |
+|   - GPU usage is low                                                 |
+|   - Too much time requested                                          |
++----------------------------------------------------------------------+
