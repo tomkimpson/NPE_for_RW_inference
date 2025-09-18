@@ -251,44 +251,47 @@ S\&P2025's extensive comparisons reveal that noise model misspecification can si
 
 
 
-Example results are presented in 
+\subsection{Example Results}
+To illustrate these theoretical considerations in practice, we reproduce a representative exampl from S\&P2025, which focuses on a stochastic agent-based model of a scratch barrier assay. In this model, agents representing biological cells are initially confined to a central region on a two-dimensional lattice and subsequently spread outwards via an unbiased random walk. The resulting spatial distribution is quantified by counting the number of agents in each vertical column, yielding noisy one-dimensional count data. Full details regarding the stochastic model, simulation parameters, and the generation of the synthetic observation can be found in Appendix \ref{sec: synthetic_data_generation}. While S\&P2025 investigates a suite of model variations (e.g., incorporating proliferation and crowding) and alternative PDE approximations, we deliberately focus on this simple case. It provides a clear baseline against which to compare our proposed NPE method, and we refer the reader to the original study for a fuller discussion of these more complex scenarios.
 
+Figure \ref{fig:sub1} shows the posterior obtained via ABC. This method operates directly on the stochastic model but relies on one-dimensional summary statistics (column counts), leading to a notably broad posterior. This diffuseness reflects both the inherent stochasticity of the system and the information loss from summarizing the data, showcasing the difficulty in precisely constraining parameters even with a high computational budget.
 
+In contrast, Figure \ref{fig:sub2} displays the Gaussian approximation to the posterior (Laplace approximation) derived from maximizing the likelihood of a deterministic surrogate. This approach is computationally efficient and yields a much tighter posterior. However, this apparent precision is entirely conditional on the fidelity of the surrogate; any mismatch between the surrogate and the true stochastic process introduces a systematic bias not reflected in the narrow posterior.
 
-\begin{figure}[h]
+Finally, Figure \ref{fig:sub3} shows the posterior sampled using MCMC with the surrogate model and an assumed Gaussian noise model. This provides a more flexible characterization of uncertainty. Crucially, this method requires inferring an additional nuisance parameter, $\sigma$, which quantifies the noise variance. The corner plot shows the joint posterior over the model parameters and this additional noise term. While comprehensive, this result is still fundamentally limited by the choice of surrogate and the specified noise model. 
+
+Collectively, these results highlight the core dilemma: direct methods like ABC are computationally demanding and often imprecise, while surrogate-based methods are faster but introduce hard-to-quantify systematic biases that cannot be reduced by collecting more data.
+
+\begin{figure}[h!]
 	\centering
 	\begin{subfigure}{0.45\textwidth}
 		\centering
 		\includegraphics[width=\textwidth]{images/corner_plot_abc_stochastic}
-		\caption{Caption for figure 1}
+		\caption{Approximate posterior from ABC applied directly to the stochastic model. Inference relies on one-dimensional summary statistics, resulting in a diffuse posterior due to computational constraints and information loss.}
 		\label{fig:sub1}
 	\end{subfigure}
 	\hfill
 	\begin{subfigure}{0.45\textwidth}
 		\centering
 		\includegraphics[width=\textwidth]{images/corner_plot_abc_surrogate}
-		\caption{Caption for figure 2}
+		\caption{Gaussian approximation of the posterior (Laplace approximation) via MLE on a deterministic surrogate model. This approach is computationally efficient but conditional on the surrogate's fidelity.}
 		\label{fig:sub2}
 	\end{subfigure}
 	
 	% Add vertical space
 	\vspace{1em}
 	
-	
 	\begin{subfigure}{0.55\textwidth}
 		\centering
 		\includegraphics[width=\textwidth]{images/corner_plot_mcmc_surrogate}
-		\caption{Caption for figure 3}
+		\caption{Posterior distribution from MCMC using the surrogate model with an assumed Gaussian noise model. This method jointly infers the model parameters alongside an additional noise variance parameter, $\sigma$.}
 		\label{fig:sub3}
 	\end{subfigure}
-	\caption{Overall caption for all three figures}
+	\caption{Comparison of posterior distributions obtained using classical inference methods for a scratch assay model. Each approach demonstrates distinct trade-offs between computational efficiency, precision, and model assumptions.}
 	\label{fig:three_figures}
 \end{figure}
 
-
-
 These persistent challenges across classical approaches motivate our exploration of Neural Posterior Estimation as a unified framework that can address multiple limitations simultaneously through direct learning from simulator output.
-
 
 
 \section{Neural Posterior Estimation for Stochastic Biological Models}\label{sec:NPE}
@@ -361,17 +364,13 @@ All NPE analyses in this work use the \texttt{sbi} Python package \cite{2020JOSS
 
 
 
-
-
-
-
-\section{Application to Barrier Assay Experiments}\label{sec:results}
+\subsection{Application to Barrier Assay Experiments}\label{sec:results}
 
 \subsection{Experimental Setup and Data}
 
 We demonstrate the effectiveness of NPE by applying it to the barrier assay experiments that serve as the motivating example in S\&P2025. These experiments involve a circular monolayer of cells initially confined within a barrier, which upon removal spreads outward through combined migration and proliferation. Following S\&P2025's protocol, we focus on synthetic data generated from their stochastic random walk model with parameters representative of typical cell migration experiments.
 
-The experimental configuration consists of a two-dimensional lattice with dimensions $H = 50$ and $W = 200$, where agents are initially placed within the region $|x| \leq 25$ with probability $U = 0.5$. The system evolves for 100 time steps with movement probability $P$ and proliferation probability $R$, corresponding to macroscopic diffusivity $D = P\Delta^2/(4\tau)$ and growth rate $r = R/\tau$ in the continuum limit.
+
 
 \subsection{NPE Implementation with Column Counts}
 
@@ -443,8 +442,8 @@ We further test NPE on S\&P2025's more complex models, including biased random w
 
 \begin{figure}[h]
 	\centering
-	\includegraphics[width=\textwidth]{images/NPE_corner_plot}
-	\caption{some caption}
+	\includegraphics[width=\textwidth]{images/NPE_corner_plot_1d}
+	\caption{some caption: 1d result}
 	\label{fig:posterior_abc_stochastic}
 \end{figure}
 
@@ -454,6 +453,19 @@ We further test NPE on S\&P2025's more complex models, including biased random w
 
 
 \section{Learning from Raw Spatial Data}\label{sec:results_2d}
+
+
+
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=\textwidth]{images/NPE_corner_plot_2d}
+	\caption{some caption: 2d result}
+	\label{fig:posterior_abc_stochastic2}
+\end{figure}
+
+
+
 
 \subsection{Motivation for Full Spatial Data}
 
@@ -557,7 +569,7 @@ The full spatial data consistently yields tighter posteriors, suggesting that co
 
 \section{Synthetic data generation}\label{sec: synthetic_data_generation}
 
-
+The experimental configuration consists of a two-dimensional lattice with dimensions $H = 50$ and $W = 200$, where agents are initially placed within the region $|x| \leq 25$ with probability $U = 0.5$. The system evolves for 100 time steps with movement probability $P$ and proliferation probability $R$, corresponding to macroscopic diffusivity $D = P\Delta^2/(4\tau)$ and growth rate $r = R/\tau$ in the continuum limit.
 
 
 
