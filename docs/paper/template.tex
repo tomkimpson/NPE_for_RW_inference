@@ -101,6 +101,9 @@
 %\renewcommand{\undertitle}{Technical Report}
 \renewcommand{\shorttitle}{NPE for stochastic bio models}
 
+
+\newcommand{\SP}{\emph{S\&P2025} }
+
 %%% Add PDF metadata to help others organize their library
 %%% Once the PDF is generated, you can check the metadata with
 %%% $ pdfinfo template.pdf
@@ -159,12 +162,11 @@ The remainder of this paper is structured as follows. Section \ref{sec:classical
 
 \section{Classical Approaches to Inference in Stochastic Biological Models}\label{sec:classical_inference}
 
-
-Our work builds upon the class of stochastic models and inference benchmarks established in S\&P2025. Before introducing our NPE framework (Section \ref{sec:NPE}), we briefly review the classical inference approaches for stochastic agent-based models, as exemplified by S\&P2025's comprehensive treatment. These methods have been the workhorses of parameter inference in mathematical biology, each with distinct strengths and limitations that motivate our proposed alternative.
+Our work builds upon the class of stochastic models and inference benchmarks established in \SP. Before introducing our NPE framework (Section \ref{sec:NPE}), we briefly review the classical inference approaches for stochastic agent-based models, as exemplified by S\&P2025's comprehensive treatment. These methods have been the workhorses of parameter inference in mathematical biology, each with distinct strengths and limitations that motivate our proposed alternative.
 
 \subsection{Approximate Bayesian Computation}
 
-Approximate Bayesian Computation (ABC) represents the most direct approach to likelihood-free inference for stochastic models. As demonstrated in S\&P2025 (Section 3.1), ABC rejection sampling proceeds by: (i) sampling parameters $\theta$ from a prior distribution; (ii) simulating data $N^{(j)}$ from the stochastic model; (iii) computing a discrepancy measure $\rho(y^{\text{obs}}, N^{(j)})$ between observed and simulated data; and (iv) retaining parameters that produce sufficiently small discrepancies.
+ABC \citep{SunnkerABC,Sisson2018} represents the most direct approach to likelihood-free inference for stochastic models. As demonstrated in \SP(Section 3.1), ABC rejection sampling proceeds by: (i) sampling parameters $\theta$ from a prior distribution; (ii) simulating data $N^{(j)}$ from the stochastic model; (iii) computing a discrepancy measure $\rho(y^{\text{obs}}, N^{(j)})$ between observed and simulated data; and (iv) retaining parameters that produce sufficiently small discrepancies.
 
 While conceptually straightforward, ABC faces well-documented challenges. The choice of tolerance threshold involves a bias-variance trade-off: small tolerances yield accurate but computationally expensive inference, while larger tolerances introduce bias. S\&P2025 retain the top 1\% of $10^5$ samples, requiring extensive simulation of the computationally expensive random walk model. Furthermore, the method's performance depends heavily on the choice of summary statistics (e.g., 1D column counts) and a suitable distance metric, which can discard valuable information and be difficult to select in a principled manner
 
