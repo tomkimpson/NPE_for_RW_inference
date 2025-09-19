@@ -1,0 +1,27 @@
+Loading results from: results/workflow_20250918_225411/inference_results/results.pkl
+❌ Error: No module named 'cnn_utils'
+
+real	1m0.175s
+user	0m2.997s
+sys	0m2.507s
+
++-------------------- Job Report: 4653686 (FAILED) --------------------+
+| Memory (RAM)  [                    ]  4.1% (333.1 MB peak / 8 GB)    |
+| CPU           [                    ]  2.1% average                   |
+| GPU           [                    ]  0.0% average                   |
+| Time          [>                   ]  2.0% (0-00:01:11 / 0-01:00:00) |
+|                                                                      |
+| Lustre Filesystem:                                                   |
+|   Path    Total Read    Total Write    Total IOPS                    |
+|   ------  ------------  -------------  ------------                  |
+|   /apps   0 B           0 B            5                             |
+|   /fred   101.9 MB      0 B            7.4 K                         |
+|   /home   0 B           0 B            4                             |
+|   OS      0 B           0 B            5                             |
+|                                                                      |
+| Warnings:                                                            |
+|   - Too much memory requested                                        |
+|   - CPU usage is low                                                 |
+|   - GPU usage is low                                                 |
+|   - Too much time requested                                          |
++----------------------------------------------------------------------+

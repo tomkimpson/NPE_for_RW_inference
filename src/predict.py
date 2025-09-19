@@ -17,6 +17,8 @@ import torch
 import matplotlib.pyplot as plt
 from scipy import ndimage
 from typing import Tuple, Dict, Any, Optional, List
+import scienceplots
+plt.style.use(["science"])
 
 # Project imports
 from simulator import RandomWalkSimulator
@@ -321,11 +323,12 @@ def plot_prediction_intervals(
     prediction_results: Dict[str, Any],
     observed_data: Optional[np.ndarray] = None,
     Lx: int = 21,
-    title_suffix: str = ""
+    title_suffix: str = "",
+    savefig_path: Optional[str] = None
 ) -> plt.Figure:
     """
-    Create visualization of prediction intervals with uncertainty bands.
-    
+    Create publication-quality visualization of prediction intervals with uncertainty bands.
+
     Parameters:
     -----------
     prediction_results : Dict
@@ -336,47 +339,152 @@ def plot_prediction_intervals(
         Number of columns (for x-axis)
     title_suffix : str
         Additional text for plot title
-        
+    savefig_path : str, optional
+        Path to save figure (without extension). If provided, saves both PNG and PDF versions.
+
     Returns:
     --------
     matplotlib Figure
     """
+    # Set up professional styling with legend text preservation
+    plt.rcParams.update({
+        "font.size": 12,
+        "axes.linewidth": 1.2,
+        "xtick.major.width": 1.2,
+        "ytick.major.width": 1.2,
+        "xtick.minor.width": 0.8,
+        "ytick.minor.width": 0.8,
+        "figure.dpi": 100,
+        "savefig.dpi": 300,
+        "axes.labelsize": 14,
+        "axes.titlesize": 16,
+        "legend.fontsize": 12,
+        "xtick.labelsize": 12,
+        "ytick.labelsize": 12,
+        "legend.numpoints": 1,  # Prevent legend truncation
+        "legend.handlelength": 2.5,  # Ensure adequate space for legend handles
+        "legend.handletextpad": 0.8,  # Space between handle and text
+        "legend.columnspacing": 1.0  # Space between columns in legend
+    })
+
     intervals = prediction_results['intervals']
     stats = prediction_results['column_stats']
     smooth_sigma = prediction_results['metadata'].get('smooth_sigma', None)
-    
-    fig, ax1 = plt.subplots(1, 1, figsize=(12, 6))
-    
+
+    # Professional color scheme
+    primary_blue = "#2E86C1"
+    light_blue = "#AED6F1"
+    medium_blue = "#5DADE2"
+    dark_red = "#C0392B"
+    light_red = "#F1948A"
+    orange = "#E67E22"
+
+    # Create figure with professional sizing
+    fig, ax = plt.subplots(1, 1, figsize=(10, 6))
+
     # Center column indices around 0 (same logic as plot_simulation_comparison)
     x_min = -(Lx // 2)
     x_max = Lx // 2 if Lx % 2 == 1 else (Lx // 2) - 1
     columns = np.arange(x_min, x_max + 1)
-    
-    # Main prediction plot with uncertainty bands
-    ax1.fill_between(columns, intervals['p2.5'], intervals['p97.5'], 
-                     alpha=0.2, color='green', label='95% Prediction Interval')
-    ax1.fill_between(columns, intervals['p25'], intervals['p75'], 
-                     alpha=0.3, color='green', label='50% Prediction Interval')
-    ax1.plot(columns, intervals['p50'], 'r-', linewidth=2, label='Median Prediction')
-    ax1.plot(columns, stats['mean'], 'r--', linewidth=1, alpha=0.8, label='Mean Prediction')
-    
+
+    # Main prediction plot with professional uncertainty bands
+    ax.fill_between(columns, intervals['p2.5'], intervals['p97.5'],
+                    alpha=0.25, color=light_blue, label='95\\% Prediction Interval',
+                    linewidth=0, edgecolor=medium_blue, linestyle='-')
+    ax.fill_between(columns, intervals['p25'], intervals['p75'],
+                    alpha=0.45, color=medium_blue, label='50\\% Prediction Interval',
+                    linewidth=0, edgecolor=primary_blue, linestyle='-')
+
+    # Prediction lines with professional styling
+    ax.plot(columns, intervals['p50'], color=dark_red, linewidth=2.5,
+            label='Median Prediction', alpha=0.9)
+    ax.plot(columns, stats['mean'], color=light_red, linewidth=2,
+            linestyle='--', alpha=0.8, label='Mean Prediction')
+
+    # Observed data with professional markers
     if observed_data is not None:
-        ax1.scatter(columns, observed_data, c='blue', s=50, 
-                   label='Observed Data', zorder=5)
-    
-    ax1.set_xlabel('Column Index (centered)')
-    ax1.set_ylabel('Agent Count')
-    
-    # Add smoothing info to title if applicable
+        ax.scatter(columns, observed_data, c=orange, s=60, marker='o',
+                   label='Observed Data', zorder=10, alpha=0.9,
+                   edgecolors='white', linewidth=1.5)
+
+    # Professional axis formatting
+    ax.set_xlabel('Column Index (centered)', fontsize=14, fontweight='bold')
+    ax.set_ylabel('Agent Count', fontsize=14, fontweight='bold')
+
+    # Enhanced title with professional formatting
     title = f'Posterior Predictive Distribution{title_suffix}'
     if smooth_sigma is not None:
         title += fr' (smoothed, $\sigma$={smooth_sigma})'
 
+    #Remove title for now
+    #ax.set_title(title, fontsize=16, fontweight='bold', pad=15)
 
-    ax1.set_title(title)
-    
-    ax1.legend()
-    ax1.grid(True, alpha=0.3)
+    # Professional tick styling
+    ax.tick_params(
+        which="major",
+        labelsize=12,
+        width=1.2,
+        length=6,
+        direction="in",
+        top=True,
+        right=True
+    )
+    ax.tick_params(
+        which="minor",
+        width=0.8,
+        length=3,
+        direction="in",
+        top=True,
+        right=True
+    )
+
+    # Add minor ticks
+    ax.minorticks_on()
+
+    # Professional grid
+    ax.grid(True, alpha=0.3, linewidth=0.5, linestyle=":")
+
+    # Enhanced legend with explicit configuration to prevent text truncation
+    legend = ax.legend(
+        loc='best',
+        frameon=True,
+        fancybox=True,
+        shadow=True,
+        framealpha=0.9,
+        edgecolor='gray',
+        facecolor='white',
+        handlelength=2.5,  # Ensure enough space for legend markers
+        handletextpad=0.8,  # Space between legend marker and text
+        columnspacing=1.0,  # Space between legend columns
+        numpoints=1,  # Number of points in legend for Line2D
+        markerscale=1.0,  # Relative size of legend markers
+        markerfirst=True,  # Marker comes before text
+        fontsize=12  # Explicit font size to override style truncation
+    )
+    legend.get_frame().set_linewidth(0.8)
+
+    # Professional layout
+    plt.tight_layout()
+
+    # Save high-quality figures if path provided
+    if savefig_path is not None:
+        savefig_path = Path(savefig_path)
+        # Save PNG version
+        png_path = savefig_path.with_suffix(".png")
+        fig.savefig(
+            png_path, dpi=300, bbox_inches="tight",
+            facecolor="white", edgecolor="none"
+        )
+
+        # Save PDF version for publications
+        pdf_path = savefig_path.with_suffix(".pdf")
+        fig.savefig(
+            pdf_path, bbox_inches="tight",
+            facecolor="white", edgecolor="none"
+        )
+
+        print(f"Publication-quality figures saved as:\n  - {png_path}\n  - {pdf_path}")
+
     return fig
 
 
@@ -663,9 +771,9 @@ def main():
         prediction_results=prediction_results,
         observed_data=observed_data,
         Lx=actual_Lx,
-        title_suffix=f" (T={actual_T})"
+        title_suffix=f" (T={actual_T})",
+        savefig_path=str(output_dir / "prediction_intervals")
     )
-    fig.savefig(output_dir / "prediction_intervals.png", dpi=150, bbox_inches='tight')
     plt.close(fig)
     
     # Violin plots if requested

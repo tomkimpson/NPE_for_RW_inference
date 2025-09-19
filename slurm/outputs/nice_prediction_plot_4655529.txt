@@ -1,0 +1,81 @@
+
+🚀 Starting Standalone Prediction Plot Generation
+📁 Input file: results/workflow_20250918_225411/inference_results/posterior_samples.pkl
+📁 Output directory: results/workflow_20250918_225411/inference_results
+
+📂 Loading posterior data from: results/workflow_20250918_225411/inference_results/posterior_samples.pkl
+✅ Loaded 6000 posterior samples
+🎯 True parameters: U=0.3, P=0.7
+📐 Lattice size: (200, 50)
+⏰ Time steps: 100
+🌱 Seed: 42
+
+📐 Setting up simulator (Lx=200, Ly=50, T=100)
+
+🎯 Generating observed data with true parameters U=0.3, P=0.7
+   Using seed: 1042 (original seed + 1000)
+   Observed data: 200 columns, 753 total agents
+
+🔮 Generating posterior predictive samples...
+   Using seed: 2042 (original seed + 2000)
+🔮 Generating 6000 posterior predictive samples...
+   Progress: 1/6000 (0.0%) - 65536.0 samples/sec - ETA: 0.1s
+   Progress: 601/6000 (10.0%) - 4.1 samples/sec - ETA: 1323.4s
+   Progress: 1201/6000 (20.0%) - 4.1 samples/sec - ETA: 1175.7s
+   Progress: 1801/6000 (30.0%) - 4.1 samples/sec - ETA: 1030.6s
+   Progress: 2401/6000 (40.0%) - 4.1 samples/sec - ETA: 886.7s
+   Progress: 3001/6000 (50.0%) - 4.1 samples/sec - ETA: 740.3s
+   Progress: 3601/6000 (60.0%) - 4.0 samples/sec - ETA: 593.4s
+   Progress: 4201/6000 (70.0%) - 4.0 samples/sec - ETA: 445.4s
+   Progress: 4801/6000 (80.0%) - 4.0 samples/sec - ETA: 297.3s
+   Progress: 5401/6000 (90.0%) - 4.0 samples/sec - ETA: 148.6s
+✅ Predictive sampling completed in 1489.8 seconds
+   Average rate: 4.0 samples/sec
+
+📊 Computing prediction intervals...
+📊 Computing prediction intervals...
+✅ Computed intervals for 200 columns
+   Total agents - Mean: 753.8 ± 54.7
+   Total agents - Range: [203, 2390]
+
+📈 Creating prediction intervals plot...
+
+🎉 PREDICTION PLOT GENERATION COMPLETED!
+⏱️  Total time: 1492.3 seconds
+📁 Output saved to: results/workflow_20250918_225411/inference_results
+
+📊 Files created:
+   📈 Plot: prediction_intervals_standalone.png
+   💾 Data: prediction_intervals_standalone.pkl
+
+📈 Prediction Summary:
+   Total agents: 753.8 ± 54.7
+   Range: [203, 2390]
+   Observed total: 753
+   95% interval: [689.0, 820.0]
+   Observed in interval: Yes
+
+real	26m45.525s
+user	24m47.262s
+sys	0m3.098s
+
++------------------ Job Report: 4655529 (COMPLETED) -------------------+
+| Memory (RAM)  [#                   ]  5.1% (421.4 MB peak / 8 GB)    |
+| CPU           [#########           ] 45.9% average                   |
+| GPU           [                    ]  0.0% average                   |
+| Time          [--------->          ] 45.0% (0-00:27:01 / 0-01:00:00) |
+|                                                                      |
+| Lustre Filesystem:                                                   |
+|   Path    Total Read    Total Write    Total IOPS                    |
+|   ------  ------------  -------------  ------------                  |
+|   /apps   984 KB        0 B            11                            |
+|   /fred   376 MB        0 B            17.2 K                        |
+|   /home   27.4 MB       0 B            8                             |
+|   OS      16.9 MB       0 B            18                            |
+|                                                                      |
+| Warnings:                                                            |
+|   - Too much memory requested                                        |
+|   - CPU usage is low                                                 |
+|   - GPU usage is low                                                 |
+|   - Too much time requested                                          |
++----------------------------------------------------------------------+

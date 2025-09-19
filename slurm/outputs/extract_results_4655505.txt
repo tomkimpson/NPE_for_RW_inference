@@ -1,0 +1,38 @@
+Loading results from: results/workflow_20250919_083626/inference_results/results.pkl
+Saving extracted data to: results/workflow_20250919_083626/inference_results/results_extracted.pkl
+
+📊 File Size Comparison:
+   Original:  96.47 MB
+   Extracted: 0.04 MB
+   Reduction: 100.0%
+
+✅ Extraction completed successfully!
+📈 Extracted 5000 posterior samples
+🎯 True parameters: U=0.3, P=0.7
+
+🔗 Output file: results/workflow_20250919_083626/inference_results/results_extracted.pkl
+
+real	4m11.753s
+user	0m2.737s
+sys	0m4.421s
+
++------------------ Job Report: 4655505 (COMPLETED) -------------------+
+| Memory (RAM)  [                    ]  3.9% (317.6 MB peak / 8 GB)    |
+| CPU           [                    ]  0.6% average                   |
+| GPU           [                    ]  0.0% average                   |
+| Time          [->                  ]  7.4% (0-00:04:27 / 0-01:00:00) |
+|                                                                      |
+| Lustre Filesystem:                                                   |
+|   Path    Total Read    Total Write    Total IOPS                    |
+|   ------  ------------  -------------  ------------                  |
+|   /apps   0 B           0 B            10                            |
+|   /fred   572.6 MB      0 B            11.7 K                        |
+|   /home   27.4 MB       0 B            14                            |
+|   OS      4 KB          0 B            6                             |
+|                                                                      |
+| Warnings:                                                            |
+|   - Too much memory requested                                        |
+|   - CPU usage is low                                                 |
+|   - GPU usage is low                                                 |
+|   - Too much time requested                                          |
++----------------------------------------------------------------------+

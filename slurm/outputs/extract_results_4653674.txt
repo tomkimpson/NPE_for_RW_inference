@@ -1,0 +1,20 @@
+❌ Error: Input file not found: workflow_20250918_225411/inference_results/results.pkl
+
+real	0m34.265s
+user	0m1.466s
+sys	0m1.314s
+
++-------------------- Job Report: 4653674 (FAILED) --------------------+
+| Memory (RAM)  [                    ]  2.3% (185.8 MB peak / 8 GB)    |
+| CPU           [                    ]  2.0% average                   |
+| GPU           [                    ]  0.0% average                   |
+| Time          [>                   ]  1.4% (0-00:00:51 / 0-01:00:00) |
+|                                                                      |
+| Lustre Filesystem:                                                   |
+|   Path    Total Read    Total Write    Total IOPS                    |
+|   ------  ------------  -------------  ------------                  |
+|   /apps   4 KB          0 B            6                             |
+|   /fred   218.7 MB      0 B            3.6 K                         |
+|   /home   27.3 MB       0 B            6                             |
+|   OS      0 B           0 B            4                             |
++----------------------------------------------------------------------+
