@@ -243,13 +243,18 @@ def _(create_professional_corner_plot, load_results):
     posterior_samples_1D, true_parameters_1D = load_results(
         "notebooks/example_results/results_extracted_1D.pkl"
     )
+
+    # Reparameterize P to D where D = P/4
+    posterior_samples_1D[:, 1] = posterior_samples_1D[:, 1] / 4
+    true_parameters_1D[1] = true_parameters_1D[1] / 4
+
     create_professional_corner_plot(
         posterior_samples_1D,
-        [r"$U$", r"$P$"],
+        [r"$U$", r"$D$"],
         true_parameters_1D,
         nbins=30,
         truth_color="orange",
-        savefig_path="notebooks/images/NPE_corner_plot_1D.png",
+        savefig_path="notebooks/images/NPE_corner_plot_1D_D.png",
     )
     return
 
@@ -259,13 +264,40 @@ def _(create_professional_corner_plot, load_results, plt):
     posterior_samples_2D, true_parameters_2D = load_results(
         "notebooks/example_results/results_extracted_2D.pkl"
     )
+
+    # Reparameterize P to D where D = P/4
+    posterior_samples_2D[:, 1] = posterior_samples_2D[:, 1] / 4
+    true_parameters_2D[1] = true_parameters_2D[1] / 4
+
     create_professional_corner_plot(
         posterior_samples_2D,
-        [r"$U$", r"$P$"],
+        [r"$U$", r"$D$"],
         true_parameters_2D,
         nbins=30,
         truth_color="orange",
-        savefig_path="notebooks/images/NPE_corner_plot_2D.png",
+        savefig_path="notebooks/images/NPE_corner_plot_2D_D.png",
+    )
+    plt.show()
+    return
+
+
+@app.cell
+def _(create_professional_corner_plot, load_results, plt):
+    posterior_samples_2D_v2, true_parameters_2D_v2 = load_results(
+        "notebooks/example_results/results_extracted_2D_v2.pkl"
+    )
+
+    # Reparameterize P to D where D = P/4
+    posterior_samples_2D_v2[:, 1] = posterior_samples_2D_v2[:, 1] / 4
+    true_parameters_2D_v2[1] = true_parameters_2D_v2[1] / 4
+
+    create_professional_corner_plot(
+        posterior_samples_2D_v2,
+        [r"$U$", r"$D$"],
+        true_parameters_2D_v2,
+        nbins=30,
+        truth_color="orange",
+        savefig_path="notebooks/images/NPE_corner_plot_2D_D_v2.png",
     )
     plt.show()
     return
