@@ -31,7 +31,7 @@
 \usepackage{subcaption}
 
 
-\title{Amortized Inference for Spatiotemporal Stochastic Biological Models using Neural Posterior Estimation}
+\title{Rapid Parameter Inference for Spatiotemporal Stochastic Biological Models using Neural Posterior Estimation}
 
 \renewcommand{\shorttitle}{Amortized Inference for Stochastic Models}
 
@@ -93,7 +93,7 @@
 
 
 \begin{abstract}
-Parameter inference for stochastic models is essential for quantitative biology, but is hampered by intractable likelihoods. Agent-based random walk models, used widely in ecology and cell biology, exemplify this challenge, often forcing researchers to use likelihood-free methods like Approximate Bayesian Computation (ABC) that introduce biases and tuning difficulties, or else surrogate models which rely on a potentially unfaithful approximation and require an explicit, potentially erroneous, noise model. Here, we overcome these limitations using Neural Posterior Estimation (NPE), a simulation-based, machine learning inference framework that learns the full posterior distribution. Once trained, NPE provides amortized, near-instantaneous posterior estimates. We deploy this framework on a random walk model of a barrier assay experiment. We demonstrate our approach in two settings: first, using one-dimensional summary statistics (column counts), and second, by augmenting NPE with a novel convolutional neural network (CNN) that enables NPE to learn directly from raw two-dimensional spatial data. In both cases, NPE remains the core inference engine, with the CNN serving as a feature extraction component for spatial data. On synthetic data, our NPE pipeline proves highly effective in both settings, delivering posterior estimates at a substantially reduced computational cost per inference. When applied to 1D summary statistics, the pipeline matches or exceeds the precision of classical methods. Similarly, for 2D spatial data, NPE augmented with CNN performs inference directly on raw images with a precision comparable to that from curated summary statistics. This second capability is critical, as it moves beyond the traditional reliance on lower-dimensional data and opens up new avenues for complex models where informative summary statistics are not obvious or available. We provide an open-source implementation of our pipeline to facilitate its adoption and extension to more complex, spatially-structured biological models.
+Parameter inference for stochastic models is essential for quantitative biology, but is hampered by intractable likelihoods. Agent-based random walk models, used widely in ecology and cell biology, exemplify this challenge, often forcing researchers to use likelihood-free methods like Approximate Bayesian Computation (ABC) that introduce biases and tuning difficulties, or else surrogate models which rely on a potentially unfaithful approximation and require an explicit, potentially erroneous, noise model. Here, we overcome these limitations using Neural Posterior Estimation (NPE), a simulation-based, machine learning inference framework that learns the full posterior distribution. Once trained, NPE provides amortized, near-instantaneous posterior estimates. We deploy this framework on a random walk model of a barrier assay experiment. We demonstrate our approach in two settings: first, using one-dimensional summary statistics (column counts), and second, by augmenting NPE with a novel convolutional neural network (CNN) that enables NPE to learn directly from raw two-dimensional spatial data. In both cases, NPE remains the core inference engine, with the CNN serving as a feature extraction component for spatial data. On synthetic data, our NPE pipeline proves highly effective in both settings, delivering posterior estimates at a substantially reduced computational cost per inference. When applied to 1D summary statistics, the pipeline matches or exceeds the precision of classical methods. Similarly, for 2D spatial data, NPE augmented with CNN performs inference directly on raw images with a precision comparable to that from curated summary statistics. This second capability is critical, as it moves beyond the traditional reliance on lower-dimensional data and opens up new avenues for complex models where informative summary statistics are not obvious or available. We provide an open-source implementation of our pipeline to facilitate its adoption and extension to more complex, spatially-structured biological models. This work establishes a new paradigm for parameter inference in spatial stochastic models, where machine learning can bypass the need for likelihood functions, hand-crafted summary statistics, and approximate noise models across diverse biological systems.
 \end{abstract}
 
 
@@ -123,10 +123,18 @@ In this paper, we propose that these fundamental challenges can be addressed in 
 	\item It is likelihood-free, circumventing intractability.
 	 \item It learns directly from the high-fidelity simulator, eliminating surrogate model bias and removing the PDE as a source of approximation error. 
 	 \item It implicitly learns the full, complex, stochastic relationship between parameters and data, obviating the need for an explicit noise model. 
-	 \item It can ingest high-dimensional data directly (e.g., raw 2D images), preserving information and avoiding manual selection of summary statistics.
 	 \item It provides amortized inference: after an initial, one-time training phase, it can generate posterior estimates for new observations almost instantaneously, overcoming the high per-inference cost of methods like ABC. 
+	 \item It can ingest high-dimensional data directly (e.g., raw 2D images), preserving information and avoiding manual selection of summary statistics.
 	 \end{enumerate}
-The central thesis of this work is that NPE provides a robust, efficient, and direct framework for parameter inference in stochastic biological models. We demonstrate this by applying a state-of-the-art Sequential NPE (SNPE) workflow to a canonical agent-based random walk model of cell migration and proliferation. This type of model is a well-established tool for studying collective cell behaviour \citep[see e.g.][]{Simpson2025.05.25.656057} and serves as an ideal testbed for advanced inference methods. Our main contributions are to: (i) introduce an amortized, simulator-native NPE pipeline for the migration and proliferation random-walk model; (ii) demonstrate that this NPE pipeline circumvents ABC tolerance tuning and surrogate-model bias while improving calibration and coverage; (iii) introduce a novel inference strategy that uses a Convolutional Neural Network (CNN) to learn directly from the raw 2D spatial data generated by the simulator. This approach avoids the information loss inherent in using 1D summary statistics (such as column counts), leading to more precise and reliable posterior estimates; (iv) Release an open, reproducible implementation with configuration files, plots, and posterior-predictive utilities to facilitate adoption and extension. While we use scratch assay experiments as our primary motivating application, the inference framework developed here is applicable to the broader class of spatially-explicit stochastic models commonly used throughout biology and ecology.
+The central thesis of this work is that NPE provides a robust, efficient, and direct framework for parameter inference in stochastic biological models. We demonstrate this by applying a state-of-the-art Sequential NPE (SNPE) workflow to a canonical agent-based random walk model of cell migration and proliferation. This type of model is a well-established tool for studying collective cell behaviour \citep[see e.g.][]{Simpson2025.05.25.656057} and serves as an ideal testbed for advanced inference methods. Our main contributions are to:
+
+\begin{enumerate}[i]
+	\item \textbf{Modelling} We perform inference directly on the high-fidelity, agent-based random walk model. This simulator-native approach entirely avoids the use of potentially unfaithful surrogate models (e.g., mean-field PDEs), thus eliminating surrogate-model error and preserving the full stochastic realism of the biological system.
+	\item \textbf{Inference} We deploy a modern Neural Posterior Estimation (NPE) framework as the core inference engine. This simulation-based, likelihood-free method directly learns the posterior distribution, overcoming the intractability of the likelihood function. Its amortized nature provides near-instantaneous posterior estimates for new observations after a single upfront training cost, bypassing the high per-inference expense and difficult tuning associated with traditional methods like ABC.
+	\item \textbf{Learned Feature Extraction} We introduce a novel deep learning architecture by integrating a Convolutional Neural Network (CNN) as a learned feature extractor for the NPE pipeline. This enables the inference framework to learn informative representations automatically and directly from raw, two-dimensional spatial data, removing the need for manual, and potentially information-losing, data curation.
+	\item \textbf{Integration} We demonstrate how these components form a unified, end-to-end pipeline that represents a new paradigm for inference in spatially-explicit stochastic models. By coupling the CNN feature extractor with the NPE inference engine, we perform Bayesian parameter estimation directly using the raw spatial output of the agent-based model. This synergy bypasses two major traditional bottlenecks: the need for hand-crafted summary statistics and the reliance on approximate surrogate models.
+\end{enumerate}
+Additionally, we release an open-source, reproducible implementation of our pipeline to facilitate its adoption and extension to other complex, spatially-structured biological models. While we use scratch assay experiments as our primary motivating application, the inference framework developed here is applicable to the broader class of spatially-explicit stochastic models commonly used throughout biology and ecology.
 
 
 The remainder of this paper is structured as follows. Section \ref{sec:classical_inference} reviews the canonical stochastic model and establishes a performance baseline by applying classical inference methods. Section \ref{sec:NPE} details our NPE methodology and demonstrates its performance on one-dimensional summary statistics. Section \ref{sec:results_2d} further enhances this pipeline by embedding a Convolutional Neural Network (CNN) to perform inference directly on raw spatial data. Finally, Section \ref{sec:discussion} discusses the broader implications of our work for the future of simulation-based inference in biology.
@@ -169,13 +177,9 @@ This trade-off is exacerbated by the "curse of dimensionality". For models with 
 
 
 \subsection{Surrogate Model Approaches}
-To mitigate the computational burden of methods like ABC, an alternative strategy replaces the stochastic model with a computationally cheaper surrogate model. A common choice is a deterministic partial differential equation (PDE) that captures the system's mean-field behaviour, yielding a tractable likelihood function that enables standard, efficient likelihood-based inference algorithms like Markov Chain Monte Carlo (MCMC). However, this computational gain comes at the cost of introducing potential model misspecification bias, as inference is performed on an approximation of the true stochastic process.
+To mitigate the computational burden of methods like ABC, an alternative strategy replaces the stochastic model with a computationally cheaper surrogate model. A common choice is a deterministic partial differential equation (PDE) that captures the system's mean-field behaviour, yielding a tractable likelihood function that enables standard, efficient likelihood-based inference algorithms like Markov chain Monte Carlo (MCMC). However, this computational gain comes at the cost of introducing potential model misspecification bias, as inference is performed on an approximation of the true stochastic process.
 
-For lattice-based random walk models, the mean behaviour of agents in the continuum limit can be described by a PDE of the form \citep{Codling2008,Simpson2025.05.25.656057,Plank2025}:
-\begin{equation}
-	\frac{\partial u}{\partial t} = -\frac{\partial J}{\partial x} + S,
-\end{equation}
-where $u(x,t)$ represents mean agent density, $J$ is the macroscopic flux, and $S$ denotes source terms from proliferation.
+
 
 The primary limitation of this approach is that the resulting inference is conditional on the fidelity of the surrogate. Any discrepancy between the surrogate and the true stochastic process introduces a systematic bias that cannot be reduced by collecting more data. While the continuum limit accurately describes the mean behaviour of non-interacting random walks, the mean-field PDE neglects crucial stochastic effects in more complex scenarios. For example, in interacting models with crowding effects discussed in S\&P2025 (Section 4), the mean-field approximation captures average behavior but cannot represent the bounded nature of agent occupancy or the discrete stochastic fluctuations around this mean. This limitation becomes particularly important when constructing prediction intervals, where the choice of noise model (e.g. Gaussian vs. binomial, see next Section \ref{sec:noise_model}) significantly affects the physical realism of predictions. These fundamental limitations of surrogate-based approaches motivate the need for inference methods that can work directly with the full stochastic simulator.
 
@@ -184,7 +188,7 @@ The primary limitation of this approach is that the resulting inference is condi
 \subsubsection{Inference with Surrogate Likelihoods}
 A tractable likelihood function from a surrogate model unlocks standard, efficient inference techniques that would be impossible with the original stochastic simulator. These techniques generally fall into two categories: direct optimization or posterior sampling.
 
-The first category, direct optimization, seeks to find the single parameter set that maximizes the likelihood function, yielding the Maximum Likelihood Estimate (MLE). While computationally fast, the MLE provides only a point estimate and does not inherently quantify parameter uncertainty. The second category, posterior sampling, uses methods like Markov Chain Monte Carlo (MCMC) to approximate the full posterior distribution, offering a complete characterisation of uncertainty. However, MCMC typically requires significant computational effort, careful hyperparameter tuning, and rigorous convergence assessment. A third approach, the Laplace approximation, offers a compromise between the speed of optimization and the detailed uncertainty characterization of MCMC. This method approximates the posterior distribution as a multivariate normal distribution centered at the posterior mode (which equals the MLE, $\hat{\theta}$ uner uniform priors). The covariance is given by the inverse of the observed Fisher Information matrix:
+The first category, direct optimization, seeks to find the single parameter set that maximizes the likelihood function, yielding the Maximum Likelihood Estimate (MLE). While computationally fast, the MLE provides only a point estimate and does not inherently quantify parameter uncertainty. The second category, posterior sampling, uses methods like Markov chain Monte Carlo (MCMC) to approximate the full posterior distribution, offering a complete characterisation of uncertainty. However, MCMC typically requires significant computational effort, careful hyperparameter tuning, and rigorous convergence assessment. A third approach, the Laplace approximation, offers a compromise between the speed of optimization and the detailed uncertainty characterization of MCMC. This method approximates the posterior distribution as a multivariate normal distribution centered at the posterior mode (which equals the MLE, $\hat{\theta}$ uner uniform priors). The covariance is given by the inverse of the observed Fisher Information matrix:
 \begin{equation}
 	p(\theta \mid y^{\text{obs}}) \approx \text{MVN}(\hat{\theta}, \mathcal{I}^{-1}(\hat{\theta})),
 \end{equation}
@@ -193,7 +197,7 @@ where $\mathcal{I}(\hat{\theta}) = -\nabla\nabla^T \ell(\theta \mid y^{\text{obs
 However, all these likelihood-based approaches require an explicit specification of how the deterministic surrogate output relates to the noisy observational data—a critical modeling choice we examine next.
 
 
-\subsection{Noise Model Specification}\label{sec:noise_model}
+\subsubsection{Noise Model Specification}\label{sec:noise_model}
 
 The use of deterministic surrogates necessitates an explicit choice of how to model the relationship between the clean PDE output and the inherently noisy observations from the stochastic process. This choice profoundly impacts inference results, as the "noise" represents genuine stochastic variability in the agent-based system rather than measurement error. S\&P2025 systematically compares three noise models:
 
@@ -217,10 +221,43 @@ eliminating the additional variance parameter and ensuring non-negative predicti
 S\&P2025's extensive comparisons reveal that noise model misspecification can significantly bias parameter estimates and lead to poorly calibrated prediction intervals. Quantitatively, the Gaussian model consistently produces unphysical negative predictions in low-density regions and encloses only 95\% of data points, while the Poisson and binomial models better respect the discrete, non-negative nature of count data and achieve coverage rates of 99-100\%.
 
 
-
-
 \subsection{Example Results}\label{sec:example_classical_results}
-To illustrate these theoretical considerations in practice, we reproduce a representative example from S\&P2025, which focuses on a stochastic agent-based model of a scratch barrier assay. In this model, agents representing biological cells are initially confined to a central region on a two-dimensional lattice and subsequently spread outwards via an unbiased random walk. The resulting spatial distribution is quantified by counting the number of agents in each vertical column, yielding noisy one-dimensional count data. Full details regarding the stochastic model, simulation parameters, and the generation of the synthetic observation can be found in Appendix \ref{sec: synthetic_data_generation}. While S\&P2025 investigates a suite of model variations (e.g., incorporating proliferation and crowding) and alternative PDE approximations, we deliberately focus on this simple case. It provides a clear baseline against which to compare our proposed NPE method, and we refer the reader to the original study for a fuller discussion of these more complex scenarios. We aim to infer two key parameters that govern the model's behaviour: the initial occupation probability, $U$, and an effective diffusion coefficient, $D$. The diffusion coefficient, $D$, is a parameter of the continuum PDE model that can be used as a surrogate. The underlying agent-based model, however, is parameterised by a discrete transition probability, $P$. To facilitate a direct comparison between these different modelling frameworks, we reparameterise the results from the discrete model using the relationship $D=P/4$. We refer the reader to Appendix \ref{sec: synthetic_data_generation} for a full description of the PDE approximation.
+\begin{figure}[h]
+	\centering
+	% Placeholder for figure showing:
+	% (a) Initial agent distribution at t=0 on 2D lattice
+	% (b) Final agent distribution at t=100 on 2D lattice
+	% (c) Column counts N_i at t=0 (blue dots) with PDE solution Hu(x,t) (red curve)
+	% (d) Column counts N_i at t=100 (blue dots) with PDE solution Hu(x,t) (red curve)
+	\includegraphics[width=\textwidth]{images/pde_comparison_figure2}
+	\caption{Schematic of the lattice-based random walk model. (a) Initial placement of agents within region $|x| \leq 25$ on a 2D lattice with $H=50$, $\Delta=\tau=1$. (b) Agent distribution after 100 time steps showing symmetric outward spreading. (c)-(d) Reduction of 2D data to 1D column counts $N_i(t)$ at $t=0$ and $t=100$ respectively. Blue dots show stochastic count data; red curves show the continuum PDE solution $Hu(x,t)$ where $u(x,t)$ solves the diffusion equation with $D=P/4=0.25$.}
+	\label{fig:model_schematic}
+\end{figure}
+
+To illustrate these theoretical considerations in practice, we reproduce a representative example from S\&P2025, which focuses on a stochastic agent-based model of a scratch barrier assay. In this model, agents representing biological cells are initially confined to a central region on a two-dimensional square lattice and subsequently spread outwards via an unbiased random walk. The experimental setup, illustrated in Figure~\ref{fig:model_schematic}, mimics a barrier assay where cells are initially placed in a confined region and allowed to spread after barrier removal. The two-dimensional lattice has height $H=50$ and width $W=200$ (with $-100 \leq x \leq 100$), with lattice spacing $\Delta=1$ and discrete time step $\tau=1$. Zero-flux boundary conditions are applied at all edges. Initial conditions are set by occupying each site in the central region $|x| \leq 25$ with a single agent with probability $U=0.5$, as shown in Figure~\ref{fig:model_schematic}(a). At each time step, the system evolves through a random sequential update method where agents move to one of four nearest-neighbor sites with probability $P=0.7$. After 100 time steps, the population spreads symmetrically as shown in Figure~\ref{fig:model_schematic}(b).
+
+A key feature of this experimental design is the reduction of two-dimensional spatial data to one-dimensional measurements. Since the initial macroscopic density is uniform in the vertical ($y$) direction and boundary conditions preserve this symmetry, the resulting agent distribution remains independent of vertical location on average. This motivates quantifying the system by counting the number of agents per column:
+\begin{equation}
+	N_i(t) = \sum_{j=1}^{J} n_{i,j}(t),
+\end{equation}
+where $n_{i,j}(t)$ denotes the integer number of agents at lattice site $(i,j)$ at time $t$, and $J$ is the number of lattice sites in the vertical direction. This dimensional reduction from 2D spatial data to 1D column counts is standard in cell biology scratch assays \citep{Jin2016}, as it simplifies the characterization of spatiotemporal spreading while retaining the stochastic fluctuations inherent to the discrete process, as evident in Figure~\ref{fig:model_schematic}(c)-(d).
+
+For lattice-based random walk models of this type, the mean behaviour of agents in the continuum limit can be described by a PDE of the form \citep{Codling2008,Simpson2025.05.25.656057,Plank2025}:
+\begin{equation}
+	\frac{\partial u}{\partial t} = -\frac{\partial J}{\partial x} + S,
+\end{equation}
+where $u(x,t)$ represents mean agent density, $J$ is the macroscopic flux, and $S$ denotes source terms from proliferation. For the simple case considered here (unbiased motion, no proliferation, no crowding), this reduces to the linear diffusion equation:
+\begin{equation}
+	\frac{\partial u}{\partial t} = D\frac{\partial^2 u}{\partial x^2},
+\end{equation}
+where $D = \lim_{\Delta,\tau \to 0} P\Delta^2/(4\tau)$ is the effective diffusion coefficient. Working with dimensionless units $\Delta=\tau=1$, this gives $D=P/4=0.175$ for our simulation with $P=0.7$.
+
+The continuous analogue of the column count $N_i$ under the PDE model is $Hu(x_i,t)$, where $x_i$ denotes the horizontal position of the $i$-th column and $H$ is the lattice height. Figure~\ref{fig:model_schematic}(c)-(d) compares the stochastic count data (blue dots) with this PDE solution (red curves), revealing that while the PDE captures mean trends, substantial stochastic fluctuations remain—a key motivation for carefully modeling observation noise.
+
+While S\&P2025 investigates a suite of model variations (e.g., incorporating proliferation, directional bias, and crowding effects) and alternative PDE approximations, we deliberately focus on this simple unbiased, non-interacting case. It provides a clear baseline against which to compare our proposed NPE method, and we refer the reader to the original study for a fuller discussion of more complex scenarios.
+
+We aim to infer two key parameters that govern the model's behaviour: the initial occupation probability, $U$, and the effective diffusion coefficient, $D$. For the synthetic data considered here, we use ground truth values $U=0.3$ and $D=0.175$. 
+
 
 
 Figure \ref{fig:sub1} shows the posterior obtained via ABC. This method operates directly on the stochastic model but relies on one-dimensional summary statistics (column counts), leading to a notably broad posterior. This diffuseness reflects both the inherent stochasticity of the system and the information loss from summarizing the data, showcasing the difficulty in precisely constraining parameters even with a high computational budget. In contrast, Figure \ref{fig:sub2} displays the Gaussian approximation to the posterior (Laplace approximation) derived from maximizing the likelihood of a deterministic surrogate. This approach is computationally efficient and yields a much tighter posterior. However, this apparent precision is entirely conditional on the fidelity of the surrogate; any mismatch between the surrogate and the true stochastic process introduces a systematic bias not reflected in the narrow posterior. Finally, Figure \ref{fig:sub3} shows the posterior sampled using MCMC with the surrogate model and an assumed Gaussian noise model. This provides a more flexible characterization of uncertainty. Crucially, this method requires inferring an additional nuisance parameter, $\sigma$, which quantifies the noise variance. The corner plot shows the joint posterior over the model parameters and this additional noise term. While comprehensive, this result is still fundamentally limited by the choice of surrogate and the specified noise model. 
@@ -231,14 +268,14 @@ Collectively, these results highlight the core dilemma: direct methods like ABC 
 	\centering
 	\begin{subfigure}{0.45\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{images/corner_plot_abc_stochastic}
+		\includegraphics[width=\textwidth]{images/corner_plot_abc_stochastic2}
 		\caption{Approximate posterior from ABC applied directly to the stochastic model. Computational constraints and information loss lead to a diffuse posterior for $D$}
 		\label{fig:sub1}
 	\end{subfigure}
 	\hfill
 	\begin{subfigure}{0.45\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{images/corner_plot_abc_surrogate}
+		\includegraphics[width=\textwidth]{images/corner_plot_abc_surrogate2}
 		\caption{Gaussian approximation of the posterior (Laplace approximation) via MLE on a deterministic surrogate model. This approach is computationally efficient but conditional on the surrogate's fidelity.}
 		\label{fig:sub2}
 	\end{subfigure}
@@ -248,11 +285,11 @@ Collectively, these results highlight the core dilemma: direct methods like ABC 
 	
 	\begin{subfigure}{0.55\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{images/corner_plot_mcmc_surrogate}
+		\includegraphics[width=\textwidth]{images/corner_plot_mcmc_surrogate2}
 		\caption{Posterior distribution from MCMC using the surrogate model with an assumed Gaussian noise model. This method jointly infers the model parameters alongside an additional noise variance parameter, $\sigma$.}
 		\label{fig:sub3}
 	\end{subfigure}
-	\caption{Comparison of posterior distributions obtained using classical inference methods for a scratch assay model. Each approach demonstrates distinct trade-offs between computational efficiency, precision, and model assumptions.}
+	\caption{Comparison of posterior distributions obtained using classical inference methods for a scratch assay model. Each approach demonstrates distinct trade-offs between computational efficiency, precision, and model assumptions. Orange lines indicate the true parameter values.}
 	\label{fig:three_figures}
 \end{figure}
 
@@ -276,29 +313,35 @@ The key insight is that while the likelihood $p(x|\theta)$ may be intractable fo
 
 \subsubsection{Conditional Normalizing Flows}
 
-At the core of NPE are normalizing flows, a class of flexible neural architectures that learn complex probability distributions through invertible transformations. A normalizing flow constructs a target distribution by transforming samples from a simple base distribution (typically a standard Gaussian) through a series of invertible, differentiable mappings.
+At the core of NPE are normalizing flows, a class of flexible neural architectures that learn complex probability distributions through invertible transformations.Normalizing flows have emerged as a powerful tool for density estimation in high-dimensional spaces \cite{rezende2015variational, papamakarios2021normalizing}, offering significant advantages over traditional methods like mixture models or kernel density estimation when dealing with complex, multimodal distributions typical in biological inference problems. The fundamental idea behind normalizing flows is deceptively simple: construct a complex target distribution by transforming samples from a simple base distribution (typically a standard Gaussian) through a series of invertible, differentiable mappings. This approach can be understood as a sophisticated generalization of the familiar inverse transform sampling method, but extended to high dimensions through neural networks \cite{kobyzev2020normalizing}. Where traditional change-of-variables techniques might struggle with complex distributions, normalizing flows leverage the representational power of deep learning while maintaining the mathematical rigor needed for proper density estimation.
 
-Formally, let $u \in \mathbb{R}^D$ be a random variable with base density $p_u(u) = \mathcal{N}(0, I)$. The flow defines an invertible transformation $f_\phi: \mathbb{R}^D \rightarrow \mathbb{R}^D$ parameterized by neural network weights $\phi$. For conditional density estimation, this transformation is conditioned on the observation: $\theta = f_\phi(u; x)$. The invertibility requirement ensures that we can both generate samples (forward pass) and evaluate densities (inverse pass). The key insight is that complex distributions can be learned by composing simple transformations, each of which maintains invertibility and efficient Jacobian computation. This allows the network to learn highly flexible posterior shapes while maintaining computational tractability. The resulting approximate posterior density follows from the change of variables formula:
+
+Formally, let $u \in \mathbb{R}^D$ be a random variable with base density $p_u(u) = \mathcal{N}(0, I)$. The flow defines an invertible transformation $f_\phi: \mathbb{R}^D \rightarrow \mathbb{R}^D$ parameterized by neural network weights $\phi$. For conditional density estimation, this transformation is conditioned on the observation: $\theta = f_\phi(u; x)$. The invertibility requirement ensures that we can both generate samples (forward pass) and evaluate densities (inverse pass). The key insight is that complex distributions can be learned by composing simple transformations, each of which maintains invertibility and efficient Jacobian computation. This allows the network to learn highly flexible posterior shapes while maintaining computational tractability a crucial feature when inferring parameters in complex biological models where posteriors may exhibit non-Gaussian features such as multimodality, heavy tails, or curved degeneracies. The resulting approximate posterior density follows from the change of variables formula:
 \begin{equation}
 	q_\phi(\theta | x) = p_u(f_\phi^{-1}(\theta; x)) \left| \det J_{f_\phi^{-1}}(\theta; x) \right|
 \end{equation}
-where $J_{f_\phi^{-1}}$ denotes the Jacobian of the inverse transformation. Intuitively, the determinant of the Jacobian corrects for the local change in volume caused by the transformation, ensuring the resulting density is properly normalized. Modern flow architectures (e.g., coupling flows, autoregressive flows) are designed such that this determinant is computationally efficient to calculate.
+where $J_{f_\phi^{-1}}$ denotes the Jacobian of the inverse transformation. Intuitively, the determinant of the Jacobian corrects for the local change in volume caused by the transformation, ensuring the resulting density is properly normalized. To understand this geometrically: when the transformation $f_{\phi}$
+stretches space in some region, the determinant accounts for this stretching to ensure probability mass is conserved \cite{papamakarios2021normalizing}. Modern flow architectures (e.g., coupling flows \cite{dinh2016density}, autoregressive flows \cite{papamakarios2017masked}) are designed such that this determinant is computationally efficient to calculate—often reducing to a sum or product of scalar terms rather than requiring explicit $D \times D$ matrix determinant computation. For readers familiar with traditional MCMC-based inference in biological models, normalizing flows offer a complementary approach: rather than exploring the posterior through iterative sampling, they learn an explicit parametric approximation that enables fast posterior evaluation and sampling once trained \cite{Cranmer2020FrontierSBI}. This amortization—training once on simulated data, then instantly obtaining posteriors for new observations—makes them particularly attractive for scenarios requiring repeated inference, such as model selection, experimental design, or real-time data analysis.
+
+
+
 
 \subsubsection{Training Procedure}
 
 NPE training requires a dataset of parameter-data pairs generated from the simulator. The training procedure follows three main steps:
 
 \begin{enumerate}
-	\item \textbf{Simulation:} Generate $N$ training samples by drawing parameters from the prior $\theta_i \sim p(\theta)$ and simulating corresponding data $x_i \sim p(x|\theta_i)$ using the stochastic model.
+	\item \textbf{Simulation:} Generate $N$ training samples by drawing parameters from the prior $\theta_i \sim p(\theta)$ and simulating corresponding data $x_i \sim p(x|\theta_i)$ using the stochastic model. 
 	
 	\item \textbf{Optimization:} Train the normalizing flow by maximizing the log-likelihood of parameters given their corresponding simulated data:
 	\begin{equation}
 		\mathcal{L}(\phi) = -\frac{1}{N} \sum_{i=1}^N \log q_\phi(\theta_i | x_i)
 	\end{equation}
+	This learns the transformation $f_\phi(u; x)$ that maps from a simple base distribution to the posterior distribution conditioned on the data.
 	
 	\item \textbf{Inference:} For observed data $x_o$, obtain the approximate posterior $q_\phi(\theta | x_o)$ by evaluating the trained network. Generate posterior samples by drawing $u \sim p_u(u)$ and applying the learned transformation $\theta = f_\phi(u; x_o)$.
 \end{enumerate}
-The training data requirements scale with problem complexity, but it is difficult in general to provide quantitative reccomendation on the number of required simulations to train the model. Typically at least $N = 10^4 - 10^6$ simulations suffice for moderate-dimensional parameter spaces ($d \leq 10$), though higher-dimensional problems may require larger datasets \citep{2025arXiv250812939D}. Crucially, this procedure is \textit{amortized}; the computationally expensive training phase is performed only once, after which posterior inference for any new observation is nearly instantaneous. This represents a significant advantage over methods like ABC, which require fresh simulations for each new dataset.
+The training data requirements scale with problem complexity, but it is difficult in general to provide quantitative recommendation on the number of required simulations to train the model. Typically at least $N = 10^4 - 10^6$ simulations suffice for moderate-dimensional parameter spaces ($d \leq 10$), though higher-dimensional problems may require larger datasets \citep{2025arXiv250812939D}. Crucially, this procedure is \textit{amortized}; the computationally expensive training phase is performed only once, after which posterior inference for any new observation is nearly instantaneous. This represents a significant advantage over methods like ABC, which require fresh simulations for each new dataset.
 
 \subsection{Sequential Neural Posterior Estimation}
 
@@ -331,7 +374,12 @@ All NPE analyses in this work use the \texttt{sbi} Python package \cite{2020JOSS
 We demonstrate NPE's effectiveness by applying it to the same synthetic barrier assay data used in Section \ref{sec:example_classical_results}. To ensure direct comparison with the classical methods, we first implement NPE using identical 1D column count summary statistics $N_i$, representing the number of agents in each vertical column of the lattice. In Section \ref{sec:results_2d} we will extend this to operate directly on the 2D spatial data.
 
 \subsubsection{Experimental Setup}
-Following the protocol of \SP, we generate synthetic observations from a stochastic random walk model with true parameters $P = 0.7$ and $U = 0.3$, corresponding to diffusivity $D = P/4 = 0.175$ in the continuum limit. The resulting data consists of a 201-dimensional vector of column counts. We perform inference directly on the stochastic model parameters $P$ and $U$, then transform to $D$ via the relationship $D = P/4$ for comparison with PDE-based approaches. We use  broad uniform priors covering the full parameter space: $P \sim \mathcal{U}(0.0, 1.0)$ and $U \sim \mathcal{U}(0.01, 1.0)$.
+Following the protocol of \SP, we generate synthetic observations from a stochastic random walk model with true parameters $P = 0.7$ and $U = 0.3$, corresponding to diffusivity $D = P/4 = 0.175$ in the continuum limit. The resulting data consists of a 201-dimensional vector of column counts. We perform inference directly on the stochastic model parameters $P$ and $U$, then transform to $D$ via the relationship $D = P/4$ for comparison with PDE-based approaches. We use  broad uniform priors covering the full parameter space: $P \sim \mathcal{U}(0.0, 1.0)$ and $U \sim \mathcal{U}(0.01, 1.0)$. These priors are determined by the physical constraints of the model: $U$ and $P$ are both probabilities and so must lie in $[0,1]$. The lower bound of 0.01 for $U$ excludes the degenerate case of zero initial agentsm while remaining sufficiently permissive. In the absence of strong prior information about parameter values, these uniform priors represent a minimally informative choice that allows the data to dominate the posterior inference. For NPE, the prior serves the dual role of defining the training distribution from which simulation parameters are drawn, and entering into the posterior distribution via Bayes' theorem \citep{Gelman1994,Gelman2017}
+
+
+
+
+
 
 
 \subsubsection{Parameter Inference Results}
@@ -391,7 +439,24 @@ Figure \ref{fig:npe_2d_posterior} shows the joint posterior distribution inferre
 This result demonstrates that the CNN can automatically learn features from the raw data that are as informative as the carefully chosen summary statistics. This highlights a critical trade-off: the increased computational cost of training the CNN (Table \ref{tab:data_comparison}) must be weighed against the major advantage of avoiding manual feature engineering. For more complex models where optimal summary statistics are unknown, this direct-from-pixels approach may be advantageous for accurate inference.
 
 \subsubsection{Predictive Performance}
-We assess the predictive performance of the 2D-trained model using the same posterior predictive checking procedure as in Section \ref{sec:posterior_checks}. As shown in Figure \ref{fig:npe_2d_predictive}, the model generates predictions that are highly consistent with the observed data. The calibrated model accurately captures the spatial characteristics of the agent-based simulation, producing prediction intervals that are well-calibrated and physically consistent with the discrete nature of the data. Similar to the 1D case, the framework successfully captures the heteroscedastic nature of the uncertainty, demonstrating its robustness when applied to high-dimensional spatial inputs.
+We assess the predictive performance of the 2D-trained model using the same posterior predictive checking procedure as in Section \ref{sec:posterior_checks}. As shown in Figure \ref{fig:npe_2d_predictive}, the model generates predictions that are highly consistent with the observed data. The calibrated model accurately captures the spatial characteristics of the agent-based simulation, producing prediction intervals that are well-calibrated and physically consistent with the discrete nature of the data. Importantly, the framework captures the input-dependent (heteroscedastic) uncertainty—something that standard maximum-likelihood estimators under an i.i.d.\ noise assumption (as used in much of the mathematical biology literature) cannot represent, often leading to miscalibrated, homoscedastic intervals even when the underlying variability is spatially varying. As in the 1D case, the method remains robust when applied to high-dimensional (2D) spatial inputs.
+
+
+
+
+
+
+
+\subsubsection{Predictive Performance}
+
+
+Importantly, the framework captures the input-dependent (heteroscedastic) uncertainty—something that standard maximum-likelihood estimators under an i.i.d.\ noise assumption (as used in much of the mathematical biology literature) cannot represent, often leading to miscalibrated, homoscedastic intervals even when the underlying variability is spatially varying. Similar to the 1D case, this demonstrates robustness when applied to high-dimensional spatial inputs.
+
+
+
+
+
+
 
 % --- Figures and Tables for this section ---
 
@@ -444,10 +509,6 @@ The neural network architecture introduces another layer of complexity, as desig
 
 
 \subsection{Spatial information}
-
-\textcolor{magenta}{TK: I think for these simple RW systems the CNN is probably overkill, but there are likely systems where spatial info becomes more useful. Need to query Jen/Mat for domain knowledge bio inputs here. The below bio examples are what I have been able to glean from scanning through papers, but maybe there are more appropriate examples. }
-
-
 Our results highlight a critical trade-off between methodological complexity and computational cost. For the simple random walk model, well-chosen summary statistics provide comparable precision to the full spatial analysis at a fraction of the cost, making them a highly effective and efficient choice. However, this should not obscure the broader potential of spatial inference approaches; the cost-benefit calculation shifts decisively toward spatial approaches for more complex biological systems where crucial information is encoded in patterns that resist simple summarization, or where informative statistics are not known a priori.
 
 
