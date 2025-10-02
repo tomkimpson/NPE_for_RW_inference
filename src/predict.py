@@ -346,32 +346,34 @@ def plot_prediction_intervals(
     --------
     matplotlib Figure
     """
-    # Set up professional styling with legend text preservation
+    # Set up enhanced professional styling for publication quality
     plt.rcParams.update({
-        "font.size": 12,
-        "axes.linewidth": 1.2,
-        "xtick.major.width": 1.2,
-        "ytick.major.width": 1.2,
-        "xtick.minor.width": 0.8,
-        "ytick.minor.width": 0.8,
+        "font.size": 14,  # Increased base font size
+        "axes.linewidth": 1.5,  # Thicker axes for better visibility
+        "xtick.major.width": 1.5,  # Thicker major ticks
+        "ytick.major.width": 1.5,
+        "xtick.minor.width": 1.0,  # Thicker minor ticks
+        "ytick.minor.width": 1.0,
         "figure.dpi": 100,
         "savefig.dpi": 300,
-        "axes.labelsize": 14,
-        "axes.titlesize": 16,
-        "legend.fontsize": 12,
-        "xtick.labelsize": 12,
-        "ytick.labelsize": 12,
-        "legend.numpoints": 1,  # Prevent legend truncation
-        "legend.handlelength": 2.5,  # Ensure adequate space for legend handles
-        "legend.handletextpad": 0.8,  # Space between handle and text
-        "legend.columnspacing": 1.0  # Space between columns in legend
+        "axes.labelsize": 18,  # Larger axis labels for publication
+        "axes.titlesize": 20,  # Larger title
+        "legend.fontsize": 14,  # Larger legend text
+        "xtick.labelsize": 14,  # Larger tick labels
+        "ytick.labelsize": 14,
+        "legend.numpoints": 1,
+        "legend.handlelength": 2.5,
+        "legend.handletextpad": 0.8,
+        "legend.columnspacing": 1.0,
+        "axes.labelweight": "bold",  # Bold axis labels
+        "axes.titleweight": "bold"   # Bold title
     })
 
     intervals = prediction_results['intervals']
     stats = prediction_results['column_stats']
     smooth_sigma = prediction_results['metadata'].get('smooth_sigma', None)
 
-    # Professional color scheme
+    # Enhanced professional color scheme with better contrast
     primary_blue = "#2E86C1"
     light_blue = "#AED6F1"
     medium_blue = "#5DADE2"
@@ -379,37 +381,39 @@ def plot_prediction_intervals(
     light_red = "#F1948A"
     orange = "#E67E22"
 
-    # Create figure with professional sizing
-    fig, ax = plt.subplots(1, 1, figsize=(10, 6))
+    # Create figure with optimized dimensions for publication (wider for better readability)
+    fig, ax = plt.subplots(1, 1, figsize=(12, 8))
+
 
     # Center column indices around 0 (same logic as plot_simulation_comparison)
     x_min = -(Lx // 2)
     x_max = Lx // 2 if Lx % 2 == 1 else (Lx // 2) - 1
     columns = np.arange(x_min, x_max + 1)
 
-    # Main prediction plot with professional uncertainty bands
+    # Enhanced prediction plot with professional uncertainty bands and better contrast
     ax.fill_between(columns, intervals['p2.5'], intervals['p97.5'],
-                    alpha=0.25, color=light_blue, label='95\\% Prediction Interval',
+                    alpha=0.3, color=light_blue, label='95\\% Prediction Interval',
                     linewidth=0, edgecolor=medium_blue, linestyle='-')
     ax.fill_between(columns, intervals['p25'], intervals['p75'],
-                    alpha=0.45, color=medium_blue, label='50\\% Prediction Interval',
+                    alpha=0.5, color=medium_blue, label='50\\% Prediction Interval',
                     linewidth=0, edgecolor=primary_blue, linestyle='-')
 
-    # Prediction lines with professional styling
-    ax.plot(columns, intervals['p50'], color=dark_red, linewidth=2.5,
-            label='Median Prediction', alpha=0.9)
-    ax.plot(columns, stats['mean'], color=light_red, linewidth=2,
-            linestyle='--', alpha=0.8, label='Mean Prediction')
+    # Enhanced prediction lines with better visibility for publication
+    ax.plot(columns, intervals['p50'], color=dark_red, linewidth=3.0,
+            label='Median Prediction', alpha=0.95, solid_capstyle='round')
+    ax.plot(columns, stats['mean'], color=light_red, linewidth=2.5,
+            linestyle='--', alpha=0.9, label='Mean Prediction',
+            solid_capstyle='round', dash_capstyle='round')
 
-    # Observed data with professional markers
+    # Enhanced observed data markers with better visibility
     if observed_data is not None:
-        ax.scatter(columns, observed_data, c=orange, s=60, marker='o',
-                   label='Observed Data', zorder=10, alpha=0.9,
-                   edgecolors='white', linewidth=1.5)
+        ax.scatter(columns, observed_data, c=orange, s=80, marker='o',
+                   label='Observed Data', zorder=10, alpha=0.95,
+                   edgecolors='white', linewidth=2.0)
 
-    # Professional axis formatting
-    ax.set_xlabel('Column Index (centered)', fontsize=14, fontweight='bold')
-    ax.set_ylabel('Agent Count', fontsize=14, fontweight='bold')
+    # Enhanced professional axis formatting with larger, bolder labels
+    ax.set_xlabel('Column Index (centered)', fontsize=18, fontweight='bold', labelpad=12)
+    ax.set_ylabel('Agent Count', fontsize=18, fontweight='bold', labelpad=12)
 
     # Enhanced title with professional formatting
     title = f'Posterior Predictive Distribution{title_suffix}'
@@ -417,54 +421,56 @@ def plot_prediction_intervals(
         title += fr' (smoothed, $\sigma$={smooth_sigma})'
 
     #Remove title for now
-    #ax.set_title(title, fontsize=16, fontweight='bold', pad=15)
+    #ax.set_title(title, fontsize=20, fontweight='bold', pad=20)
 
-    # Professional tick styling
+    # Enhanced professional tick styling with better visibility
     ax.tick_params(
         which="major",
-        labelsize=12,
-        width=1.2,
-        length=6,
+        labelsize=14,  # Larger tick labels
+        width=1.5,     # Thicker tick lines
+        length=8,      # Longer ticks for better visibility
         direction="in",
         top=True,
-        right=True
+        right=True,
+        pad=8          # More padding for labels
     )
     ax.tick_params(
         which="minor",
-        width=0.8,
-        length=3,
+        width=1.0,     # Thicker minor ticks
+        length=4,      # Longer minor ticks
         direction="in",
         top=True,
         right=True
     )
 
-    # Add minor ticks
+    # Add minor ticks with enhanced visibility
     ax.minorticks_on()
 
-    # Professional grid
-    ax.grid(True, alpha=0.3, linewidth=0.5, linestyle=":")
+    # Enhanced professional grid with subtle but visible styling
+    ax.grid(True, alpha=0.4, linewidth=0.6, linestyle=":", color='gray')
+    ax.set_axisbelow(True)  # Ensure grid is behind plot elements
 
-    # Enhanced legend with explicit configuration to prevent text truncation
+    # Enhanced legend with better positioning and styling for publication
     legend = ax.legend(
-        loc='best',
+        loc='upper right',  # More predictable positioning than 'best'
         frameon=True,
         fancybox=True,
         shadow=True,
-        framealpha=0.9,
-        edgecolor='gray',
+        framealpha=0.95,    # Slightly more opaque for better contrast
+        edgecolor='darkgray',
         facecolor='white',
-        handlelength=2.5,  # Ensure enough space for legend markers
-        handletextpad=0.8,  # Space between legend marker and text
-        columnspacing=1.0,  # Space between legend columns
-        numpoints=1,  # Number of points in legend for Line2D
-        markerscale=1.0,  # Relative size of legend markers
-        markerfirst=True,  # Marker comes before text
-        fontsize=12  # Explicit font size to override style truncation
+        handlelength=3.0,   # Longer legend markers for clarity
+        handletextpad=1.0,  # More space between legend marker and text
+        columnspacing=1.2,  # More space between legend columns
+        numpoints=1,
+        markerscale=1.2,    # Slightly larger legend markers
+        markerfirst=True,
+        fontsize=14,        # Larger legend font size
     )
-    legend.get_frame().set_linewidth(0.8)
+    legend.get_frame().set_linewidth(1.0)
 
-    # Professional layout
-    plt.tight_layout()
+    # Enhanced professional layout with better spacing
+    plt.tight_layout(pad=2.0)  # More padding for cleaner appearance
 
     # Save high-quality figures if path provided
     if savefig_path is not None:
@@ -488,93 +494,6 @@ def plot_prediction_intervals(
     return fig
 
 
-def plot_prediction_violins(
-    prediction_results: Dict[str, Any],
-    observed_data: Optional[np.ndarray] = None,
-    Lx: int = 21,
-    violin_columns: Optional[List[int]] = None,
-    title_suffix: str = ""
-) -> plt.Figure:
-    """
-    Create violin plots showing full prediction distributions for selected columns.
-    
-    Parameters:
-    -----------
-    prediction_results : Dict
-        Results from compute_prediction_intervals
-    observed_data : np.ndarray, optional
-        Observed column counts for comparison
-    Lx : int
-        Number of columns (for column selection)
-    violin_columns : List[int], optional
-        Column indices to plot (default: center 7 columns)
-    title_suffix : str
-        Additional text for plot title
-        
-    Returns:
-    --------
-    matplotlib Figure
-    """
-    predictions = prediction_results['predictions']
-    n_pred, n_columns = predictions.shape
-    
-    # Default to center columns if not specified
-    if violin_columns is None:
-        center = n_columns // 2
-        violin_columns = list(range(max(0, center - 3), min(n_columns, center + 4)))
-    
-    # Validate column indices
-    violin_columns = [c for c in violin_columns if 0 <= c < n_columns]
-    if not violin_columns:
-        raise ValueError("No valid column indices provided")
-    
-    # Prepare data for violin plot
-    violin_data = [predictions[:, col] for col in violin_columns]
-    
-    # Create figure
-    fig, ax = plt.subplots(1, 1, figsize=(max(8, len(violin_columns) * 1.2), 6))
-    
-    # Create violin plot
-    parts = ax.violinplot(violin_data, positions=range(1, len(violin_columns) + 1), 
-                         widths=0.8, showmeans=False, showmedians=True, showextrema=True)
-    
-    # Customize violin appearance
-    for pc in parts['bodies']:
-        pc.set_facecolor('lightblue')
-        pc.set_alpha(0.7)
-    
-    # Add quartile lines
-    quartiles = []
-    for col in violin_columns:
-        col_data = predictions[:, col]
-        q1, q3 = np.percentile(col_data, [25, 75])
-        quartiles.append([q1, q3])
-    
-    for i, (q1, q3) in enumerate(quartiles):
-        ax.plot([i + 1, i + 1], [q1, q3], 'k-', linewidth=2, alpha=0.8)
-    
-    # Add observed data if available
-    if observed_data is not None:
-        observed_subset = [observed_data[col] for col in violin_columns]
-        ax.scatter(range(1, len(violin_columns) + 1), observed_subset, 
-                  c='red', s=50, marker='o', label='Observed Data', zorder=5)
-    
-    # Convert column indices to centered labels
-    x_min = -(Lx // 2)
-    centered_labels = [str(x_min + col) for col in violin_columns]
-    
-    # Formatting
-    ax.set_xticks(range(1, len(violin_columns) + 1))
-    ax.set_xticklabels(centered_labels)
-    ax.set_xlabel('Column Index (centered)')
-    ax.set_ylabel('Agent Count')
-    ax.set_title(f'Prediction Distributions by Column{title_suffix}')
-    ax.grid(True, alpha=0.3)
-    
-    if observed_data is not None:
-        ax.legend()
-    
-    return fig
 
 
 def main():
