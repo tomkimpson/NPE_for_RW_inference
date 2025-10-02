@@ -1,10 +1,17 @@
 \documentclass{article}
 
+\usepackage{hyperref}                 % Hyperlinks
+\hypersetup{
+	hidelinks,                        % Hide link boxes
+	colorlinks = true,
+	citecolor = cyan,
+	urlcolor = black,
+	linkcolor = magenta
+}
 \usepackage{arxiv}
 \usepackage{amsmath}
 \usepackage[utf8]{inputenc} % allow utf-8 input
 \usepackage[T1]{fontenc}    % use 8-bit T1 fonts
-\usepackage{hyperref}       % hyperlinks
 \usepackage{url}            % simple URL typesetting
 \usepackage{booktabs}       % professional-quality tables
 \usepackage{amsfonts}       % blackboard math symbols
@@ -17,16 +24,7 @@
 \usepackage{doi}
 \usepackage{xcolor}
 \usepackage{enumerate}% http://ctan.org/pkg/enumerate
-\usepackage{booktabs}
-% Hyperlinks (load near end to avoid conflicts)
-\usepackage{hyperref}                 % Hyperlinks
-\hypersetup{
-	hidelinks,                        % Hide link boxes
-	colorlinks = true,
-	citecolor = cyan,
-	urlcolor = black,
-	linkcolor = magenta
-}
+
 
 \usepackage{subcaption}
 
@@ -187,7 +185,7 @@ The primary limitation of this approach is that the resulting inference is condi
 \subsubsection{Inference with Surrogate Likelihoods}
 A tractable likelihood function from a surrogate model unlocks standard, efficient inference techniques that would be impossible with the original stochastic simulator. These techniques generally fall into two categories: direct optimization or posterior sampling.
 
-The first category, direct optimization, seeks to find the single parameter set that maximizes the likelihood function, yielding the Maximum Likelihood Estimate (MLE). While computationally fast, the MLE provides only a point estimate and does not inherently quantify parameter uncertainty. The second category, posterior sampling, uses methods like Markov chain Monte Carlo (MCMC) to approximate the full posterior distribution, offering a complete characterisation of uncertainty. However, MCMC typically requires significant computational effort, careful hyperparameter tuning, and rigorous convergence assessment. A third approach, the Laplace approximation, offers a compromise between the speed of optimization and the detailed uncertainty characterization of MCMC. This method approximates the posterior distribution as a multivariate normal distribution centered at the posterior mode (which equals the MLE, $\hat{\theta}$ uner uniform priors). The covariance is given by the inverse of the observed Fisher Information matrix:
+The first category, direct optimization, seeks to find the single parameter set that maximizes the likelihood function, yielding the Maximum Likelihood Estimate (MLE). While computationally fast, the MLE provides only a point estimate and does not inherently quantify parameter uncertainty. The second category, posterior sampling, uses methods like Markov chain Monte Carlo (MCMC) to approximate the full posterior distribution, offering a complete characterisation of uncertainty. However, MCMC typically requires significant computational effort, careful hyperparameter tuning, and rigorous convergence assessment. A third approach, the Laplace approximation, offers a compromise between the speed of optimization and the detailed uncertainty characterization of MCMC. This method approximates the posterior distribution as a multivariate normal distribution centered at the posterior mode (which equals the MLE, $\hat{\theta}$ under uniform priors). The covariance is given by the inverse of the observed Fisher Information matrix:
 \begin{equation}
 	p(\theta \mid y^{\text{obs}}) \approx \text{MVN}(\hat{\theta}, \mathcal{I}^{-1}(\hat{\theta})),
 \end{equation}
@@ -229,7 +227,7 @@ S\&P2025's extensive comparisons reveal that noise model misspecification can si
 	% (c) Column counts N_i at t=0 (blue dots) with PDE solution Hu(x,t) (red curve)
 	% (d) Column counts N_i at t=100 (blue dots) with PDE solution Hu(x,t) (red curve)
 	\includegraphics[width=\textwidth]{images/pde_comparison_figure2}
-	\caption{Schematic of the lattice-based random walk model. (a) Initial placement of agents within region $|x| \leq 25$ on a 2D lattice with $H=50$, $\Delta=\tau=1$. (b) Agent distribution after 100 time steps showing symmetric outward spreading. (c)-(d) Reduction of 2D data to 1D column counts $N_i(t)$ at $t=0$ and $t=100$ respectively. Blue dots show stochastic count data; red curves show the continuum PDE solution $Hu(x,t)$ where $u(x,t)$ solves the diffusion equation with $D=P/4=0.25$.}
+	\caption{Schematic of the lattice-based random walk model. (a) Initial placement of agents within region $|x| \leq 25$ on a 2D lattice with $H=50$, $\Delta=\tau=1$. (b) Agent distribution after 100 time steps showing symmetric outward spreading. (c)-(d) Reduction of 2D data to 1D column counts $N_i(t)$ at $t=0$ and $t=100$ respectively. Blue dots show stochastic count data; red curves show the continuum PDE solution $Hu(x,t)$ where $u(x,t)$ solves the diffusion equation with $D=P/4$.}
 	\label{fig:model_schematic}
 \end{figure}
 
@@ -411,7 +409,6 @@ The resulting NPE-based predictions are well-calibrated, with 94.8\% of true obs
 \section{Learning from Raw Spatial Data}\label{sec:results_2d}
 
 \subsection{Motivation for Full Spatial Data}
-
 While column counts provide a natural summary of the spreading process, they necessarily discard information about the vertical distribution of agents. In principle, the spatial correlation structure within the 2D configuration contains additional information about the underlying parameters. For instance, clustering patterns, local density fluctuations, and spatial correlations may help distinguish between different combinations of $P$ and $U$ that produce similar column counts, cf. parameter identifiability \footnote{Although parameter identifiability is not a significant concern for the simple model we consider, additional spatial features are of interest for disentangling parameters in more complex models that incorporate processes like cell-cell adhesion or proliferation.}. Traditional inference methods require hand-crafted summary statistics, making it challenging to leverage such high-dimensional spatial information. NPE, however, can learn directly from raw data through automatic feature extraction. While the simple random walk models considered here are likely well-captured by 1D summary statistics, this approach demonstrates the broader potential of NPE for more complex biological systems where spatial structure is critical. For example, models incorporating agent-agent interactions, complex boundary conditions, spatially heterogeneous environments, or multi-species dynamics would generate spatial patterns that cannot be adequately summarized by simple column counts. In such cases, the ability to learn directly from full spatial data becomes essential for accurate parameter inference. Our framework provides a foundation that can be readily extended to these more sophisticated modeling scenarios without requiring manual specification of appropriate summary statistics.
 
 \subsection{Architectural Adaptations for 2D Data}
