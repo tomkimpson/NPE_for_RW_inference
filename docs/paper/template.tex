@@ -1,10 +1,17 @@
 \documentclass{article}
 
+\usepackage{hyperref}                 % Hyperlinks
+\hypersetup{
+	hidelinks,                        % Hide link boxes
+	colorlinks = true,
+	citecolor = cyan,
+	urlcolor = black,
+	linkcolor = magenta
+}
 \usepackage{arxiv}
 \usepackage{amsmath}
 \usepackage[utf8]{inputenc} % allow utf-8 input
 \usepackage[T1]{fontenc}    % use 8-bit T1 fonts
-\usepackage{hyperref}       % hyperlinks
 \usepackage{url}            % simple URL typesetting
 \usepackage{booktabs}       % professional-quality tables
 \usepackage{amsfonts}       % blackboard math symbols
@@ -17,16 +24,7 @@
 \usepackage{doi}
 \usepackage{xcolor}
 \usepackage{enumerate}% http://ctan.org/pkg/enumerate
-\usepackage{booktabs}
-% Hyperlinks (load near end to avoid conflicts)
-\usepackage{hyperref}                 % Hyperlinks
-\hypersetup{
-	hidelinks,                        % Hide link boxes
-	colorlinks = true,
-	citecolor = cyan,
-	urlcolor = black,
-	linkcolor = magenta
-}
+
 
 \usepackage{subcaption}
 
@@ -48,21 +46,20 @@
 \renewcommand\Authfont{\bfseries}
 \setlength{\affilsep}{0em}
 % box is needed for correct spacing with authblk
-\newbox{\orcid}\sbox{\orcid}{\includegraphics[scale=0.06]{orcid.pdf}} 
+\newbox{\orcid}\sbox{\orcid}{\includegraphics[scale=0.06]{orcid.pdf}}
+
 \author[1]{%
-	\href{https://orcid.org/0000-0000-0000-0000}{\usebox{\orcid}\hspace{1mm}Kimpson\thanks{\texttt{kimpson email}}}%
+	\href{https://orcid.org/0000-0002-6542-6032}{\usebox{\orcid}\hspace{1mm}Tom Kimpson\thanks{Corresponding author: \texttt{tom.kimpson@unimelb.edu.au}}}%
 }
 \author[1]{%
-	\href{https://orcid.org/0000-0000-0000-0000}{\usebox{\orcid}\hspace{1mm}Flegg}}
-	
+	\href{https://orcid.org/0000-0002-8809-726X}{\usebox{\orcid}\hspace{1mm}Jennifer Flegg}%
+}
 \author[2]{%
-	\href{https://orcid.org/0000-0000-0000-0000}{\usebox{\orcid}\hspace{1mm}Simpson}}
-	
-\author[2]{%
-	\href{https://orcid.org/0000-0000-0000-0000}{\usebox{\orcid}\hspace{1mm}Others...}}	
+	\href{https://orcid.org/0000-0001-6254-313X}{\usebox{\orcid}\hspace{1mm}Matthew J.\ Simpson}%
+}
 
-\affil[1]{Unimelb, etc}
-\affil[2]{QUT, etc}
+\affil[1]{School of Mathematics and Statistics, The University of Melbourne, Parkville, VIC 3010, Australia}
+\affil[2]{School of Mathematical Sciences, Queensland University of Technology, Brisbane, QLD 4001, Australia}
 
 
 
@@ -188,7 +185,7 @@ The primary limitation of this approach is that the resulting inference is condi
 \subsubsection{Inference with Surrogate Likelihoods}
 A tractable likelihood function from a surrogate model unlocks standard, efficient inference techniques that would be impossible with the original stochastic simulator. These techniques generally fall into two categories: direct optimization or posterior sampling.
 
-The first category, direct optimization, seeks to find the single parameter set that maximizes the likelihood function, yielding the Maximum Likelihood Estimate (MLE). While computationally fast, the MLE provides only a point estimate and does not inherently quantify parameter uncertainty. The second category, posterior sampling, uses methods like Markov chain Monte Carlo (MCMC) to approximate the full posterior distribution, offering a complete characterisation of uncertainty. However, MCMC typically requires significant computational effort, careful hyperparameter tuning, and rigorous convergence assessment. A third approach, the Laplace approximation, offers a compromise between the speed of optimization and the detailed uncertainty characterization of MCMC. This method approximates the posterior distribution as a multivariate normal distribution centered at the posterior mode (which equals the MLE, $\hat{\theta}$ uner uniform priors). The covariance is given by the inverse of the observed Fisher Information matrix:
+The first category, direct optimization, seeks to find the single parameter set that maximizes the likelihood function, yielding the Maximum Likelihood Estimate (MLE). While computationally fast, the MLE provides only a point estimate and does not inherently quantify parameter uncertainty. The second category, posterior sampling, uses methods like Markov chain Monte Carlo (MCMC) to approximate the full posterior distribution, offering a complete characterisation of uncertainty. However, MCMC typically requires significant computational effort, careful hyperparameter tuning, and rigorous convergence assessment. A third approach, the Laplace approximation, offers a compromise between the speed of optimization and the detailed uncertainty characterization of MCMC. This method approximates the posterior distribution as a multivariate normal distribution centered at the posterior mode (which equals the MLE, $\hat{\theta}$ under uniform priors). The covariance is given by the inverse of the observed Fisher Information matrix:
 \begin{equation}
 	p(\theta \mid y^{\text{obs}}) \approx \text{MVN}(\hat{\theta}, \mathcal{I}^{-1}(\hat{\theta})),
 \end{equation}
@@ -230,7 +227,7 @@ S\&P2025's extensive comparisons reveal that noise model misspecification can si
 	% (c) Column counts N_i at t=0 (blue dots) with PDE solution Hu(x,t) (red curve)
 	% (d) Column counts N_i at t=100 (blue dots) with PDE solution Hu(x,t) (red curve)
 	\includegraphics[width=\textwidth]{images/pde_comparison_figure2}
-	\caption{Schematic of the lattice-based random walk model. (a) Initial placement of agents within region $|x| \leq 25$ on a 2D lattice with $H=50$, $\Delta=\tau=1$. (b) Agent distribution after 100 time steps showing symmetric outward spreading. (c)-(d) Reduction of 2D data to 1D column counts $N_i(t)$ at $t=0$ and $t=100$ respectively. Blue dots show stochastic count data; red curves show the continuum PDE solution $Hu(x,t)$ where $u(x,t)$ solves the diffusion equation with $D=P/4=0.25$.}
+	\caption{Schematic of the lattice-based random walk model. (a) Initial placement of agents within region $|x| \leq 25$ on a 2D lattice with $H=50$, $\Delta=\tau=1$. (b) Agent distribution after 100 time steps showing symmetric outward spreading. (c)-(d) Reduction of 2D data to 1D column counts $N_i(t)$ at $t=0$ and $t=100$ respectively. Blue dots show stochastic count data; red curves show the continuum PDE solution $Hu(x,t)$ where $u(x,t)$ solves the diffusion equation with $D=P/4$.}
 	\label{fig:model_schematic}
 \end{figure}
 
@@ -365,7 +362,7 @@ SNPE is most beneficial when the prior is substantially broader than the posteri
 
 \subsection{Implementation Details}
 
-All NPE analyses in this work use the \texttt{sbi} Python package \cite{2020JOSS....5.2505T}, which provides a well-documented implementation of state-of-the-art simulation-based inference algorithms. We employ neural spline flows \cite{durkan2019neural} as our density estimator architecture, which offer excellent expressivity while maintaining computational efficiency. Additional implementation details are presented in Appendix \ref{ap:npe_implementaion}
+All NPE analyses in this work use the \texttt{sbi} Python package \cite{2020JOSS....5.2505T}, which provides a well-documented implementation of state-of-the-art simulation-based inference algorithms. We employ neural spline flows \cite{durkan2019neural} as our density estimator architecture, which offer excellent expressivity while maintaining computational efficiency. Additional implementation details can be found in the project Github repository \footnote{\href{github.com/tomkimpson/NPE_for_RW_inference}{https://github.com/tomkimpson/NPE\_for\_RW\_inference}}are presented in 
 
 
 
@@ -412,14 +409,13 @@ The resulting NPE-based predictions are well-calibrated, with 94.8\% of true obs
 \section{Learning from Raw Spatial Data}\label{sec:results_2d}
 
 \subsection{Motivation for Full Spatial Data}
-
-While column counts provide a natural summary of the spreading process, they necessarily discard information about the vertical distribution of agents. In principle, the spatial correlation structure within the 2D configuration contains additional information about the underlying parameters. For instance, clustering patterns, local density fluctuations, and spatial correlations may help distinguish between different combinations of $P$ and $U$ that produce similar column counts, cf. parameter identifiability, see Appendix \ref{ap:identifiability} \footnote{Although parameter identifiability is not a significant concern for the simple model we consider, additional spatial features are of interest for disentangling parameters in more complex models that incorporate processes like cell-cell adhesion or proliferation.}. Traditional inference methods require hand-crafted summary statistics, making it challenging to leverage such high-dimensional spatial information. NPE, however, can learn directly from raw data through automatic feature extraction. While the simple random walk models considered here are likely well-captured by 1D summary statistics, this approach demonstrates the broader potential of NPE for more complex biological systems where spatial structure is critical. For example, models incorporating agent-agent interactions, complex boundary conditions, spatially heterogeneous environments, or multi-species dynamics would generate spatial patterns that cannot be adequately summarized by simple column counts. In such cases, the ability to learn directly from full spatial data becomes essential for accurate parameter inference. Our framework provides a foundation that can be readily extended to these more sophisticated modeling scenarios without requiring manual specification of appropriate summary statistics.
+While column counts provide a natural summary of the spreading process, they necessarily discard information about the vertical distribution of agents. In principle, the spatial correlation structure within the 2D configuration contains additional information about the underlying parameters. For instance, clustering patterns, local density fluctuations, and spatial correlations may help distinguish between different combinations of $P$ and $U$ that produce similar column counts, cf. parameter identifiability \footnote{Although parameter identifiability is not a significant concern for the simple model we consider, additional spatial features are of interest for disentangling parameters in more complex models that incorporate processes like cell-cell adhesion or proliferation.}. Traditional inference methods require hand-crafted summary statistics, making it challenging to leverage such high-dimensional spatial information. NPE, however, can learn directly from raw data through automatic feature extraction. While the simple random walk models considered here are likely well-captured by 1D summary statistics, this approach demonstrates the broader potential of NPE for more complex biological systems where spatial structure is critical. For example, models incorporating agent-agent interactions, complex boundary conditions, spatially heterogeneous environments, or multi-species dynamics would generate spatial patterns that cannot be adequately summarized by simple column counts. In such cases, the ability to learn directly from full spatial data becomes essential for accurate parameter inference. Our framework provides a foundation that can be readily extended to these more sophisticated modeling scenarios without requiring manual specification of appropriate summary statistics.
 
 \subsection{Architectural Adaptations for 2D Data}
 
 
 
-Processing raw 2D spatial data requires a different architecture than the one used for 1D summary statistics. We treat each lattice configuration from the simulator as a binary image, where pixel values indicate the presence or absence of an agent. To learn informative features directly from this high-dimensional input, we replace the simple feed-forward network with a Convolutional Neural Network (CNN) \citep{lecun1998,krizhevsky2012,goodfellow2016}. The CNN acts as a powerful, learnable feature extractor that is embedded within the NPE pipeline. It uses a series of convolutional and pooling layers to progressively downsample the spatial data into a low-dimensional embedding. This process is designed to capture salient spatial features, such as clustering patterns and local agent densities, while preserving translational invariance. The learned embedding is then passed to the remainder of the network to estimate the posterior distribution. This end-to-end training ensures that the features extracted by the CNN are maximally informative for the specific task of parameter inference. A detailed specification of the CNN architecture, training parameters, and implementation details used in this work can be found in Appendix \ref{ap:cnn}.
+Processing raw 2D spatial data requires a different architecture than the one used for 1D summary statistics. We treat each lattice configuration from the simulator as a binary image, where pixel values indicate the presence or absence of an agent. To learn informative features directly from this high-dimensional input, we replace the simple feed-forward network with a Convolutional Neural Network (CNN) \citep{lecun1998,krizhevsky2012,goodfellow2016}. The CNN acts as a powerful, learnable feature extractor that is embedded within the NPE pipeline. It uses a series of convolutional and pooling layers to progressively downsample the spatial data into a low-dimensional embedding. This process is designed to capture salient spatial features, such as clustering patterns and local agent densities, while preserving translational invariance. The learned embedding is then passed to the remainder of the network to estimate the posterior distribution. This end-to-end training ensures that the features extracted by the CNN are maximally informative for the specific task of parameter inference. A detailed specification of the CNN architecture, training parameters, and implementation details used in this work can be found in Additional implementation details can be found in the project github repository.
 
 
 
@@ -430,7 +426,7 @@ Processing raw 2D spatial data requires a different architecture than the one us
 Having established a baseline with 1D summary statistics, we now apply our NPE pipeline with the embedded CNN to perform inference directly on the raw 2D spatial data. This approach leverages the full spatial configuration of agents, aiming to extract additional information that may be lost when compressing the data into column counts.
 
 \subsubsection{Experimental Setup}
-The experimental setup remains identical to the 1D case, using the same synthetic observation generated with true parameters $P = 0.7$ ($D=0.7/4$) and $U = 0.3$. However, instead of using the 201-dimensional vector of column counts as input, the network now receives the full $50 \times 200$ binary image representing the agent locations on the lattice. We use the same broad uniform priors for $P$ and $U$ as before. Training details and architectural specifications for the CNN are provided in Appendix \ref{ap:cnn}.
+The experimental setup remains identical to the 1D case, using the same synthetic observation generated with true parameters $P = 0.7$ ($D=0.7/4$) and $U = 0.3$. However, instead of using the 201-dimensional vector of column counts as input, the network now receives the full $50 \times 200$ binary image representing the agent locations on the lattice. We use the same broad uniform priors for $P$ and $U$ as before. 
 
 \subsubsection{Parameter Inference Results}
 Figure \ref{fig:npe_2d_posterior} shows the joint posterior distribution inferred from the 2D spatial data, overlaid with the result from the 1D column count analysis for direct comparison. The CNN-based approach recovers a posterior with means $D = 0.169^{+0.026}_{-0.023}$
@@ -439,22 +435,7 @@ Figure \ref{fig:npe_2d_posterior} shows the joint posterior distribution inferre
 This result demonstrates that the CNN can automatically learn features from the raw data that are as informative as the carefully chosen summary statistics. This highlights a critical trade-off: the increased computational cost of training the CNN (Table \ref{tab:data_comparison}) must be weighed against the major advantage of avoiding manual feature engineering. For more complex models where optimal summary statistics are unknown, this direct-from-pixels approach may be advantageous for accurate inference.
 
 \subsubsection{Predictive Performance}
-We assess the predictive performance of the 2D-trained model using the same posterior predictive checking procedure as in Section \ref{sec:posterior_checks}. As shown in Figure \ref{fig:npe_2d_predictive}, the model generates predictions that are highly consistent with the observed data. The calibrated model accurately captures the spatial characteristics of the agent-based simulation, producing prediction intervals that are well-calibrated and physically consistent with the discrete nature of the data. Importantly, the framework captures the input-dependent (heteroscedastic) uncertainty—something that standard maximum-likelihood estimators under an i.i.d.\ noise assumption (as used in much of the mathematical biology literature) cannot represent, often leading to miscalibrated, homoscedastic intervals even when the underlying variability is spatially varying. As in the 1D case, the method remains robust when applied to high-dimensional (2D) spatial inputs.
-
-
-
-
-
-
-
-\subsubsection{Predictive Performance}
-
-
-Importantly, the framework captures the input-dependent (heteroscedastic) uncertainty—something that standard maximum-likelihood estimators under an i.i.d.\ noise assumption (as used in much of the mathematical biology literature) cannot represent, often leading to miscalibrated, homoscedastic intervals even when the underlying variability is spatially varying. Similar to the 1D case, this demonstrates robustness when applied to high-dimensional spatial inputs.
-
-
-
-
+We assess the predictive performance of the 2D-trained model using the same posterior predictive checking procedure as in Section \ref{sec:posterior_checks}. As shown in Figures \ref{fig:npe_2d_predictive,fig:npe_2d_predictive_cnn}, the model generates predictions that are highly consistent with the observed data. The calibrated model accurately captures the spatial characteristics of the agent-based simulation, producing prediction intervals that are well-calibrated and physically consistent with the discrete nature of the data. Importantly, the framework captures the input-dependent (heteroscedastic) uncertainty—something that standard maximum-likelihood estimators under an i.i.d.\ noise assumption (as used in much of the mathematical biology literature) cannot represent, often leading to miscalibrated, homoscedastic intervals even when the underlying variability is spatially varying. As in the 1D case, the method remains robust when applied to high-dimensional (2D) spatial inputs.
 
 
 
@@ -473,6 +454,15 @@ Importantly, the framework captures the input-dependent (heteroscedastic) uncert
 	\caption{Posterior predictive check for the 2D spatial data model. The format is identical to Figure \ref{fig:npe_1d_predictive}. The predictions are well-calibrated and consistent with the observed data.}
 	\label{fig:npe_2d_predictive}
 \end{figure}
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.8\textwidth]{images/example_predictive_plot_for_paper_2D_CNN}
+\caption{Posterior predictive check for the 2D spatial data model, showing the full observed data points (orange) overlaid on the predicted occupany probability from the NPE model (blue heatmap). The grey contours delineate iso-probability curves at probability levels of 0.05, 0.10, and 0.20 (dotted, dashed, solid, respectively)}
+	\label{fig:npe_2d_predictive_cnn}
+\end{figure}
+
+
 
 
 \begin{table}[h]
@@ -518,7 +508,7 @@ In many realistic scenarios, crucial mechanistic information is encoded in intri
 
 A critical aspect of applying deep learning models like CNNs in a scientific context is interpretability. While these networks are often treated as "black boxes", it is both possible and important to investigate the features they learn to solve a given inference problem. In principle, techniques such as activation mapping \cite{2023arXiv230914304M} or saliency maps \citep{2019arXiv191111293M} could be used to visualize the spatial features our CNN learns to associate with different parameter values.  One might expect the network to develop sensitivity to biologically relevant patterns like the sharpness of the spreading front, local cell density gradients, or the degree of cell clustering. By identifying these learned features, a researcher could validate that the network's reasoning aligns with established biological theory, or discover novel spatial statistics that are informative but not immediately obvious to a human observer. While a detailed feature analysis is beyond the scope of this work, we highlight its importance for future applications. The ability to not only perform inference but also to extract the learned representations that enable it is a key advantage of this approach. 
 
-The ability to perform inference with stochastic models on spatiotemporal data has direct implications for experimental design. Traditional protocols often reduce rich data from sources like time-lapse microscopy to simplified measurements. This is a compromise driven by past computational limits, not biological necessity. Our framework removes this barrier, enabling direct analysis that preserves the full spatial information. This should encourage the strategic collection and retention of rich datasets, which is crucial for improving parameter identifiability in complex systems where spatial structure encodes mechanistic information. \textcolor{magenta}{TK: perhaps experimentalists already do this. Again, need domain knowledge.}
+The ability to perform inference with stochastic models on spatiotemporal data has direct implications for experimental design. Traditional protocols often reduce rich data from sources like time-lapse microscopy to simplified measurements. This is a compromise driven by past computational limits, not biological necessity. Our framework removes this barrier, enabling direct analysis that preserves the full spatial information. This should encourage the strategic collection and retention of rich datasets, which is crucial for improving parameter identifiability in complex systems where spatial structure encodes mechanistic information.
 
 
 
@@ -535,69 +525,81 @@ The framework developed here provides a foundation that can evolve with these te
 
 \section{Conclusion}
 
-\textcolor{magenta}{TK: TBD}
+Parameter inference for stochastic biological models has long been hampered by a fundamental tension: the need for computational tractability versus the desire for biological realism. Classical approaches have required researchers to choose between computationally demanding likelihood-free methods that operate directly on stochastic simulators, or efficient likelihood-based techniques that rely on potentially unfaithful surrogate models and explicit noise specifications. This work demonstrates that Neural Posterior Estimation provides a principled path beyond this dichotomy.
 
-\appendix
+We have shown that NPE, augmented with modern deep learning architectures, addresses each of the canonical challenges that have historically limited stochastic biological modeling. By learning posteriors directly from simulator output, the framework circumvents intractable likelihoods while avoiding the systematic biases introduced by mean-field approximations. The method's implicit learning of complex stochastic relationships eliminates the need for explicit, and potentially erroneous, noise model specification. Once trained, the amortized nature of NPE provides near-instantaneous posterior estimates, overcoming the prohibitive per-inference costs of traditional likelihood-free methods. Perhaps most significantly, by integrating convolutional neural networks as learned feature extractors, the framework can process high-dimensional spatial data directly, removing the need for hand-crafted summary statistics that risk substantial information loss.
 
+Our application to agent-based random walk models demonstrates these advantages in practice. On one-dimensional summary statistics, NPE matches or exceeds the precision of classical methods while requiring no manual tuning of tolerances or distance metrics. When extended to raw two-dimensional spatial data through CNN-based feature extraction, the framework maintains comparable precision without requiring researchers to specify informative summary statistics a priori. This capability becomes critical for complex biological systems where crucial mechanistic information is encoded in spatial patterns that resist simple summarization.
 
+The broader implications extend beyond the specific models considered here. As biological research increasingly demands quantitative frameworks that can accommodate realistic stochasticity, spatial heterogeneity, and multi-scale dynamics, the ability to perform rigorous inference directly on high-fidelity simulators becomes essential. The framework we have developed provides a foundation for this next generation of biological modeling, where machine learning techniques can bridge the gap between model complexity and inferential tractability.
 
+Nevertheless, important challenges remain. The substantial upfront computational cost of generating training data, the difficulty of ensuring robust performance outside the training distribution, and the limited theoretical guarantees compared to classical methods all require careful consideration. The architecture design choices and hyperparameter tuning introduce additional complexity that may present barriers to adoption. Future work should focus on reducing these barriers through improved architectures, more efficient training algorithms, and the development of practical guidelines for applying these methods across diverse biological systems.
 
-
+We provide an open-source implementation of our complete pipeline\footnote{\href{https://github.com/tomkimpson/NPE_for_RW_inference}{github.com/tomkimpson/NPE\_for\_RW\_inference}} to facilitate adoption and enable the community to extend these methods to increasingly complex spatially-structured models. As computational resources continue to expand and neural network architectures become more sophisticated, we anticipate that simulation-based inference frameworks like NPE will become the standard approach for parameter estimation in stochastic biological systems. 
 
 \newpage
-\section{Synthetic data generation}\label{sec: synthetic_data_generation}
+%
+%\appendix
+%
+%\section{NPE Implementation}\label{ap:npe_implementaion}
+%
+%We implement Sequential Neural Posterior Estimation (SNPE) using neural spline flows (NSF) as the density estimator, following the framework established by \cite{2020JOSS....5.2505T}. For the baseline 1D inference problem, where observations consist of column-wise marginalizations of the spatial distribution, we employ the following architecture and training configuration:
+%\begin{itemize}
+%	\item \textbf{Data representation:} Column counts (200 values per observation, corresponding to lattice width $L_x = 200$).
+%	\item \textbf{Flow architecture:} Neural spline flows (NSF) with 8 coupling layers and 128 hidden features.
+%	\item \textbf{Training:} Adam optimizer with learning rate $10^{-4}$, batch size 128, training for up to 300 epochs with early stopping based on validation loss.
+%	\item \textbf{Validation:} 10\% of simulations reserved for validation, with training stopped when validation loss increases for 10 consecutive epochs.
+%	\item \textbf{SNPE rounds:} 10 rounds with 2,000 simulations per round (10,000 total initial simulations for first round).
+%	\item \textbf{Convergence:} Sequential rounds terminated when the convergence metric (based on posterior mean and standard deviation changes) falls below 0.001.
+%	\item \textbf{Implementation:} Built using the SBI library \citep{2020JOSS....5.2505T} with PyTorch backend, trained on NVIDIA A100-SXM4-80GB GPU (85.1 GB memory).
+%\end{itemize}
+%
+%
+%
+%\section{CNN implementation} \label{ap:cnn}
+%
+%To process the full 2D spatial information, we developed a convolutional neural network (CNN) that serves as an embedding network within the NSF architecture. This embedding network compresses the high-dimensional spatial observations into a tractable latent representation that preserves the relevant spatial structure while enabling efficient density estimation. The design incorporates modern architectural elements including residual connections, batch normalization, and progressive downsampling to ensure stable training and effective feature extraction.
+%
+%The complete CNN architecture comprises the following components:
+%
+%\begin{itemize}
+%	\item \textbf{Convolutional layers:} Four progressive downsampling convolutional stages with 32, 64, 128, and 256 filters respectively. Each stage uses $3 \times 3$ kernels with stride 2, batch normalization, ReLU activations, and residual connections implemented via $1 \times 1$ convolutional shortcuts.
+%	
+%	\item \textbf{Dimensionality reduction:} The CNN compresses the $50 \times 200 = 10,000$ dimensional input through progressive downsampling followed by global average pooling, producing a 256-dimensional embedding that captures relevant spatial features while remaining computationally tractable.
+%	
+%	\item \textbf{Fully connected layers:} The pooled convolutional features are passed through three fully connected layers (512, 256, and 256 units) with ReLU activations and dropout (rate = 0.05) for regularization.
+%	
+%	\item \textbf{Normalization:} Per-sample normalization is applied to the input data before processing, with mean subtraction and standard deviation scaling to stabilize training.
+%	
+%	\item \textbf{Translation invariance:} The convolutional architecture with residual connections naturally handles the translation-invariant nature of the spreading process, learning features that are consistent across spatial locations.
+%\end{itemize}
+%
+%
+%The integration of the CNN embedding network into the SNPE framework necessitates several important modifications to both the network architecture and training procedure relative to the 1D baseline. These adjustments reflect the substantially increased dimensionality of the input space and the additional complexity introduced by the CNN's learnable parameters. The key differences in our 2D implementation are:
+%
+%\begin{itemize}
+%	\item \textbf{Data representation:} Full 2D spatial grid (10,000 values per observation, corresponding to $L_y \times L_x = 50 \times 200$), representing the complete spatial distribution of agents rather than compressed column counts.
+%	
+%	\item \textbf{Flow architecture:} Neural spline flows (NSF) with 5 coupling layers and 256 hidden features (compared to 8 coupling layers and 128 hidden features for 1D data).
+%	
+%	\item \textbf{Increased simulation budget:} Due to the higher-dimensional input space, we use 6,000 simulations per SNPE round (compared to 2,000 for 1D) to ensure adequate coverage of the joint parameter-data space.
+%	
+%	\item \textbf{Extended training time:} The CNN embedding network requires additional optimization iterations. We use a learning rate of $5 \times 10^{-5}$ (compared to $10^{-4}$ for 1D) with batch size 512, training for up to 150 epochs with early stopping after 40 consecutive epochs of no improvement (compared to 10 for 1D).
+%	
+%	\item \textbf{SNPE rounds:} 8 rounds with 6,000 simulations per round (5,000 total initial simulations for first round).
+%	
+%	\item \textbf{Convergence:} Sequential rounds terminated when the convergence metric falls below 0.01 (relaxed from 0.001 for 1D due to the increased complexity of the 2D inference problem).
+%	
+%	\item \textbf{Memory considerations:} Each 2D observation requires significantly more memory ($50 \times 200 = 10,000$ values vs. 200 for column counts), necessitating careful batch size selection and data loading strategies.
+%	
+%	\item \textbf{Implementation:} Same computational infrastructure as 1D (SBI library, PyTorch, NVIDIA A100-SXM4-80GB GPU), with the CNN embedding network integrated directly into the NSF density estimator.
+%\end{itemize}
+%
+%
+%
+%All results are fully reproducible using the configuration files and code available in the project repository at \texttt{https://github.com/tomkimpson/NPE\_for\_RW\_inference}.
 
-\textcolor{magenta}{TK: TBD}
-
-The experimental configuration consists of a two-dimensional lattice with dimensions $H = 50$ and $W = 200$, where agents are initially placed within the region $|x| \leq 25$ with probability $U = 0.5$. The system evolves for 100 time steps with movement probability $P$ and proliferation probability $R$, corresponding to macroscopic diffusivity $D = P\Delta^2/(4\tau)$ and growth rate $r = R/\tau$ in the continuum limit.
-
-
-
-\section{Identifiability}\label{ap:identifiability}
-
-\textcolor{magenta}{TK: TBD. Perhaps a short discussion on identifiability either here or in main text body. Might be out of scope.}
-
-\section{NPE Implementation}\label{ap:npe_implementaion}
-
-\textcolor{magenta}{TK: TBD. Could also point to config files in repo for reproducibility}
-
-Our specific implementation choices include:
-\begin{itemize}
-	\item \textbf{Flow architecture:} Neural spline flows with 5 coupling layers, 10 bins per spline, and embedding networks of 2 hidden layers with 50 units each.
-	\item \textbf{Training:} Adam optimizer with learning rate $10^{-4}$, batch size 512, and early stopping based on validation loss.
-	\item \textbf{Validation:} 20\% of simulations reserved for validation, with training stopped when validation loss increases for 10 consecutive epochs.
-\end{itemize}
-
-
-
-\section{CNN implementation} \label{ap:cnn}
-
-\textcolor{magenta}{TK: TBD.}
-
-
-
-Our CNN architecture consists of:
-
-\begin{itemize}
-	\item \textbf{Convolutional layers:} Three convolutional layers with 32, 64, and 128 filters respectively, each with $3 \times 3$ kernels, followed by ReLU activations and $2 \times 2$ max pooling operations.
-	
-	\item \textbf{Dimensionality reduction:} The CNN compresses the $H \times W = 10,000$ dimensional input to a 256-dimensional embedding that captures relevant spatial features while remaining computationally tractable.
-	
-	\item \textbf{Fully connected layers:} The flattened convolutional features are passed through two fully connected layers (512 and 256 units) with ReLU activations and dropout (rate = 0.3) for regularization.
-	
-	\item \textbf{Translation invariance:} The convolutional architecture naturally handles the translation-invariant nature of the spreading process, learning features that are consistent across spatial locations.
-\end{itemize}
-
-
-Training NPE with 2D data requires several adjustments compared to the 1D case:
-
-\begin{itemize}
-	\item \textbf{Increased simulation budget:} Due to the higher-dimensional input space, we use 15,000 simulations per SNPE round (compared to 10,000 for 1D) to ensure adequate coverage of the joint parameter-data space.
-	
-	\item \textbf{Extended training time:} The CNN embedding network requires additional optimization iterations. We use a learning rate of $5 \times 10^{-5}$ with batch size 256, training for up to 500 epochs with early stopping.
-	
-	\item \textbf{Memory considerations:} Each 2D observation requires significantly more memory ($50 \times 200 = 10,000$ values vs. 201 for column counts), necessitating careful batch size selection and data loading strategies.
-\end{itemize}
+\newpage
 
 
 
