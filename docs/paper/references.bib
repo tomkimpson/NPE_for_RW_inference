@@ -1,16 +1,27 @@
-@article {Simpson2025.05.25.656057,
-	author = {Simpson, Matthew J. and Plank, Michael J.},
-	title = {Inference and prediction for stochastic models of biological populations undergoing migration and proliferation},
-	elocation-id = {2025.05.25.656057},
-	year = {2025},
-	doi = {10.1101/2025.05.25.656057},
-	publisher = {Cold Spring Harbor Laboratory},
-	abstract = {Parameter inference is a critical step in the process of interpreting biological data using mathematical models. Inference provides a means of deriving quantitative, mechanistic insights from sparse, noisy data. While methods for parameter inference, parameter identifiability, and model prediction are well-developed for deterministic continuum models, working with biological applications often requires stochastic modelling approaches to capture inherent variability and randomness that can be prominent in biological measurements and data. Random walk models are especially useful for capturing spatiotemporal processes, such as ecological population dynamics, molecular transport phenomena, and collective behaviour associated with multicellular phenomena. This review focuses on parameter inference, identifiability analysis, and model prediction for a suite of biologically-inspired, stochastic agent-based models relevant to animal dispersal and populations of biological cells. With a particular emphasis on model prediction, we highlight roles for numerical optimisation and automatic differentiation. Open-source Julia code is provided to support scientific reproducibility. We encourage readers to use this code directly or adapt it to suit their interests and applications.Competing Interest StatementThe authors have declared no competing interest.Australian Research Council, DP230100025, CE230100001Marsden},
-	URL = {https://www.biorxiv.org/content/early/2025/08/07/2025.05.25.656057},
-	eprint = {https://www.biorxiv.org/content/early/2025/08/07/2025.05.25.656057.full.pdf},
-	journal = {bioRxiv}
+@article{Simpson2025.05.25.656057,
+	author       = {Simpson, Matthew J. and Plank, Michael J.},
+	title        = {Inference and prediction for stochastic models of biological populations undergoing migration and proliferation},
+	journal      = {Journal of the Royal Society Interface},
+	year         = {2025},
+	volume       = {22},
+	pages        = {20250536},
+	eprint       = {https://www.biorxiv.org/content/early/2025/08/07/2025.05.25.656057.full.pdf}
 }
 
+
+@article{SIMPSON2024111732,
+	title = {Modelling count data with partial differential equation models in biology},
+	journal = {Journal of Theoretical Biology},
+	volume = {580},
+	pages = {111732},
+	year = {2024},
+	issn = {0022-5193},
+	doi = {https://doi.org/10.1016/j.jtbi.2024.111732},
+	url = {https://www.sciencedirect.com/science/article/pii/S0022519324000134},
+	author = {Matthew J. Simpson and Ryan J. Murphy and Oliver J. Maclaren},
+	keywords = {Calibration, Parameter estimation, Identifiability, Prediction, Reaction–diffusion, Cell biology},
+	abstract = {Partial differential equation (PDE) models are often used to study biological phenomena involving movement-birth–death processes, including ecological population dynamics and the invasion of populations of biological cells. Count data, by definition, is non-negative, and count data relating to biological populations is often bounded above by some carrying capacity that arises through biological competition for space or nutrients. Parameter estimation, parameter identifiability, and making model predictions usually involves working with a measurement error model that explicitly relating experimental measurements with the solution of a mathematical model. In many biological applications, a typical approach is to assume the data are normally distributed about the solution of the mathematical model. Despite the widespread use of the standard additive Gaussian measurement error model, the assumptions inherent in this approach are rarely explicitly considered or compared with other options. Here, we interpret scratch assay data, involving migration, proliferation and delays in a population of cancer cells using a reaction–diffusion PDE model. We consider relating experimental measurements to the PDE solution using a standard additive Gaussian measurement error model alongside a comparison to a more biologically realistic binomial measurement error model. While estimates of model parameters are relatively insensitive to the choice of measurement error model, model predictions for data realisations are very sensitive. The standard additive Gaussian measurement error model leads to biologically inconsistent predictions, such as negative counts and counts that exceed the carrying capacity across a relatively large spatial region within the experiment. Furthermore, the standard additive Gaussian measurement error model requires estimating an additional parameter compared to the binomial measurement error model. In contrast, the binomial measurement error model leads to biologically plausible predictions and is simpler to implement. We provide open source Julia software on GitHub to replicate all calculations in this work, and we explain how to generalise our approach to deal with coupled PDE models with several dependent variables through a multinomial measurement error model, as well as pointing out other potential generalisations by linking our work with established practices in the field of generalised linear models.}
+}
 
 @ARTICLE{rezende2015variational,
 	author = {{Jimenez Rezende}, Danilo and {Mohamed}, Shakir},
@@ -110,7 +121,7 @@
 	author = {Sunnåker, Mikael AND Busetto, Alberto Giovanni AND Numminen, Elina AND Corander, Jukka AND Foll, Matthieu AND Dessimoz, Christophe},
 	journal = {PLOS Computational Biology},
 	publisher = {Public Library of Science},
-	title = {Approximate Bayesian Computation},
+	title = {{Approximate Bayesian Computation}},
 	year = {2013},
 	month = {01},
 	volume = {9},
@@ -665,4 +676,273 @@
 
 
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+@article{Ross2017ABCadhesion,
+	title   = {Using approximate Bayesian computation to quantify cell--cell adhesion parameters in a cell migratory process},
+	author  = {Ross, Robert J. H. and Baker, Ruth E. and Parker, Andrew and Ford, Matthew J. and Mort, Richard L. and Yates, Christian A.},
+	journal = {npj Systems Biology and Applications},
+	year    = {2017},
+	volume  = {3},
+	number  = {1},
+	pages   = {9},
+	doi     = {10.1038/s41540-017-0010-7}
+}
+
+@article{Lagergren2020BINN,
+	title   = {Biologically-informed neural networks guide mechanistic modeling from sparse experimental data},
+	author  = {Lagergren, John H. and Nardini, John T. and Baker, Ruth E. and Simpson, Matthew J. and Flores, Kevin B.},
+	journal = {PLOS Computational Biology},
+	year    = {2020},
+	volume  = {16},
+	number  = {12},
+	pages   = {e1008462},
+	doi     = {10.1371/journal.pcbi.1008462}
+}
+
+@article{Nardini2023BINNForecast,
+	title   = {Forecasting and predicting stochastic agent-based models of cell migration with biologically-informed neural networks},
+	author  = {Nardini, John T.},
+	journal = {arXiv},
+	year    = {2023},
+	eprint  = {2311.04709},
+	primaryClass = {q-bio.QM},
+	url     = {https://arxiv.org/abs/2311.04709}
+}
+
+@article{Liu2024PRE,
+	title   = {Likelihood-based inference, identifiability, and prediction using count data from lattice-based random walk models},
+	author  = {Liu, Yihan and Warne, David J. and Simpson, Matthew J.},
+	journal = {Physical Review E},
+	year    = {2024},
+	volume  = {110},
+	number  = {4},
+	pages   = {044405},
+	doi     = {10.1103/PhysRevE.110.044405}
+}
+
+@article{Jin2016ScratchRepro,
+	title   = {Reproducibility of scratch assays is affected by the initial degree of confluence: experiments, modelling and model selection},
+	author  = {Jin, Wang and Shah, Esha T. and Penington, Catherine J. and McCue, Scott W. and Chopin, Lisa K. and Simpson, Matthew J.},
+	journal = {Journal of Theoretical Biology},
+	year    = {2016},
+	volume  = {390},
+	pages   = {136--145},
+	doi     = {10.1016/j.jtbi.2015.10.040}
+}
+
+@article{Johnston2014LeadingEdgeInfo,
+	title   = {How much information can be obtained from tracking the position of the leading edge in a scratch assay?},
+	author  = {Johnston, Stuart T. and Simpson, Matthew J. and McElwain, D. L. S.},
+	journal = {Journal of The Royal Society Interface},
+	year    = {2014},
+	volume  = {11},
+	number  = {95},
+	pages   = {20140325},
+	doi     = {10.1098/rsif.2014.0325}
+}
+
+@article{Simpson2013CircularBarrier,
+	title   = {Quantifying the roles of cell motility and cell proliferation in a circular barrier assay},
+	author  = {Simpson, Matthew J. and Treloar, Katrina K. and Binder, Benjamin J. and Haridas, Parvathi and Manton, Kerry J. and Leavesley, David I. and McElwain, D. L. S. and Baker, Ruth E.},
+	journal = {Journal of The Royal Society Interface},
+	year    = {2013},
+	volume  = {10},
+	number  = {82},
+	pages   = {20130007},
+	doi     = {10.1098/rsif.2013.0007}
+}
+
+@article{Warne2022RapidBayes,
+	title   = {Rapid Bayesian inference for expensive stochastic models},
+	author  = {Warne, David J. and Baker, Ruth E. and Simpson, Matthew J.},
+	journal = {Journal of Computational and Graphical Statistics},
+	year    = {2022},
+	volume  = {31},
+	number  = {2},
+	pages   = {512--528},
+	doi     = {10.1080/10618600.2021.1960612}
+}
+
+
+
+@article{Tavare1997,
+	author  = {S. Tavare and D. J. Balding and R. C. Griffiths and P. Donnelly},
+	title   = {Inferring coalescence times from DNA sequence data},
+	journal = {Genetics},
+	year    = {1997},
+	volume  = {145},
+	number  = {2},
+	pages   = {505--518}
+}
+
+@article{Pritchard1999,
+	author  = {J. K. Pritchard and M. T. Seielstad and A. Perez-Lezaun and M. W. Feldman},
+	title   = {Population growth of human {Y} chromosomes: a study of {Y}-chromosome microsatellites},
+	journal = {Molecular Biology and Evolution},
+	year    = {1999},
+	volume  = {16},
+	number  = {12},
+	pages   = {1791--1798},
+	doi     = {10.1093/oxfordjournals.molbev.a026091}
+}
+
+@article{Beaumont2002,
+	author  = {M. A. Beaumont and W. Zhang and D. J. Balding},
+	title   = {Approximate {B}ayesian computation in population genetics},
+	journal = {Genetics},
+	year    = {2002},
+	volume  = {162},
+	number  = {4},
+	pages   = {2025--2035}
+}
+
+@article{Blum2010,
+	author  = {M. G. B. Blum},
+	title   = {Approximate {B}ayesian computation: a nonparametric perspective},
+	journal = {Journal of the American Statistical Association},
+	year    = {2010},
+	volume  = {105},
+	number  = {491},
+	pages   = {1178--1187},
+	doi     = {10.1198/jasa.2010.tm09448}
+}
+
+@article{Marin2012,
+	author  = {J.-M. Marin and P. Pudlo and C. P. Robert and R. J. Ryder},
+	title   = {Approximate {B}ayesian computational methods},
+	journal = {Statistics and Computing},
+	year    = {2012},
+	volume  = {22},
+	number  = {6},
+	pages   = {1167--1180},
+	doi     = {10.1007/s11222-011-9288-2}
+}
+
+@article{Blum2013,
+	author  = {M. G. B. Blum and M. A. Nunes and D. Prangle and S. A. Sisson},
+	title   = {A comparative review of approximate {B}ayesian computation},
+	journal = {Statistical Science},
+	year    = {2013},
+	volume  = {28},
+	number  = {2},
+	pages   = {189--208},
+	doi     = {10.1214/12-STS406}
+}
+
+@article{FearnheadPrangle2012,
+	author  = {P. Fearnhead and D. Prangle},
+	title   = {Constructing summary statistics for approximate {B}ayesian computation: semi-automatic {ABC}},
+	journal = {Journal of the Royal Statistical Society: Series B},
+	year    = {2012},
+	volume  = {74},
+	number  = {3},
+	pages   = {419--474},
+	doi     = {10.1111/j.1467-9868.2011.01010.x}
+}
+
+@article{Robert2011,
+	author  = {C. P. Robert and J.-M. Cornuet and J.-M. Marin and N. S. Pillai},
+	title   = {Lack of confidence in approximate {B}ayesian computation model choice},
+	journal = {Proceedings of the National Academy of Sciences},
+	year    = {2011},
+	volume  = {108},
+	number  = {37},
+	pages   = {15112--15117},
+	doi     = {10.1073/pnas.1102900108}
+}
+
+@article{Sisson2007,
+	author  = {S. A. Sisson and Y. Fan and M. M. Tanaka},
+	title   = {Sequential {M}onte {C}arlo without likelihoods},
+	journal = {Proceedings of the National Academy of Sciences},
+	year    = {2007},
+	volume  = {104},
+	number  = {6},
+	pages   = {1760--1765},
+	doi     = {10.1073/pnas.0607208104}
+}
+
+@article{Beaumont2009,
+	author  = {M. A. Beaumont and J.-M. Cornuet and J.-M. Marin and C. P. Robert},
+	title   = {Adaptive approximate {B}ayesian computation},
+	journal = {Biometrika},
+	year    = {2009},
+	volume  = {96},
+	number  = {4},
+	pages   = {983--990},
+	doi     = {10.1093/biomet/asp052}
+}
+
+@article{ErbanChapman2009,
+	author  = {R. Erban and S. J. Chapman},
+	title   = {Stochastic modelling of reaction--diffusion processes in biology},
+	journal = {SIAM Review},
+	year    = {2009},
+	volume  = {50},
+	number  = {1},
+	pages   = {37--114},
+	doi     = {10.1137/070696772}
+}
+
+@article{Baker2010,
+	author  = {R. E. Baker and M. J. Simpson and R. E. Baker and P. K. Maini},
+	title   = {From microscopic to macroscopic descriptions of cell migration on growing domains},
+	journal = {Journal of Theoretical Biology},
+	year    = {2010},
+	volume  = {267},
+	number  = {2},
+	pages   = {181--189},
+	doi     = {10.1016/j.jtbi.2010.08.015}
+}
+
+@article{BrunaChapman2012,
+	author  = {M. Bruna and S. J. Chapman},
+	title   = {Excluded-volume effects in the diffusion of hard spheres},
+	journal = {The Journal of Chemical Physics},
+	year    = {2012},
+	volume  = {137},
+	number  = {20},
+	pages   = {204116},
+	doi     = {10.1063/1.4767058}
+}
+
+@article{KennedyOHagan2001,
+	author  = {M. C. Kennedy and A. O'Hagan},
+	title   = {Bayesian calibration of computer models},
+	journal = {Journal of the Royal Statistical Society: Series B},
+	year    = {2001},
+	volume  = {63},
+	number  = {3},
+	pages   = {425--464},
+	doi     = {10.1111/1467-9868.00294}
+}
+
+@article{BrynjarsdottirOHagan2014,
+	author  = {J. Brynjarsd{\'o}ttir and A. O'Hagan},
+	title   = {Learning about physical parameters: the importance of model discrepancy},
+	journal = {Inverse Problems},
+	year    = {2014},
+	volume  = {30},
+	number  = {11},
+	pages   = {114007},
+	doi     = {10.1088/0266-5611/30/11/114007}
+}
+
+@book{McCullaghNelder1989,
+	author    = {P. McCullagh and J. A. Nelder},
+	title     = {Generalized Linear Models},
+	edition   = {2nd},
+	publisher = {Chapman \& Hall},
+	address   = {London},
+	year      = {1989},
+	isbn      = {9780412317606}
+}
+
+@article{kingma2014adam,
+	title={Adam: A Method for Stochastic Optimization},
+	author={Kingma, Diederik P. and Ba, Jimmy},
+	journal={arXiv preprint arXiv:1412.6980},
+	year={2014}
+}
 

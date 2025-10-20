@@ -545,6 +545,7 @@ def _(
     pickle,
     results_dir,
     surrogate_pde_model,
+    time,
 ):
     """
     MCMC sampling using surrogate model - Julia style implementation
@@ -573,6 +574,7 @@ def _(
         α = min(1.0, exp(ℓn - ℓ))      # Acceptance ratio
         """
         print(f"🔄 Running Julia-style MCMC ({n_samples:,} samples)...")
+        start_time = time.time()
 
         # Initialize parameters (matching Julia)
         theta = np.array([0.1, 0.1, 1.0])  # [U, D, sigma]
@@ -628,6 +630,8 @@ def _(
 
         print(f"✅ Julia-style MCMC completed")
         print(f"📊 Generated {n_samples:,} posterior samples")
+        elapsed = time.time() - start_time
+        print(f"✅ MCMC with Surrogate Model completed in {elapsed:.1f}s")
 
         return mcmc_results
 
@@ -1123,12 +1127,6 @@ def _(
 @app.cell
 def _(D_limits):
     D_limits 
-    return
-
-
-@app.cell
-def _(xx):
-    xx 
     return
 
 

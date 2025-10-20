@@ -331,12 +331,13 @@ def _(
             linewidth=0.3,
         )
 
+    t_init_print = 0.0
     ax_a.set_xlim(x_min - 0.5, x_max + 0.5)
-    ax_a.set_ylim(25-100, 25+100)
+    ax_a.set_ylim(25 - 100, 25 + 100)
     ax_a.set_xlabel("x", fontsize=12, fontweight="bold")
     ax_a.set_ylabel("y", fontsize=12, fontweight="bold")
     ax_a.set_title(
-        f"(a) Initial Distribution (t={t_initial:.2f})",
+        f"(a) Initial Distribution (t={t_init_print:.2f})",
         fontsize=13,
         fontweight="bold",
         pad=10,
@@ -358,9 +359,6 @@ def _(
     ax_a.minorticks_on()
 
 
-
-
-
     # --- Subplot (b): Final agent distribution at t=100 ---
     ax_b = fig.add_subplot(gs[0, 1])
     if final_positions:
@@ -376,7 +374,7 @@ def _(
         )
 
     ax_b.set_xlim(x_min - 0.5, x_max + 0.5)
-    ax_b.set_ylim(25-100, 25+100)
+    ax_b.set_ylim(25 - 100, 25 + 100)
     ax_b.set_xlabel("x", fontsize=12, fontweight="bold")
     ax_b.set_ylabel("y", fontsize=12, fontweight="bold")
     ax_b.set_title(
@@ -487,12 +485,6 @@ def _(
     )
     ax_d.minorticks_on()
     ax_d.set_xlim(-100, 100)
-
-
-
-
-
-
 
 
     # # --- PEDAGOGICAL ENHANCEMENTS ---
@@ -624,28 +616,6 @@ def _(
     # )
     # fig.add_artist(con_final_1)
     # fig.add_artist(con_final_2)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     # Overall figure title
