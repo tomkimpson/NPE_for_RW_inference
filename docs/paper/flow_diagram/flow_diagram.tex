@@ -8,7 +8,6 @@
 	shadows.blur,     % For soft shadows
 	calc              % For coordinate calculations
 }
-
 \begin{document}
 	
 	% --- Define a modern color palette ---
@@ -17,6 +16,7 @@
 	\colorlet{netcolor}{orange!80!black!20}
 	\colorlet{postcolor}{purple!60!black!20}
 	\colorlet{phasecolor}{gray!10}
+	\colorlet{phasecolorB}{blue!10} % Changed from gray
 	
 	% --- Define custom styles for consistency and aesthetics ---
 	\tikzset{
@@ -105,16 +105,16 @@
 			fill=phasecolor,
 			fit={(sim_block) (sim_data) (nn)},
 			inner sep=20pt,
-			rounded corners=15pt,
+			rounded corners=10pt,
 			label={[phaselabel, anchor=north west]north west:TRAINING PHASE}
 			] (training_bg) {};
 			
 			% Inference Phase Box
 			\node[
-			fill=phasecolor!60!white,
+			fill=phasecolorB,
 			fit={(obs_data) (posterior) ($(nn.north east)+(0,0.5)$) ($(nn.south east)+(-1.2,0)$)},
-			inner sep=20pt,
-			rounded corners=15pt,
+			inner sep=30pt,
+			rounded corners=10pt,
 			label={[phaselabel, anchor=north east]north east:INFERENCE PHASE}
 			] (inference_bg) {};
 		\end{scope}
