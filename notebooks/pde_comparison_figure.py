@@ -254,7 +254,7 @@ def _(
     print(f"✅ PDE solutions computed")
     print(f"📈 PDE initial total: {np.sum(pde_counts_initial):.1f}")
     print(f"📈 PDE final total: {np.sum(pde_counts_final):.1f}")
-    return pde_counts_final, pde_counts_initial, t_initial
+    return pde_counts_final, pde_counts_initial
 
 
 @app.cell
@@ -282,7 +282,6 @@ def _(
     pde_counts_final,
     pde_counts_initial,
     plt,
-    t_initial,
 ):
     """
     Create comprehensive 2x2 comparison figure
@@ -333,7 +332,8 @@ def _(
 
     t_init_print = 0.0
     ax_a.set_xlim(x_min - 0.5, x_max + 0.5)
-    ax_a.set_ylim(25 - 100, 25 + 100)
+    # ax_a.set_ylim(25 - 100, 25 + 100)
+    ax_a.set_ylim(0, 50)
     ax_a.set_xlabel("x", fontsize=12, fontweight="bold")
     ax_a.set_ylabel("y", fontsize=12, fontweight="bold")
     ax_a.set_title(
@@ -374,7 +374,9 @@ def _(
         )
 
     ax_b.set_xlim(x_min - 0.5, x_max + 0.5)
-    ax_b.set_ylim(25 - 100, 25 + 100)
+    # ax_b.set_ylim(25 - 100, 25 + 100)
+    ax_b.set_ylim(0, 50)
+
     ax_b.set_xlabel("x", fontsize=12, fontweight="bold")
     ax_b.set_ylabel("y", fontsize=12, fontweight="bold")
     ax_b.set_title(
@@ -422,7 +424,7 @@ def _(
     ax_c.set_xlabel("x", fontsize=12, fontweight="bold")
     ax_c.set_ylabel("$N_i$, $Hu(x,t)$", fontsize=12, fontweight="bold")
     ax_c.set_title(
-        f"(c) Column Counts (t={t_initial:.2f})", fontsize=13, fontweight="bold", pad=10
+        f"(c) Column Counts (t={t_init_print:.2f})", fontsize=13, fontweight="bold", pad=10
     )
     ax_c.axvline(x=0, color=color_truth, linestyle="--", alpha=0.6, linewidth=2.0)
     ax_c.grid(True, alpha=0.3, linewidth=0.5, linestyle=":")

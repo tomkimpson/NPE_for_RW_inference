@@ -5,6 +5,7 @@
 	year         = {2025},
 	volume       = {22},
 	pages        = {20250536},
+	doi={10.1098/rsif.2025.0536},
 	eprint       = {https://www.biorxiv.org/content/early/2025/08/07/2025.05.25.656057.full.pdf}
 }
 
@@ -303,22 +304,23 @@
 }
 
 
-@ARTICLE{greenberg2019automatic,
-	author = {{Greenberg}, David S. and {Nonnenmacher}, Marcel and {Macke}, Jakob H.},
-	title = "{Automatic Posterior Transformation for Likelihood-Free Inference}",
-	journal = {arXiv e-prints},
-	keywords = {Computer Science - Machine Learning, Statistics - Machine Learning},
-	year = 2019,
-	month = may,
-	eid = {arXiv:1905.07488},
-	pages = {arXiv:1905.07488},
-	doi = {10.48550/arXiv.1905.07488},
-	archivePrefix = {arXiv},
-	eprint = {1905.07488},
-	primaryClass = {cs.LG},
-	adsurl = {https://ui.adsabs.harvard.edu/abs/2019arXiv190507488G},
-	adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+@InProceedings{greenberg2019automatic,
+	title = 	 {Automatic Posterior Transformation for Likelihood-Free Inference},
+	author =       {Greenberg, David and Nonnenmacher, Marcel and Macke, Jakob},
+	booktitle = 	 {Proceedings of the 36th International Conference on Machine Learning},
+	pages = 	 {2404--2414},
+	year = 	 {2019},
+	editor = 	 {Chaudhuri, Kamalika and Salakhutdinov, Ruslan},
+	volume = 	 {97},
+	series = 	 {Proceedings of Machine Learning Research},
+	month = 	 {09--15 Jun},
+	publisher =    {PMLR},
+	pdf = 	 {http://proceedings.mlr.press/v97/greenberg19a/greenberg19a.pdf},
+	url = 	 {https://proceedings.mlr.press/v97/greenberg19a.html}
 }
+
+
+
 
 
 @ARTICLE{2020JOSS....5.2505T,
@@ -341,22 +343,28 @@
 }
 
 
-@ARTICLE{papamakarios2021normalizing,
-	author = {{Papamakarios}, George and {Nalisnick}, Eric and {Jimenez Rezende}, Danilo and {Mohamed}, Shakir and {Lakshminarayanan}, Balaji},
-	title = "{Normalizing Flows for Probabilistic Modeling and Inference}",
-	journal = {arXiv e-prints},
-	keywords = {Statistics - Machine Learning, Computer Science - Machine Learning},
-	year = 2019,
-	month = dec,
-	eid = {arXiv:1912.02762},
-	pages = {arXiv:1912.02762},
-	doi = {10.48550/arXiv.1912.02762},
-	archivePrefix = {arXiv},
-	eprint = {1912.02762},
-	primaryClass = {stat.ML},
-	adsurl = {https://ui.adsabs.harvard.edu/abs/2019arXiv191202762P},
-	adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+
+
+@article{papamakarios2021normalizing,
+	author  = {George Papamakarios and Eric Nalisnick and Danilo Jimenez Rezende and Shakir Mohamed and Balaji Lakshminarayanan},
+	title   = {Normalizing Flows for Probabilistic Modeling and Inference},
+	journal = {Journal of Machine Learning Research},
+	year    = {2021},
+	volume  = {22},
+	number  = {57},
+	pages   = {1--64},
+	url     = {http://jmlr.org/papers/v22/19-1028.html}
 }
+
+
+
+
+
+
+
+
+
+
 
 @ARTICLE{dinh2016density,
 	author = {{Dinh}, Laurent and {Sohl-Dickstein}, Jascha and {Bengio}, Samy},
@@ -394,22 +402,20 @@
 
 
 
+
 @ARTICLE{kobyzev2020normalizing,
-	author = {{Kobyzev}, Ivan and {Prince}, Simon J.~D. and {Brubaker}, Marcus A.},
-	title = "{Normalizing Flows: An Introduction and Review of Current Methods}",
-	journal = {arXiv e-prints},
-	keywords = {Statistics - Machine Learning, Computer Science - Machine Learning},
-	year = 2019,
-	month = aug,
-	eid = {arXiv:1908.09257},
-	pages = {arXiv:1908.09257},
-	doi = {10.48550/arXiv.1908.09257},
-	archivePrefix = {arXiv},
-	eprint = {1908.09257},
-	primaryClass = {stat.ML},
-	adsurl = {https://ui.adsabs.harvard.edu/abs/2019arXiv190809257K},
-	adsnote = {Provided by the SAO/NASA Astrophysics Data System}
-}
+	author={Kobyzev, Ivan and Prince, Simon J.D. and Brubaker, Marcus A.},
+	journal={IEEE Transactions on Pattern Analysis and Machine Intelligence}, 
+	title={Normalizing Flows: An Introduction and Review of Current Methods}, 
+	year={2021},
+	volume={43},
+	number={11},
+	pages={3964-3979},
+	keywords={Estimation;Jacobian matrices;Mathematical model;Training;Computational modeling;Context modeling;Random variables;Generative models;normalizing flows;density estimation;variational inference;invertible neural networks},
+	doi={10.1109/TPAMI.2020.2992934}}
+
+
+
 
 
 
@@ -700,14 +706,15 @@
 	doi     = {10.1371/journal.pcbi.1008462}
 }
 
+
 @article{Nardini2023BINNForecast,
-	title   = {Forecasting and predicting stochastic agent-based models of cell migration with biologically-informed neural networks},
+	title   = {{Forecasting and Predicting Stochastic Agent-Based Model Data with Biologically-Informed Neural Networks}},
 	author  = {Nardini, John T.},
-	journal = {arXiv},
-	year    = {2023},
-	eprint  = {2311.04709},
-	primaryClass = {q-bio.QM},
-	url     = {https://arxiv.org/abs/2311.04709}
+	journal = {Bulletin of Mathematical Biology},
+	year    = {2024},
+	volume  = {86},
+	pages   = {130},
+	doi     = {10.1007/s11538-024-01357-2}
 }
 
 @article{Liu2024PRE,
@@ -754,7 +761,7 @@
 }
 
 @article{Warne2022RapidBayes,
-	title   = {Rapid Bayesian inference for expensive stochastic models},
+	title   = {{Rapid Bayesian inference for expensive stochastic models}},
 	author  = {Warne, David J. and Baker, Ruth E. and Simpson, Matthew J.},
 	journal = {Journal of Computational and Graphical Statistics},
 	year    = {2022},
@@ -885,16 +892,17 @@
 	doi     = {10.1137/070696772}
 }
 
+
 @article{Baker2010,
-	author  = {R. E. Baker and M. J. Simpson and R. E. Baker and P. K. Maini},
-	title   = {From microscopic to macroscopic descriptions of cell migration on growing domains},
-	journal = {Journal of Theoretical Biology},
+	title   = {From Microscopic to Macroscopic Descriptions of Cell Migration on Growing Domains},
+	author  = {Baker, Ruth E. and Yates, Christian A. and Erban, Radek},
+	journal = {Bulletin of Mathematical Biology},
 	year    = {2010},
-	volume  = {267},
-	number  = {2},
-	pages   = {181--189},
-	doi     = {10.1016/j.jtbi.2010.08.015}
+	volume  = {72},
+	pages   = {719--762},
+	doi     = {10.1007/s11538-009-9467-x}
 }
+
 
 @article{BrunaChapman2012,
 	author  = {M. Bruna and S. J. Chapman},
