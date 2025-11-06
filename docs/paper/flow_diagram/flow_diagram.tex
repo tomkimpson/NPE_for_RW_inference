@@ -69,7 +69,7 @@
 		
 		% --- Column 1: Simulation Process ---
 		\node[process] (prior) {Prior \\ $p(\theta)$};
-		\node[data, below=1.5cm of prior] (simulator) {Simulator \\ $p(x|\theta)$};
+		\node[data, below=1.5cm of prior] (simulator) {Simulator \\ $p(Y|\theta)$};
 		
 		% Arrow between prior and simulator
 		\draw[arrow] (prior) -- (simulator) node[midway, right, font=\small] {sample $\theta$};
@@ -79,16 +79,16 @@
 		
 		
 		% --- Column 2: Simulated Data ---
-		\node[data, right=of sim_block] (sim_data) {Simulated Data \\ $\{(\theta_i, x_i)\}_{i=1}^N$};
+		\node[data, right=of sim_block] (sim_data) {Simulated Data \\ $\{(\theta_i, Y_i)\}_{i=1}^N$};
 		
 		
 		% --- Column 3: Neural Network ---
-		\node[network, right=of sim_data] (nn) {Neural Density Estimator \\ $q_\phi(\theta|x)$};
+		\node[network, right=of sim_data] (nn) {Neural Density Estimator \\ $q_\phi(\theta|Y)$};
 		
 		
 		% --- Column 4: Inference ---
-		\node[data, above=1cm of nn] (obs_data) {Observed Data \\ $x_o$};
-		\node[posterior, right=of nn] (posterior) {Posterior \\ $p(\theta|x_o)$};
+		\node[data, above=1cm of nn] (obs_data) {Observed Data \\ $Y_{\rm obs}$};
+		\node[posterior, right=of nn] (posterior) {Posterior \\ $p(\theta|Y_{\rm obs}$};
 		
 		
 		% --- Arrows connecting the workflow ---
@@ -102,18 +102,22 @@
 		\begin{scope}[on background layer]
 			% Training Phase Box
 			\node[
+			draw=black!60, % <-- MODIFIED
+			thick,         % <-- MODIFIED
 			fill=phasecolor,
 			fit={(sim_block) (sim_data) (nn)},
-			inner sep=20pt,
+			inner sep=40pt,
 			rounded corners=10pt,
 			label={[phaselabel, anchor=north west]north west:TRAINING PHASE}
 			] (training_bg) {};
 			
 			% Inference Phase Box
 			\node[
-			fill=phasecolorB,
+			draw=black!60, % <-- MODIFIED
+			thick,         % <-- MODIFIED
+			fill=phasecolor!60,
 			fit={(obs_data) (posterior) ($(nn.north east)+(0,0.5)$) ($(nn.south east)+(-1.2,0)$)},
-			inner sep=30pt,
+			inner sep=40pt,
 			rounded corners=10pt,
 			label={[phaselabel, anchor=north east]north east:INFERENCE PHASE}
 			] (inference_bg) {};
