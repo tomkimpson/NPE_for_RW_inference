@@ -1,0 +1,25 @@
+# Core dependencies for NPE Random Walk Inference
+# Python 3.8+ required
+
+# Neural inference
+torch>=2.0.0
+sbi>=0.21.0
+
+# Scientific computing
+numpy>=1.24.0
+scipy>=1.10.0
+
+# Visualization
+matplotlib>=3.7.0
+corner>=2.2.0
+SciencePlots>=2.1.0
+
+# Notebooks and interactive
+marimo>=0.14.0
+
+# Progress bars
+tqdm>=4.65.0
+
+# Optional: For CUDA support
+# torch with CUDA can be installed via:
+# pip install torch --index-url https://download.pytorch.org/whl/cu118

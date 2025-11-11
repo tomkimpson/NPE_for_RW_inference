@@ -1,13 +1,53 @@
 # NPE for Random Walk Inference
 
+[![bioRxiv](https://img.shields.io/badge/bioRxiv-2025.10.26.684706-b31b1b.svg)](https://www.biorxiv.org/content/10.1101/2025.10.26.684706v1)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+
 ## Overview
 
-This repository implements Neural Posterior Estimation (NPE) for inferring the parameters of a stochastic random walk model of barrier assay experiments, based on the work by [Simpson & Planck](https://www.biorxiv.org/content/10.1101/2025.05.25.656057v4).
+This repository implements Neural Posterior Estimation (NPE) for inferring the parameters of a stochastic random walk model of barrier assay experiments, based on the work by [Simpson & Planck](https://www.biorxiv.org/content/10.1101/2025.10.26.684706v1).
 
 The goal is to infer two key parameters from observation data:
-- **U**: Initial occupancy probability (probability that a site contains an agent at t=0)  
+- **U**: Initial occupancy probability (probability that a site contains an agent at t=0)
 - **P**: Movement probability (probability that an agent moves during a time step)
 
+## Installation
+
+### Requirements
+- Python 3.8 or higher
+- CUDA (optional, for GPU acceleration)
+
+### Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/tomkimpson/NPE_for_RW_inference.git
+cd NPE_for_RW_inference
+
+# Create a virtual environment (recommended)
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+**For GPU support (optional):**
+```bash
+# Install PyTorch with CUDA support (example for CUDA 11.8)
+pip install torch --index-url https://download.pytorch.org/whl/cu118
+```
+
+**For conda users:**
+```bash
+# Create conda environment
+conda create -n npe_rw python=3.12
+conda activate npe_rw
+
+# Install dependencies
+pip install -r requirements.txt
+```
 
 ## Quick Start
 
@@ -175,7 +215,7 @@ results/workflow_YYYYMMDD_HHMMSS/
 
 ## External Code
 
-The `external_code/RandomWalkInference/` directory contains reference implementations from [Simpson and Plank's repository](https://github.com/ProfMJSimpson/RandomWalkInference) for comparison and validation.
+The `external_code/RandomWalkInference/` directory contains reference implementations from [Simpson and Planck's repository](https://github.com/ProfMJSimpson/RandomWalkInference) for comparison and validation.
 
 ## Training Method Comparison
 

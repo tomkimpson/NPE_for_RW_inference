@@ -182,6 +182,11 @@ Thumbs.db
 *.swo
 *~
 
+# Results and workflow outputs
+results/
+src/results/
+
 # Safety measure: prevent accidental git operations on external code
 external_code/
 src/sbi-logs  # or the log files from the SBI package
+sbi-logs/
