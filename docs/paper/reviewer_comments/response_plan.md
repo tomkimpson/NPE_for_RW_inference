@@ -30,11 +30,11 @@ Both reviewers question the paper's fit for JTB. R1: "significant importance on 
 
 **Sub-tasks:**
 
-- [ ] Rewrite Introduction to lead with biology (scratch/barrier assay problem, cell migration, wound healing)
-- [ ] Adopt IMRaD section headings throughout
-- [ ] Move all RW model descriptions into Methods
+- [x] Rewrite Introduction to lead with biology (scratch/barrier assay problem, cell migration, wound healing)
+- [x] Adopt IMRaD section headings throughout
+- [x] Move all RW model descriptions into Methods
 - [ ] Present results model-by-model, each with biological interpretation (not just parameter recovery)
-- [ ] Merge Discussion + Conclusion into a single Discussion section
+- [x] Merge Discussion + Conclusion into a single Discussion section
 - [ ] Ensure biological insights are emphasized throughout — what do inferred parameters tell us about cell behaviour?
 
 ---
