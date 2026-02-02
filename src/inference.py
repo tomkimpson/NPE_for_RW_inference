@@ -13,6 +13,7 @@ import warnings
 from typing import Tuple, Dict, Any, Optional, List
 from pathlib import Path
 from scipy import stats
+from concurrent.futures import ProcessPoolExecutor, as_completed
 import matplotlib.pyplot as plt
 
 # Import centralized warning configuration
@@ -24,44 +25,69 @@ from sbi.inference import SNPE
 from sbi.neural_nets import posterior_nn
 from sbi.utils import BoxUniform
 
-from simulator import RandomWalkSimulator
+from simulator import RandomWalkSimulator, ExclusionRandomWalkSimulator
+from models import ModelConfig
 
 import tqdm
+
+
+def _run_single_sim(sim_args):
+    """Worker for parallel simulation. Must be module-level for pickling."""
+    idx, param_values, simulator, param_names, fixed_params, use_exclusion, T, random_seed = sim_args
+    theta_dict = dict(zip(param_names, param_values))
+    if fixed_params:
+        theta_dict.update(fixed_params)
+    if use_exclusion:
+        column_counts, _, _ = simulator.simulate(theta_dict, T, random_seed=random_seed)
+    else:
+        column_counts, _, _ = simulator.simulate(theta_dict['U'], theta_dict['P'], T, random_seed=random_seed)
+    return (idx, column_counts)
 
 
 class RandomWalkNPE:
     """Sequential Neural Posterior Estimation for Random Walk parameter inference."""
     
-    def __init__(self, 
+    def __init__(self,
                  device: str = 'cpu',
-                 seed: Optional[int] = None):
+                 seed: Optional[int] = None,
+                 model_config: Optional[ModelConfig] = None):
         """
         Initialize SNPE inference.
-        
+
         Parameters:
         -----------
         device : str
             Device for training ('cpu' or 'cuda')
         seed : int, optional
             Random seed
+        model_config : ModelConfig, optional
+            Model configuration.  If None, uses hardcoded [U, P] prior
+            for backward compatibility with the original model.
         """
         self.device = device
-        
+        self.model_config = model_config
+
         if seed is not None:
             torch.manual_seed(seed)
             np.random.seed(seed)
-            
-        # Define prior for U and P parameters on the correct device
-        # U: initial occupancy probability (0.01, 1.0)
-        # P: movement probability (0.0, 1.0)
-        self.prior = BoxUniform(
-            low=torch.tensor([0.01, 0.0], device=device), 
-            high=torch.tensor([1.0, 1.0], device=device)
-        )
-        
+
+        if model_config is not None:
+            self.param_names = model_config.param_names
+            self.prior = BoxUniform(
+                low=torch.tensor(model_config.prior_low, dtype=torch.float32, device=device),
+                high=torch.tensor(model_config.prior_high, dtype=torch.float32, device=device),
+            )
+        else:
+            # Backward-compatible default: original model [U, P]
+            self.param_names = ['U', 'P']
+            self.prior = BoxUniform(
+                low=torch.tensor([0.01, 0.0], device=device),
+                high=torch.tensor([1.0, 1.0], device=device)
+            )
+
         self.inference = None
         self.posterior = None
-        
+
         # Sequential training attributes
         self.posteriors_by_round = []  # Store posterior from each round
         self.training_history = []  # Store training info from each round
@@ -100,20 +126,21 @@ class RandomWalkNPE:
         
     def generate_training_data(
         self,
-        simulator: RandomWalkSimulator,
+        simulator,
         n_simulations: int,
         T: int,
         output_path: Optional[str] = None,
         prior_bounds: Optional[Dict[str, Tuple[float, float]]] = None,
         random_seed: Optional[int] = None,
-        proposal_distribution = None
+        proposal_distribution = None,
+        n_workers: int = 1
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Generate training data for SNPE by running simulations.
-        
+
         Parameters:
         -----------
-        simulator : RandomWalkSimulator
+        simulator : RandomWalkSimulator or ExclusionRandomWalkSimulator
             Configured simulator instance
         n_simulations : int
             Number of parameter-observation pairs to generate
@@ -122,87 +149,99 @@ class RandomWalkNPE:
         output_path : str, optional
             Path to save training data
         prior_bounds : Dict[str, Tuple[float, float]], optional
-            Prior bounds for parameters (used only if proposal_distribution is None)
+            Prior bounds for parameters (used only if proposal_distribution is None
+            and no model_config is set)
         random_seed : int, optional
             Random seed for reproducibility
         proposal_distribution : optional
             Proposal distribution for sequential rounds (if None, uses priors)
-            
+
         Returns:
         --------
         Tuple[torch.Tensor, torch.Tensor]
-            - parameters: Tensor of shape (n_simulations, 2) containing [U, P] values
+            - parameters: Tensor of shape (n_simulations, n_params)
             - observations: Tensor of shape (n_simulations, Lx) containing column counts
         """
         if n_simulations <= 0:
             raise ValueError("Number of simulations must be positive")
         if T < 0:
             raise ValueError("Number of time steps must be non-negative")
-            
+
+        use_exclusion = isinstance(simulator, ExclusionRandomWalkSimulator)
+        n_params = len(self.param_names)
+        cfg = self.model_config
+
         # Set random seed
         if random_seed is not None:
             np.random.seed(random_seed)
             torch.manual_seed(random_seed)
-        
-        # Define default prior bounds
+
+        # Build prior_bounds from model_config if available
         if prior_bounds is None:
-            prior_bounds = {
-                'U': (0.01, 1.0),  # Avoid U=0 to ensure at least some agents
-                'P': (0.0, 1.0)
-            }
-        
-        # Validate prior bounds
-        for param, (low, high) in prior_bounds.items():
-            if low >= high:
-                raise ValueError(f"Invalid prior bounds for {param}: low >= high")
-            if param == 'U' and (low <= 0 or high > 1):
-                raise ValueError("U prior bounds must be in (0, 1]")
-            if param == 'P' and (low < 0 or high > 1):
-                raise ValueError("P prior bounds must be in [0, 1]")
-        
-        print(f"Generating {n_simulations} training simulations...")
-        
+            if cfg is not None:
+                prior_bounds = {
+                    name: (lo, hi)
+                    for name, lo, hi in zip(cfg.param_names, cfg.prior_low, cfg.prior_high)
+                }
+            else:
+                prior_bounds = {
+                    'U': (0.01, 1.0),
+                    'P': (0.0, 1.0)
+                }
+
+        if n_workers > 1:
+            print(f"Generating {n_simulations} training simulations using {n_workers} workers...")
+        else:
+            print(f"Generating {n_simulations} training simulations...")
+
         # Initialize storage
-        parameters = np.zeros((n_simulations, 2))
+        parameters = np.zeros((n_simulations, n_params))
         observations = np.zeros((n_simulations, simulator.Lx))
-        
-        # Sample all parameters at once if using proposal
+
+        fixed_params = cfg.fixed_params if cfg is not None else {}
+
+        # Pre-generate all parameter samples
         if proposal_distribution is not None:
             print(f"   Drawing {n_simulations} parameter samples from proposal distribution...")
-            # Sample all parameters at once to avoid multiple progress bars
             theta_samples = proposal_distribution.sample((n_simulations,))
             theta_samples_np = theta_samples.cpu().numpy()
-            
-            # Generate training data
-            for i in tqdm.tqdm(range(n_simulations), desc="Running simulations"):
-                U = float(theta_samples_np[i, 0])
-                P = float(theta_samples_np[i, 1])
-                
-                # Run simulation
-                column_counts, _, _ = simulator.simulate(U, P, T)
-                
-                # Store results
-                parameters[i] = [U, P]
-                observations[i] = column_counts
+            all_param_values = [
+                [float(theta_samples_np[i, k]) for k in range(n_params)]
+                for i in range(n_simulations)
+            ]
         else:
-            # Generate training data with prior sampling
-            for i in tqdm.tqdm(range(n_simulations), desc="Running simulations"):
-                # Sample parameters from priors (uniform distributions)
-                U = np.random.uniform(*prior_bounds['U'])
-                P = np.random.uniform(*prior_bounds['P'])
-                
-                # Run simulation
-                column_counts, _, _ = simulator.simulate(U, P, T)
-                
-                # Store results
-                parameters[i] = [U, P]
-                observations[i] = column_counts
-            
-        
+            all_param_values = [
+                [np.random.uniform(*prior_bounds[name]) for name in self.param_names]
+                for i in range(n_simulations)
+            ]
+
+        # Build argument tuples for each simulation
+        sim_args_list = []
+        for i in range(n_simulations):
+            seed_i = random_seed + i if random_seed is not None else None
+            sim_args_list.append((
+                i, all_param_values[i], simulator, self.param_names,
+                fixed_params, use_exclusion, T, seed_i
+            ))
+
+        # Dispatch simulations
+        if n_workers > 1:
+            with ProcessPoolExecutor(max_workers=n_workers) as executor:
+                futures = {executor.submit(_run_single_sim, args): args[0] for args in sim_args_list}
+                for future in tqdm.tqdm(as_completed(futures), total=n_simulations, desc="Running simulations"):
+                    idx, column_counts = future.result()
+                    observations[idx] = column_counts
+                    parameters[idx] = all_param_values[idx]
+        else:
+            for args in tqdm.tqdm(sim_args_list, desc="Running simulations"):
+                idx, column_counts = _run_single_sim(args)
+                observations[idx] = column_counts
+                parameters[idx] = all_param_values[idx]
+
         # Convert to tensors
         theta = torch.tensor(parameters, dtype=torch.float32)
         x = torch.tensor(observations, dtype=torch.float32)
-        
+
         # Save data if requested
         if output_path is not None:
             data = {
@@ -214,22 +253,21 @@ class RandomWalkNPE:
                     'prior_bounds': prior_bounds,
                     'Lx': simulator.Lx,
                     'Ly': simulator.Ly,
-                    'initial_region_half_width': simulator.initial_region_half_width
+                    'initial_region_half_width': simulator.initial_region_half_width,
+                    'param_names': self.param_names,
                 }
             }
-            
-            # Create directory if needed
+
             Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-            
-            # Ensure .pkl extension
+
             if not output_path.endswith('.pkl'):
                 output_path = output_path + '.pkl'
-                
+
             with open(output_path, 'wb') as f:
                 pickle.dump(data, f)
-                
+
             print(f"Training data saved to {output_path}")
-        
+
         return theta, x
     
     @staticmethod
@@ -430,7 +468,7 @@ class RandomWalkNPE:
         
         return training_info
     
-    def train_sequential(self, 
+    def train_sequential(self,
                         simulator: RandomWalkSimulator,
                         n_rounds: int,
                         n_simulations_per_round: int,
@@ -445,6 +483,7 @@ class RandomWalkNPE:
                         convergence_threshold: float = 0.01,
                         random_seed: Optional[int] = None,
                         output_dir: Optional[str] = None,
+                        n_workers: int = 1,
                         **kwargs) -> Dict[str, Any]:
         """
         Train SNPE model through multiple sequential rounds.
@@ -514,7 +553,8 @@ class RandomWalkNPE:
                 n_simulations=n_simulations_per_round,
                 T=T,
                 proposal_distribution=proposal_distribution,
-                random_seed=random_seed + round_idx * 1000 if random_seed else None
+                random_seed=random_seed + round_idx * 1000 if random_seed else None,
+                n_workers=n_workers
             )
             
             # Train model for this round
@@ -544,12 +584,12 @@ class RandomWalkNPE:
             # Evaluate posterior on observed data
             posterior_samples = self.sample_posterior(x_obs, num_samples=1000)
             samples_np = posterior_samples.cpu().numpy()
-            U_mean, U_std = samples_np[:, 0].mean(), samples_np[:, 0].std()
-            P_mean, P_std = samples_np[:, 1].mean(), samples_np[:, 1].std()
-            
+
             print(f"   Round {self.current_round} Results:")
-            print(f"     U: {U_mean:.4f} ± {U_std:.4f}")
-            print(f"     P: {P_mean:.4f} ± {P_std:.4f}")
+            for pidx, pname in enumerate(self.param_names):
+                pmean = samples_np[:, pidx].mean()
+                pstd = samples_np[:, pidx].std()
+                print(f"     {pname}: {pmean:.4f} +/- {pstd:.4f}")
             
             # Check for convergence (if not the first round)
             if round_idx > 0:
@@ -714,6 +754,8 @@ class RandomWalkNPE:
             'inference': self.inference,
             'prior': self.prior,
             'device': self.device,
+            'model_config': self.model_config,
+            'param_names': self.param_names,
             'metadata': metadata or {}
         }
         
@@ -743,132 +785,152 @@ class RandomWalkNPE:
         """
         with open(filepath, 'rb') as f:
             data = pickle.load(f)
-            
+
         # Use provided device or fall back to saved device
         target_device = device or data['device']
-        
-        obj = cls(device=target_device)
+
+        saved_config = data.get('model_config', None)
+        obj = cls(device=target_device, model_config=saved_config)
         obj.posterior = data['posterior']
         obj.inference = data['inference']
         obj.prior = data['prior']
-        
+        # Restore param_names from save (covers old files without model_config)
+        if 'param_names' in data:
+            obj.param_names = data['param_names']
+
         # Move components to target device if different from saved device
         if target_device != data['device']:
             try:
-                # Move posterior to new device (if possible)
                 if hasattr(obj.posterior, 'to'):
                     obj.posterior = obj.posterior.to(target_device)
-                # Update prior device
-                from sbi.utils import BoxUniform
-                obj.prior = BoxUniform(
-                    low=torch.tensor([0.01, 0.0], device=target_device),
-                    high=torch.tensor([1.0, 1.0], device=target_device)
-                )
+                # Reconstruct prior on the correct device
+                if saved_config is not None:
+                    obj.prior = BoxUniform(
+                        low=torch.tensor(saved_config.prior_low, dtype=torch.float32, device=target_device),
+                        high=torch.tensor(saved_config.prior_high, dtype=torch.float32, device=target_device),
+                    )
+                else:
+                    obj.prior = BoxUniform(
+                        low=torch.tensor([0.01, 0.0], device=target_device),
+                        high=torch.tensor([1.0, 1.0], device=target_device)
+                    )
             except Exception as e:
                 print(f"Warning: Could not move model to {target_device}: {e}")
                 print("Model will remain on original device")
-        
+
         return obj
     
-    def plot_posterior_samples(self, 
+    def plot_posterior_samples(self,
                               samples: torch.Tensor,
                               true_theta: Optional[torch.Tensor] = None,
-                              figsize: Tuple[int, int] = (12, 5)) -> plt.Figure:
+                              figsize: Optional[Tuple[int, int]] = None) -> plt.Figure:
         """
-        Plot posterior samples.
-        
+        Plot marginal posterior histograms for each parameter.
+
         Parameters:
         -----------
         samples : torch.Tensor
-            Posterior samples [U, P]
+            Posterior samples of shape (n_samples, n_params)
         true_theta : torch.Tensor, optional
             True parameter values (for validation)
-        figsize : tuple
-            Figure size
-            
+        figsize : tuple, optional
+            Figure size (defaults to (6*n_params, 5))
+
         Returns:
         --------
         fig : matplotlib.figure.Figure
-            Figure object
         """
-        param_names = ['U (initial occupancy)', 'P (movement probability)']
-        
-        fig, axes = plt.subplots(1, 2, figsize=figsize)
-        
+        n_params = len(self.param_names)
+        if self.model_config is not None:
+            labels = self.model_config.param_labels
+        else:
+            labels = ['U (initial occupancy)', 'P (movement probability)']
+
+        if figsize is None:
+            figsize = (6 * n_params, 5)
+
+        fig, axes = plt.subplots(1, n_params, figsize=figsize)
+        if n_params == 1:
+            axes = [axes]
+
         samples_np = samples.cpu().numpy()
-        
-        for i, (ax, name) in enumerate(zip(axes, param_names)):
-            # Histogram
+
+        for i, (ax, label) in enumerate(zip(axes, labels)):
             ax.hist(samples_np[:, i], bins=50, alpha=0.7, density=True, color='skyblue')
-            
-            # True value if provided
+
             if true_theta is not None:
-                ax.axvline(true_theta[i].item(), color='red', linestyle='--', 
+                ax.axvline(true_theta[i].item(), color='red', linestyle='--',
                           linewidth=2, label='True value')
                 ax.legend()
-                
-            ax.set_xlabel(name)
+
+            ax.set_xlabel(label)
             ax.set_ylabel('Density')
-            ax.set_title(f'Posterior: {name}')
-            
+            ax.set_title(f'Posterior: {label}')
+
         plt.tight_layout()
         return fig
     
-    def plot_pairwise(self, 
+    def plot_pairwise(self,
                      samples: torch.Tensor,
                      true_theta: Optional[torch.Tensor] = None,
-                     figsize: Tuple[int, int] = (8, 8)) -> plt.Figure:
+                     figsize: Optional[Tuple[int, int]] = None) -> plt.Figure:
         """
-        Plot pairwise posterior relationships.
-        
+        Plot pairwise posterior relationships (corner-style).
+
         Parameters:
         -----------
         samples : torch.Tensor
-            Posterior samples [U, P]
+            Posterior samples of shape (n_samples, n_params)
         true_theta : torch.Tensor, optional
             True parameter values
-        figsize : tuple
-            Figure size
-            
+        figsize : tuple, optional
+            Figure size (defaults to (4*n_params, 4*n_params))
+
         Returns:
         --------
         fig : matplotlib.figure.Figure
-            Figure object
         """
+        n_params = len(self.param_names)
+        if self.model_config is not None:
+            labels = self.model_config.param_labels
+        else:
+            labels = ['U (initial occupancy)', 'P (movement probability)']
+
+        if figsize is None:
+            figsize = (4 * n_params, 4 * n_params)
+
         samples_np = samples.cpu().numpy()
-        
-        fig, axes = plt.subplots(2, 2, figsize=figsize)
-        
-        # U marginal
-        axes[0, 0].hist(samples_np[:, 0], bins=30, alpha=0.7, color='skyblue')
-        if true_theta is not None:
-            axes[0, 0].axvline(true_theta[0].item(), color='red', linestyle='--')
-        axes[0, 0].set_title('U (initial occupancy)')
-        axes[0, 0].set_ylabel('Count')
-        
-        # P marginal  
-        axes[1, 1].hist(samples_np[:, 1], bins=30, alpha=0.7, color='skyblue')
-        if true_theta is not None:
-            axes[1, 1].axvline(true_theta[1].item(), color='red', linestyle='--')
-        axes[1, 1].set_title('P (movement probability)')
-        axes[1, 1].set_xlabel('P')
-        axes[1, 1].set_ylabel('Count')
-        
-        # Joint distribution (U vs P)
-        axes[1, 0].scatter(samples_np[:, 0], samples_np[:, 1], 
-                          alpha=0.3, s=1, color='skyblue')
-        if true_theta is not None:
-            axes[1, 0].scatter(true_theta[0].item(), true_theta[1].item(), 
-                             color='red', s=50, marker='x', linewidth=2)
-        axes[1, 0].set_xlabel('U (initial occupancy)')
-        axes[1, 0].set_ylabel('P (movement probability)')
-        axes[1, 0].set_title('Joint Posterior')
-        
-        # Turn off upper right
-        axes[0, 1].axis('off')
-        
+        fig, axes = plt.subplots(n_params, n_params, figsize=figsize)
+        if n_params == 1:
+            axes = np.array([[axes]])
+
+        for row in range(n_params):
+            for col in range(n_params):
+                ax = axes[row, col]
+                if col > row:
+                    ax.axis('off')
+                elif row == col:
+                    # Marginal histogram on diagonal
+                    ax.hist(samples_np[:, row], bins=30, alpha=0.7, color='skyblue')
+                    if true_theta is not None:
+                        ax.axvline(true_theta[row].item(), color='red', linestyle='--')
+                    ax.set_title(labels[row])
+                    if row == n_params - 1:
+                        ax.set_xlabel(labels[col])
+                    ax.set_ylabel('Count')
+                else:
+                    # Scatter of col (x) vs row (y)
+                    ax.scatter(samples_np[:, col], samples_np[:, row],
+                              alpha=0.3, s=1, color='skyblue')
+                    if true_theta is not None:
+                        ax.scatter(true_theta[col].item(), true_theta[row].item(),
+                                 color='red', s=50, marker='x', linewidth=2)
+                    if row == n_params - 1:
+                        ax.set_xlabel(labels[col])
+                    if col == 0:
+                        ax.set_ylabel(labels[row])
+
         plt.tight_layout()
         return fig
-    
 
 
