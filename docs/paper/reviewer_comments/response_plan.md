@@ -122,15 +122,15 @@ R2: "The analysis does not report diagnostic of the simulation-based inference..
 
 R2: "It is not clear why authors chose NPE specifically? What about other algorithms? (e.g., NRE)"
 
-- [ ] Add a paragraph in Discussion (or Methods) comparing NPE vs NRE vs ABC-based SBI methods
-- [ ] Key points to make:
+- [x] Add a paragraph in Discussion (or Methods) comparing NPE vs NRE vs ABC-based SBI methods
+- [x] Key points to make:
   - NPE learns the posterior directly (amortized) — once trained, posterior for any new observation is immediate
   - NRE learns the likelihood-to-evidence ratio — also amortized, but requires MCMC sampling to obtain posterior
   - NPE is more natural for multi-observation problems where you want posteriors for many datasets
   - NPE has a proven track record for scientific inverse problems
-- [ ] Cite relevant comparison papers (e.g., Lueckmann et al. 2021 benchmarks)
-- [ ] Justify NPE for this specific application: direct posterior samples, fast amortized inference, good scaling with observation count
-- [ ] **Decision**: Discussion paragraph only — no NRE experiments needed
+- [x] Cite relevant comparison papers (e.g., Lueckmann et al. 2021 benchmarks)
+- [x] Justify NPE for this specific application: direct posterior samples, fast amortized inference, good scaling with observation count
+- [x] **Decision**: Discussion paragraph only — no NRE experiments needed
 
 ---
 
