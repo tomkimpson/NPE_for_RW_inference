@@ -279,9 +279,8 @@ R2: "Include results from alternative models (ABC, MCMC, etc) and the true value
 
 Section 2.1 mentions "More efficient variants of ABC, such as SMC-ABC" without further discussion.
 
-- [ ] Either expand to briefly explain SMC-ABC (sequential Monte Carlo ABC — iteratively refines proposal distribution to improve acceptance rate)
-- [ ] Or remove the mention if it's not relevant to the narrative
-- [ ] In the revised IMRaD structure, this goes in Methods under "classical inference approaches"
+- [x] Expanded to explain SMC-ABC mechanism (iteratively refines proposal distributions, progressively lowers tolerance)
+- [x] Added clarification that fundamental reliance on summary statistics and repeated simulation remains
 
 ---
 
