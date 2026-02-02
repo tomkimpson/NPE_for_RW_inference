@@ -254,9 +254,9 @@ R2: "Cost per Inference vs. Amortized - are they the same thing?"
 
 R2: "Include results from alternative models (ABC, MCMC, etc) and the true values."
 
-- [ ] Add columns/rows for ABC and MCMC posterior estimates alongside NPE
-- [ ] Include ground truth parameter values in table
-- [ ] Extend table to cover all 4 models (existing + 3 new)
+- [x] Added true value row (U=0.3, D=0.175)
+- [x] Added rows for ABC, Surrogate+MLE/Laplace, and Surrogate+MCMC with qualitative references to Figure 3
+- [x] Restructured table with Method and Data Type columns
 
 ---
 

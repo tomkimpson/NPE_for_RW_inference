@@ -452,15 +452,21 @@ In the 2D (CNN) results we also note a modest separation between the posterior p
 
 \begin{table}[htbp]
 	\centering
-	\begin{tabular}{lcc}
+	\begin{tabular}{llcc}
 		\toprule
-		\textbf{Data Type} & \textbf{Posterior for $U$} &  \textbf{Posterior for $D$}  \\
+		\textbf{Method} & \textbf{Data Type} & \textbf{Posterior for $U$} &  \textbf{Posterior for $D$}  \\
 		\midrule
-1D Column counts  & $0.298^{+0.009}_{-0.008}$ & $0.164^{+0.024}_{-0.024}$\\
-2D Spatial data   & $0.290^{+0.008}_{-0.009}$ & $0.169^{+0.026}_{-0.023}$\\
+		True value & --- & $0.300$ & $0.175$ \\
+		\midrule
+		ABC & 1D Column counts & Broad posterior (Fig.~\ref{fig:sub1}) & Broad posterior (Fig.~\ref{fig:sub1}) \\
+		Surrogate + MLE/Laplace & 1D Column counts & Tight posterior (Fig.~\ref{fig:sub2}) & Tight posterior (Fig.~\ref{fig:sub2}) \\
+		Surrogate + MCMC & 1D Column counts & Intermediate (Fig.~\ref{fig:sub3}) & Intermediate (Fig.~\ref{fig:sub3}) \\
+		\midrule
+		NPE & 1D Column counts & $0.298^{+0.009}_{-0.008}$ & $0.164^{+0.024}_{-0.024}$\\
+		NPE + CNN & 2D Spatial data & $0.290^{+0.008}_{-0.009}$ & $0.169^{+0.026}_{-0.023}$\\
 		\bottomrule
 	\end{tabular}
-	\caption{Comparison of NPE performance using different data representations. Values show posterior medians with 68\% credible intervals ($x^{+a}_{-b}$). Inference using the 2D spatial data yields comparable posterior precision to the 1D summary statistics.}
+	\caption{Comparison of inference results across methods and data representations. NPE values show posterior medians with 68\% credible intervals ($x^{+a}_{-b}$). Classical method posteriors are shown qualitatively with references to the corresponding corner plots in Figure~\ref{fig:three_figures}; the MCMC method additionally infers a noise variance nuisance parameter $\sigma$. Inference using NPE with 2D spatial data yields comparable posterior precision to the 1D summary statistics.}
 	\label{tab:data_comparison}
 \end{table}
 
