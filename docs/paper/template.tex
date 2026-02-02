@@ -342,14 +342,14 @@ Collectively, these results highlight the core dilemma: direct methods like ABC 
 	\begin{subfigure}{0.45\textwidth}
 		\centering
 		\includegraphics[width=\textwidth]{images/corner_plot_abc_stochastic2}
-		\caption{Approximate posterior from ABC applied directly to the stochastic model. Computational constraints and information loss lead to a diffuse posterior for $D$.}
+		\caption{}
 		\label{fig:sub1}
 	\end{subfigure}
 	\hfill
 	\begin{subfigure}{0.45\textwidth}
 		\centering
 		\includegraphics[width=\textwidth]{images/corner_plot_abc_surrogate2}
-		\caption{Gaussian approximation of the posterior (Laplace approximation) via MLE on a deterministic surrogate model. This approach is computationally efficient but conditional on the surrogate's fidelity.}
+		\caption{}
 		\label{fig:sub2}
 	\end{subfigure}
 
@@ -359,10 +359,10 @@ Collectively, these results highlight the core dilemma: direct methods like ABC 
 	\begin{subfigure}{0.55\textwidth}
 		\centering
 		\includegraphics[width=\textwidth]{images/corner_plot_mcmc_surrogate2}
-		\caption{Posterior distribution from MCMC using the surrogate model with an assumed Gaussian noise model. This method jointly infers the model parameters alongside an additional noise variance parameter, $\sigma$.}
+		\caption{}
 		\label{fig:sub3}
 	\end{subfigure}
-	\caption{Comparison of posterior distributions obtained using classical inference methods for a scratch assay model. The diagonal panels show the marginalized one-dimensional posteriors for each parameter, while the off-diagonal panel shows the joint two-dimensional posterior illustrating their covariance. The subtitles above each one-dimensional subplot indicate the  posterior median and the central 68\% credible interval. The vertical dashed lines mark 16th, 50th, and 84th percentiles of each one-dimensional posterior, corresponding to the median (central line) and the bounds of the central 68\% credible interval. The orange lines indicate the true parameter values. Each approach demonstrates distinct trade-offs between computational efficiency, precision, and model assumptions.}
+	\caption{Comparison of posterior distributions obtained using classical inference methods for a scratch assay model. (a)~Approximate posterior from ABC applied directly to the stochastic model; computational constraints and information loss lead to a diffuse posterior for $D$. (b)~Gaussian approximation of the posterior (Laplace approximation) via MLE on a deterministic surrogate model; this approach is computationally efficient but conditional on the surrogate's fidelity. (c)~Posterior distribution from MCMC using the surrogate model with an assumed Gaussian noise model; this method jointly infers the model parameters alongside an additional noise variance parameter, $\sigma$. In all panels, the diagonal shows the marginalized one-dimensional posteriors for each parameter and the off-diagonal shows the joint two-dimensional posterior. The subtitles above each one-dimensional subplot indicate the posterior median and the central 68\% credible interval. The vertical dashed lines mark the 16th, 50th, and 84th percentiles, and the orange lines indicate the true parameter values.}
 	\label{fig:three_figures}
 \end{figure}
 

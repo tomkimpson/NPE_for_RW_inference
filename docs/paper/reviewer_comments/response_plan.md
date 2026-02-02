@@ -311,9 +311,9 @@ R2: "'NPE offers a fundamentally different approach' is incorrect or unclear."
 
 ### Item 22: Figure Placement and Captions [R1]
 
-- [ ] Move Figure 5 closer to its first reference in the text
-- [ ] Fix Figure 2 sub-captions — move panel descriptions into the main caption body
-- [ ] Review R1's annotated PDF for any other specific figure issues
+- [x] Figure 5 placement now correct after IMRaD restructure
+- [x] Moved subfigure caption text into main caption as (a)..., (b)..., (c)... descriptions
+- [x] Subfigures now use empty \caption{} for label only
 
 ---
 
