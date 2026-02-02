@@ -262,10 +262,9 @@ R2: "Include results from alternative models (ABC, MCMC, etc) and the true value
 
 ### Item 16: Fix Section Naming / Structure [R2]
 
-- [ ] Section 2.3 "Example Results" — replace with more descriptive title
-- [ ] Section 3.3 describes SNPE but says "we will exclusively use sequential NPE" — clarify sequential vs non-sequential, or just say NPE
-- [ ] Add a description of Neural Spline Flows (currently used but not described in text)
-- [ ] **Note**: Most of these issues will be resolved naturally by the IMRaD restructure (Item 1)
+- [x] Section naming resolved by IMRaD restructure (Item 1)
+- [x] SNPE sentence clarified: now explains proposal-correction mechanism
+- [x] Added description of neural spline flows (monotonic rational-quadratic spline transformations)
 
 ---
 
