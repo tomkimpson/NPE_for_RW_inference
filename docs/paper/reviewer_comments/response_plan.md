@@ -270,8 +270,8 @@ R2: "Include results from alternative models (ABC, MCMC, etc) and the true value
 
 ### Item 17: Clarify Section 3.2.1 Paragraph 1 [R2]
 
-- [ ] Review and rewrite paragraph 1 of Section 3.2.1 for clarity
-- [ ] R2 flagged this as unclear — check current `docs/paper/template.tex` Section 3.2.1
+- [x] Tightened first paragraph of Conditional Normalizing Flows section
+- [x] Removed redundant framing, focused on technical content (invertible maps, tractable Jacobians, change-of-variables)
 
 ---
 
