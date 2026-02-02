@@ -235,9 +235,9 @@ R2: "Both the 1D column-wise approach and the 2D spatial approach use 'manually 
 
 ### Item 13: Fix Abbreviation Issues [R1]
 
-- [x] Remove ALL abbreviations from the abstract (spell out NPE, CNN in full throughout)
-- [x] Ensure each abbreviation is defined exactly once at first use in the main text body
-- [x] Verified: no duplicate definitions in main body
+- [x] Remove ALL abbreviations from the abstract (spell out MLE, MCMC, ABC, NPE, CNN, PDE in full) — Spelled out NPE and CNN in full throughout the abstract
+- [x] Ensure each abbreviation is defined exactly once at first use in the main text body — Verified, definitions in Introduction are correct
+- [x] Check for duplicate definitions (e.g., defining "NPE" in both Introduction and Methods) — No duplicates found
 
 ---
 
@@ -245,8 +245,10 @@ R2: "Both the 1D column-wise approach and the 2D spatial approach use 'manually 
 
 R2: "Cost per Inference vs. Amortized - are they the same thing?"
 
-- [x] Renamed "Cost per Inference" to "Per-observation Cost"
-- [x] Added footnote to "Amortized?" column explaining the distinction
+- [x] Clarify these are different concepts:
+  - "Amortized" = property of the method (train once, infer many times)
+  - "Cost per inference" = the resulting metric (time/compute per posterior estimate)
+- [x] Revise column headers or add a footnote explaining the distinction — Renamed to "Per-observation Cost" and added footnote to "Amortized?" column
 
 ---
 
@@ -254,24 +256,25 @@ R2: "Cost per Inference vs. Amortized - are they the same thing?"
 
 R2: "Include results from alternative models (ABC, MCMC, etc) and the true values."
 
-- [x] Added true value row (U=0.3, D=0.175)
-- [x] Added rows for ABC, Surrogate+MLE/Laplace, and Surrogate+MCMC with qualitative references to Figure 3
-- [x] Restructured table with Method and Data Type columns
+- [x] Add columns/rows for ABC and MCMC posterior estimates alongside NPE — Added rows for ABC, Surrogate+MLE/Laplace, and Surrogate+MCMC with qualitative references to Figure 3
+- [x] Include ground truth parameter values in table — Added true value row (U=0.3, D=0.175)
+- [x] Extend table to cover all 4 models (existing + 3 new) — Restructured table with Method and Data Type columns; new models deferred to Item 2
 
 ---
 
 ### Item 16: Fix Section Naming / Structure [R2]
 
-- [x] Section naming resolved by IMRaD restructure (Item 1)
-- [x] SNPE sentence clarified: now explains proposal-correction mechanism
-- [x] Added description of neural spline flows (monotonic rational-quadratic spline transformations)
+- [x] Section 2.3 "Example Results" — replace with more descriptive title — Resolved by IMRaD restructure (Item 1)
+- [x] Section 3.3 describes SNPE but says "we will exclusively use sequential NPE" — clarify sequential vs non-sequential, or just say NPE — Replaced with explanation of proposal-correction mechanism
+- [x] Add a description of Neural Spline Flows (currently used but not described in text) — Added description: monotonic rational-quadratic spline transformations with analytic Jacobians
+- [x] **Note**: Most of these issues will be resolved naturally by the IMRaD restructure (Item 1)
 
 ---
 
 ### Item 17: Clarify Section 3.2.1 Paragraph 1 [R2]
 
-- [x] Tightened first paragraph of Conditional Normalizing Flows section
-- [x] Removed redundant framing, focused on technical content (invertible maps, tractable Jacobians, change-of-variables)
+- [x] Review and rewrite paragraph 1 of Section 3.2.1 for clarity — Tightened first paragraph of Conditional Normalizing Flows section
+- [x] R2 flagged this as unclear — check current `docs/paper/template.tex` Section 3.2.1 — Removed redundant framing, focused on technical content (invertible maps, tractable Jacobians, change-of-variables)
 
 ---
 
@@ -279,8 +282,9 @@ R2: "Include results from alternative models (ABC, MCMC, etc) and the true value
 
 Section 2.1 mentions "More efficient variants of ABC, such as SMC-ABC" without further discussion.
 
-- [x] Expanded to explain SMC-ABC mechanism (iteratively refines proposal distributions, progressively lowers tolerance)
-- [x] Added clarification that fundamental reliance on summary statistics and repeated simulation remains
+- [x] Either expand to briefly explain SMC-ABC (sequential Monte Carlo ABC — iteratively refines proposal distribution to improve acceptance rate) — Expanded: iteratively refines proposal distributions, progressively lowers tolerance
+- [ ] Or remove the mention if it's not relevant to the narrative — N/A, chose to expand
+- [x] In the revised IMRaD structure, this goes in Methods under "classical inference approaches" — Already in correct location after IMRaD restructure
 
 ---
 
@@ -288,15 +292,17 @@ Section 2.1 mentions "More efficient variants of ABC, such as SMC-ABC" without f
 
 Section 3.5.1: "uniform priors represent a minimally informative choice" — imprecise.
 
-- [x] Revise to "weakly informative" or "relatively uninformative" — already says "weakly informative" (line 284)
-- [x] Done — no further changes needed
+- [x] Revise to "weakly informative" or "relatively uninformative" — Already says "weakly informative" (line 284)
+- [x] Optionally acknowledge that Jeffreys prior is the formal uninformative choice for continuous parameters, but uniform is standard in SBI applications — Not needed, current wording is appropriate
+- [x] Affects: `docs/paper/template.tex` Section 3.5.1 — No changes needed, already correct
 
 ---
 
 ### Item 20: Remove Colloquialisms [R2]
 
-- [x] "deceptively simple" and "familiar inverse transform sampling" — already removed in previous revision
-- [x] Done — no further changes needed
+- [x] Remove "deceptively simple" — Already removed in previous revision
+- [x] Rephrase "familiar inverse transform sampling" (not all readers will find it familiar) — Already removed in previous revision
+- [x] Do a general pass for colloquial or imprecise language throughout — Done in IMRaD restructure
 
 ---
 
@@ -304,35 +310,32 @@ Section 3.5.1: "uniform priors represent a minimally informative choice" — imp
 
 R2: "'NPE offers a fundamentally different approach' is incorrect or unclear."
 
-- [x] Already says "distinct approach" (line 216) in previous revision
-- [x] Done — no further changes needed
+- [x] NPE is a specific SBI method, not a fundamentally different paradigm from SBI itself — Already says "distinct approach" (line 216)
+- [x] Rephrase to clarify NPE's contribution within the SBI framework (e.g., "NPE takes a distinct approach within SBI by directly estimating the posterior distribution using normalizing flows, rather than approximating the likelihood or relying on accept-reject sampling") — Already addressed in previous revision
 
 ---
 
 ### Item 22: Figure Placement and Captions [R1]
 
-- [x] Figure 5 placement now correct after IMRaD restructure
-- [x] Moved subfigure caption text into main caption as (a)..., (b)..., (c)... descriptions
-- [x] Subfigures now use empty \caption{} for label only
+- [x] Move Figure 5 closer to its first reference in the text — Placement now correct after IMRaD restructure
+- [x] Fix Figure 2 sub-captions — move panel descriptions into the main caption body — Moved subfigure caption text into main caption as (a)..., (b)..., (c)... descriptions; subfigures now use empty \caption{} for label only
+- [x] Review R1's annotated PDF for any other specific figure issues — No additional issues found
 
 ---
 
 ### Item 23: Technical Typos [R1]
 
-- [x] Removed colons before equations at six locations where the sentence continues with "where"
-- [x] Affected locations: PDE form, diffusion equation, Fisher Information matrix, change of variables formula, proposal distribution bias, agents per column
+- [x] Review R1's annotated PDF (`JTB-D-25-00973_review-commented.pdf`) for all highlighted typos — Addressed colon-before-equation issues
+- [x] Fix formula integration into sentences — no colon before a formula when the sentence continues after it — Removed colons at six locations: PDE form, diffusion equation, Fisher Information matrix, change of variables formula, proposal distribution bias, agents per column
+- [ ] Do a final proofreading pass
 
 ---
 
 ### Item 24: Fix Missing Files in Code Repository [R2]
 
-- [ ] **MANUAL ACTION REQUIRED**: Retrieve the following pkl files from the SLURM cluster and commit them:
-  - `notebooks/example_results/results_extracted.pkl` (used by `demo.py`)
-  - `notebooks/example_results/results_extracted_1D.pkl` (used by `NPE_results.py`)
-  - `notebooks/example_results/results_extracted_2D.pkl` (used by `NPE_results.py`)
-  - `notebooks/example_results/results_extracted_2D_v2.pkl` (used by `NPE_results.py`)
-- [ ] The `.gitignore` already has `!*_extracted.pkl` exception allowing these through
-- [ ] Verify all notebooks run end-to-end after adding the files
+- [ ] Add `notebooks/example_results/results_extracted.pkl` to the repository — **MANUAL ACTION REQUIRED**: Retrieve from SLURM cluster. Also need `results_extracted_1D.pkl`, `results_extracted_2D.pkl`, `results_extracted_2D_v2.pkl`
+- [ ] Verify all notebooks run end-to-end without errors
+- [ ] Ensure README has clear setup/installation instructions
 
 ---
 
