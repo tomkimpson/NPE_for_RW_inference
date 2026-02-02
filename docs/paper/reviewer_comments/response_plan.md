@@ -326,9 +326,13 @@ R2: "'NPE offers a fundamentally different approach' is incorrect or unclear."
 
 ### Item 24: Fix Missing Files in Code Repository [R2]
 
-- [ ] Add `notebooks/example_results/results_extracted.pkl` to the repository
-- [ ] Verify all notebooks run end-to-end without errors
-- [ ] Ensure README has clear setup/installation instructions
+- [ ] **MANUAL ACTION REQUIRED**: Retrieve the following pkl files from the SLURM cluster and commit them:
+  - `notebooks/example_results/results_extracted.pkl` (used by `demo.py`)
+  - `notebooks/example_results/results_extracted_1D.pkl` (used by `NPE_results.py`)
+  - `notebooks/example_results/results_extracted_2D.pkl` (used by `NPE_results.py`)
+  - `notebooks/example_results/results_extracted_2D_v2.pkl` (used by `NPE_results.py`)
+- [ ] The `.gitignore` already has `!*_extracted.pkl` exception allowing these through
+- [ ] Verify all notebooks run end-to-end after adding the files
 
 ---
 
