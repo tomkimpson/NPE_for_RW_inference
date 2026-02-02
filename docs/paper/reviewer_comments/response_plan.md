@@ -319,9 +319,8 @@ R2: "'NPE offers a fundamentally different approach' is incorrect or unclear."
 
 ### Item 23: Technical Typos [R1]
 
-- [ ] Review R1's annotated PDF (`JTB-D-25-00973_review-commented.pdf`) for all highlighted typos
-- [ ] Fix formula integration into sentences — no colon before a formula when the sentence continues after it
-- [ ] Do a final proofreading pass
+- [x] Removed colons before equations at six locations where the sentence continues with "where"
+- [x] Affected locations: PDE form, diffusion equation, Fisher Information matrix, change of variables formula, proposal distribution bias, agents per column
 
 ---
 
