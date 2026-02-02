@@ -154,7 +154,7 @@ We briefly review the established approaches to inference for stochastic agent-b
 	\renewcommand{\arraystretch}{1.3} % Increase row spacing
 	\begin{tabular}{@{}lcccc@{}}
 		\toprule
-		\textbf{Method} & \textbf{Cost per Inference} & \textbf{Requires Surrogate?} & \textbf{Requires Summary Stats?} & \textbf{Amortized?} \\
+		\textbf{Method} & \textbf{Per-observation Cost} & \textbf{Requires Surrogate?} & \textbf{Requires Summary Stats?} & \textbf{Amortized?\textsuperscript{\dag}} \\
 		\midrule
 		ABC & Very High & No & Yes & No \\
 		Surrogate + MCMC & High & Yes & Yes & No \\
@@ -163,7 +163,7 @@ We briefly review the established approaches to inference for stochastic agent-b
 		\bottomrule
 	\end{tabular}
 	\vspace{0.2cm}
-	\caption{Comparison of inference approaches for stochastic biological models. \textsuperscript{*}The low cost per inference for NPE is achieved after an initial, computationally intensive training phase.}
+	\caption{Comparison of inference approaches for stochastic biological models. \textsuperscript{*}The low per-observation cost for NPE is achieved after an initial, computationally intensive training phase. \textsuperscript{\dag}Amortized methods incur a one-time training cost after which per-observation cost is negligible.}
 	\label{tab:method_comparison}
 \end{table}
 

@@ -245,10 +245,8 @@ R2: "Both the 1D column-wise approach and the 2D spatial approach use 'manually 
 
 R2: "Cost per Inference vs. Amortized - are they the same thing?"
 
-- [ ] Clarify these are different concepts:
-  - "Amortized" = property of the method (train once, infer many times)
-  - "Cost per inference" = the resulting metric (time/compute per posterior estimate)
-- [ ] Revise column headers or add a footnote explaining the distinction
+- [x] Renamed "Cost per Inference" to "Per-observation Cost"
+- [x] Added footnote to "Amortized?" column explaining the distinction
 
 ---
 
