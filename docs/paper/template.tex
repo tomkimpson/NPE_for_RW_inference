@@ -91,7 +91,7 @@
 
 
 \begin{abstract}
-Cell migration is a fundamental biological process underlying wound healing, tissue development, and cancer metastasis, yet calibrating mathematical models of migration to experimental data remains a major challenge. Scratch and barrier assays are widely used to study collective cell spreading, and agent-based random walk models provide a natural stochastic description of these experiments. However, parameter inference for such models is hampered by intractable likelihoods, forcing researchers to rely on Approximate Bayesian Computation, which introduces biases and tuning difficulties, or surrogate models that require potentially erroneous noise model specifications. Here, we overcome these limitations using Neural Posterior Estimation (NPE), a simulation-based inference framework that learns the full posterior distribution directly from stochastic simulations. Once trained, NPE provides amortized inference, where the upfront cost of training is offset by near-instant posterior estimates for any new observation. We deploy this framework on a random walk model of a barrier assay experiment describing in vitro cell migration and demonstrate our approach in two settings: first, using one-dimensional summary statistics (column counts), and second, by augmenting NPE with a convolutional neural network (CNN) that enables inference directly from raw two-dimensional spatial data. In both cases NPE proves highly effective, delivering posterior estimates at a substantially reduced computational cost per inference. When applied to one-dimensional summary statistics, the pipeline matches or exceeds the precision of classical methods; for two-dimensional spatial data, NPE augmented with a CNN performs inference directly on raw images with a precision comparable to that from curated summary statistics. This capability is critical as it moves beyond reliance on lower-dimensional data and opens new avenues for complex models where informative summary statistics are not obvious or available. We provide an open-source implementation of our pipeline to facilitate its adoption and extension to more complex, spatially-structured biological models.
+Cell migration is a fundamental biological process underlying wound healing, tissue development, and cancer metastasis, yet calibrating mathematical models of migration to experimental data remains a major challenge. Scratch and barrier assays are widely used to study collective cell spreading, and agent-based random walk models provide a natural stochastic description of these experiments. However, parameter inference for such models is hampered by intractable likelihoods, forcing researchers to rely on Approximate Bayesian Computation, which introduces biases and tuning difficulties, or surrogate models that require potentially erroneous noise model specifications. Here, we overcome these limitations using neural posterior estimation, a simulation-based inference framework that learns the full posterior distribution directly from stochastic simulations. Once trained, neural posterior estimation provides amortized inference, where the upfront cost of training is offset by near-instant posterior estimates for any new observation. We deploy this framework on a random walk model of a barrier assay experiment describing in vitro cell migration and demonstrate our approach in two settings: first, using one-dimensional summary statistics (column counts), and second, by augmenting neural posterior estimation with a convolutional neural network that enables inference directly from raw two-dimensional spatial data. In both cases neural posterior estimation proves highly effective, delivering posterior estimates at a substantially reduced computational cost per inference. When applied to one-dimensional summary statistics, the pipeline matches or exceeds the precision of classical methods; for two-dimensional spatial data, neural posterior estimation augmented with a convolutional neural network performs inference directly on raw images with a precision comparable to that from curated summary statistics. This capability is critical as it moves beyond reliance on lower-dimensional data and opens new avenues for complex models where informative summary statistics are not obvious or available. We provide an open-source implementation of our pipeline to facilitate its adoption and extension to more complex, spatially-structured biological models.
 \end{abstract}
 
 
@@ -131,11 +131,11 @@ We demonstrate this framework on a canonical agent-based random walk model of a 
 
 We study a stochastic agent-based model of a barrier assay, following the setup described in \SP. Agents representing biological cells are initially confined to a central region on a two-dimensional square lattice and subsequently spread outwards via an unbiased random walk. The experimental setup, illustrated in Figure~\ref{fig:model_schematic}, mimics a barrier assay where cells are placed in a confined region and allowed to spread after barrier removal. The two-dimensional lattice has height $H=50$ (with $0\leq y \leq 50$) and width $W=200$ (with $-100 \leq x \leq 100$), with lattice spacing $\Delta=1$ and discrete time step $\tau=1$. Zero-flux boundary conditions are applied at all edges. Initial conditions are set by occupying each site in the central region $|x| \leq 25$ with a single agent with probability $U=0.3$, as shown in Figure~\ref{fig:model_schematic}a. At each time step, the system evolves through a random sequential update method where agents move to one of four nearest-neighbour sites with probability $P=0.7$. After 100 time steps, the population spreads symmetrically as shown in Figure~\ref{fig:model_schematic}b.
 
-For lattice-based random walk models of this type, the mean behaviour of agents in the continuum limit can be described by a PDE of the form \citep{Codling2008,Simpson2025.05.25.656057,Plank2025}:
+For lattice-based random walk models of this type, the mean behaviour of agents in the continuum limit can be described by a PDE of the form \citep{Codling2008,Simpson2025.05.25.656057,Plank2025}
 \begin{equation}
 	\frac{\partial u}{\partial t} = -\frac{\partial J}{\partial x} + S,
 \end{equation}
-where $u(x,t)$ represents mean agent density, $J$ is the macroscopic flux, and $S$ denotes source terms from proliferation. For the simple case considered here (unbiased motion, no proliferation, no crowding), this reduces to the linear diffusion equation:
+where $u(x,t)$ represents mean agent density, $J$ is the macroscopic flux, and $S$ denotes source terms from proliferation. For the simple case considered here (unbiased motion, no proliferation, no crowding), this reduces to the linear diffusion equation
 \begin{equation}
 	\frac{\partial u}{\partial t} = D\frac{\partial^2 u}{\partial x^2},
 \end{equation}
@@ -154,7 +154,7 @@ We briefly review the established approaches to inference for stochastic agent-b
 	\renewcommand{\arraystretch}{1.3} % Increase row spacing
 	\begin{tabular}{@{}lcccc@{}}
 		\toprule
-		\textbf{Method} & \textbf{Cost per Inference} & \textbf{Requires Surrogate?} & \textbf{Requires Summary Stats?} & \textbf{Amortized?} \\
+		\textbf{Method} & \textbf{Per-observation Cost} & \textbf{Requires Surrogate?} & \textbf{Requires Summary Stats?} & \textbf{Amortized?\textsuperscript{\dag}} \\
 		\midrule
 		ABC & Very High & No & Yes & No \\
 		Surrogate + MCMC & High & Yes & Yes & No \\
@@ -163,7 +163,7 @@ We briefly review the established approaches to inference for stochastic agent-b
 		\bottomrule
 	\end{tabular}
 	\vspace{0.2cm}
-	\caption{Comparison of inference approaches for stochastic biological models. \textsuperscript{*}The low cost per inference for NPE is achieved after an initial, computationally intensive training phase.}
+	\caption{Comparison of inference approaches for stochastic biological models. \textsuperscript{*}The low per-observation cost for NPE is achieved after an initial, computationally intensive training phase. \textsuperscript{\dag}Amortized methods incur a one-time training cost after which per-observation cost is negligible.}
 	\label{tab:method_comparison}
 \end{table}
 
@@ -174,7 +174,7 @@ ABC represents the most direct approach to likelihood-free inference for stochas
 
 Despite its conceptual simplicity, ABC faces significant methodological and computational challenges. A primary issue is the choice of the tolerance $\epsilon$, which defines a fundamental bias-accuracy trade-off \citep{SunnkerABC,Blum2013}. Only in the idealised limit where $\epsilon \to 0$ and the summary statistics are sufficient does the ABC posterior converge to the true posterior \citep{Marin2012,Blum2013}. In practice, a smaller $\epsilon$ reduces bias but dramatically lowers the acceptance rate, increasing computational cost. Conversely, a larger $\epsilon$ increases the acceptance rate at the cost of yielding a more biased and diffuse posterior approximation.
 
-This trade-off is exacerbated by the "curse of dimensionality" \citep{Blum2010,Blum2013}. For models with high-dimensional data or parameter spaces, the acceptance rate can be exceptionally low, demanding a vast number of simulations. For instance, \SP{} generate $10^5$ simulations from their computationally expensive random walk model to retain just the top 1\%, highlighting this significant computational inefficiency. Furthermore, the method's performance depends critically on the choice of summary statistics. If the statistics are not formally sufficient, crucial information from the data is discarded, which introduces a form of bias that cannot be removed by simply lowering the tolerance $\epsilon$ \citep{Robert2011,Marin2012}. Selecting informative yet low-dimensional summary statistics in a principled manner remains a difficult and often ad-hoc challenge \citep{FearnheadPrangle2012,Blum2013}. More efficient variants of ABC, such as Sequential Monte Carlo ABC \citep{SissonFanTanaka2007,ToniWelchStrelkowaIpsenStumpf2009}, have been proposed to try to circumvent some of the above issues.
+This trade-off is exacerbated by the "curse of dimensionality" \citep{Blum2010,Blum2013}. For models with high-dimensional data or parameter spaces, the acceptance rate can be exceptionally low, demanding a vast number of simulations. For instance, \SP{} generate $10^5$ simulations from their computationally expensive random walk model to retain just the top 1\%, highlighting this significant computational inefficiency. Furthermore, the method's performance depends critically on the choice of summary statistics. If the statistics are not formally sufficient, crucial information from the data is discarded, which introduces a form of bias that cannot be removed by simply lowering the tolerance $\epsilon$ \citep{Robert2011,Marin2012}. Selecting informative yet low-dimensional summary statistics in a principled manner remains a difficult and often ad-hoc challenge \citep{FearnheadPrangle2012,Blum2013}. More efficient variants, such as Sequential Monte Carlo ABC \citep{SissonFanTanaka2007,ToniWelchStrelkowaIpsenStumpf2009}, iteratively refine a sequence of proposal distributions toward the posterior by progressively lowering the tolerance, improving the acceptance rate relative to simple rejection sampling. Nevertheless, the fundamental reliance on summary statistics and repeated simulation remains.
 
 
 
@@ -190,7 +190,7 @@ The primary limitation of this approach is that the resulting inference is condi
 \subsubsection{Inference with Surrogate Likelihoods}
 A tractable likelihood function from a surrogate model unlocks standard, efficient inference techniques that would be impossible with the original stochastic simulator. These techniques generally fall into two categories: direct optimization or posterior sampling.
 
-The first category, direct optimization, seeks to find the single parameter set that maximizes the likelihood function, yielding the MLE. While computationally fast, the MLE provides only a point estimate and does not inherently quantify parameter uncertainty, although indirect (asymptotic) uncertainty quantification can be obtained through likelihood ratio tests and Wilks' theorem. The second category, posterior sampling, uses methods like MCMC to approximate the full posterior distribution, offering a complete characterisation of uncertainty. However, MCMC typically requires significant computational effort, careful hyper-parameter tuning, and rigorous convergence assessment. A third approach, the Laplace approximation, offers a compromise between the speed of optimization and the detailed uncertainty characterization of MCMC. This method approximates the posterior distribution as a multivariate normal distribution centred at the posterior mode (which equals the MLE, $\hat{\theta}$ under uniform priors). The covariance is given by the inverse of the observed Fisher Information matrix:
+The first category, direct optimization, seeks to find the single parameter set that maximizes the likelihood function, yielding the MLE. While computationally fast, the MLE provides only a point estimate and does not inherently quantify parameter uncertainty, although indirect (asymptotic) uncertainty quantification can be obtained through likelihood ratio tests and Wilks' theorem. The second category, posterior sampling, uses methods like MCMC to approximate the full posterior distribution, offering a complete characterisation of uncertainty. However, MCMC typically requires significant computational effort, careful hyper-parameter tuning, and rigorous convergence assessment. A third approach, the Laplace approximation, offers a compromise between the speed of optimization and the detailed uncertainty characterization of MCMC. This method approximates the posterior distribution as a multivariate normal distribution centred at the posterior mode (which equals the MLE, $\hat{\theta}$ under uniform priors). The covariance is given by the inverse of the observed Fisher Information matrix
 \begin{equation}
 	p(\theta \mid Y^{\text{obs}}) \approx \text{MVN}(\hat{\theta}, \mathcal{I}^{-1}(\hat{\theta})),
 \end{equation}
@@ -228,10 +228,10 @@ Figure~\ref{fig:npe_workflow} provides a schematic overview of the NPE workflow,
 
 \subsubsection{Conditional Normalizing Flows}
 
-At the core of NPE are normalizing flows, a class of flexible neural architectures that learn complex probability distributions through invertible transformations. Normalizing flows have emerged as a powerful tool for density estimation in high-dimensional spaces \cite{rezende2015variational, papamakarios2021normalizing}, offering significant advantages over traditional methods like mixture models or kernel density estimation when dealing with complex, multimodal distributions typical in biological inference problems. The underlying idea is to construct a complex target distribution by transforming samples from a simple base distribution (typically a standard Gaussian) through a series of invertible, differentiable mappings. This can be understood as a generalization of the change-of-variables technique extended to high dimensions through neural networks \cite{kobyzev2020normalizing}. Normalizing flows leverage the representational power of deep learning while maintaining the mathematical rigour needed for proper density estimation.
+At the core of NPE are normalizing flows \cite{rezende2015variational, papamakarios2021normalizing}, a class of generative models that construct complex probability distributions by transforming samples from a simple base distribution (typically a standard Gaussian) through a series of invertible, differentiable mappings \cite{kobyzev2020normalizing}. Because each mapping is invertible and has a tractable Jacobian, the resulting density can be evaluated exactly via the change-of-variables formula, making normalizing flows well suited to the conditional density estimation task required by NPE.
 
 
-Formally, let $u \in \mathbb{R}^d$ be a random variable with base density $p_u(u) = \mathcal{N}(0, I)$, where $I \in \mathbb{R}^{d \times d}$ denotes the identity matrix. The flow defines an invertible transformation $f_\phi: \mathbb{R}^d \rightarrow \mathbb{R}^d$ parametrized by neural network weights $\phi$. For conditional density estimation, this transformation is conditioned on the observation: $\theta = f_\phi(u; x)$. The invertibility requirement ensures that we can both generate samples (forward pass) and evaluate densities (inverse pass). The key insight is that complex distributions can be learned by composing simple transformations, each of which maintains invertibility and efficient Jacobian computation. This allows the network to learn highly flexible posterior shapes while maintaining computational tractability, a crucial feature when inferring parameters in complex biological models where posteriors may exhibit non-Gaussian features such as multimodality, heavy tails, or curved degeneracies. The resulting approximate posterior density follows from the change of variables formula:
+Formally, let $u \in \mathbb{R}^d$ be a random variable with base density $p_u(u) = \mathcal{N}(0, I)$, where $I \in \mathbb{R}^{d \times d}$ denotes the identity matrix. The flow defines an invertible transformation $f_\phi: \mathbb{R}^d \rightarrow \mathbb{R}^d$ parametrized by neural network weights $\phi$. For conditional density estimation, this transformation is conditioned on the observation: $\theta = f_\phi(u; x)$. The invertibility requirement ensures that we can both generate samples (forward pass) and evaluate densities (inverse pass). The key insight is that complex distributions can be learned by composing simple transformations, each of which maintains invertibility and efficient Jacobian computation. This allows the network to learn highly flexible posterior shapes while maintaining computational tractability, a crucial feature when inferring parameters in complex biological models where posteriors may exhibit non-Gaussian features such as multimodality, heavy tails, or curved degeneracies. The resulting approximate posterior density follows from the change of variables formula
 \begin{equation}
 	q_\phi(\theta | Y) = p_u(f_\phi^{-1}(\theta;Y)) \left| \det J_{f_\phi^{-1}}(\theta; Y) \right|
 \end{equation}
@@ -268,18 +268,18 @@ The sequential algorithm proceeds as follows:
 
 	\item \textbf{Subsequent rounds $(r > 1)$:} Use the posterior approximation from round $r-1$ evaluated at the observed data, $q_{\phi_{r-1}}(\theta | x_o)$, as a proposal distribution. Generate new simulations $\theta \sim q_{\phi_{r-1}}(\theta | x_o)$, $x \sim p(x|\theta)$.
 
-	\item \textbf{Importance weighting correction:} Train a new density estimator $q_{\phi_r}(\theta | x)$ on the focused simulations, with importance weighting to correct for the proposal distribution bias:
+	\item \textbf{Importance weighting correction:} Train a new density estimator $q_{\phi_r}(\theta | x)$ on the focused simulations, with importance weighting to correct for the proposal distribution bias
 	\begin{equation}
 		\mathcal{L}_r(\phi) = -\frac{1}{N_r} \sum_{i=1}^{N_r} w_i \log q_\phi(\theta_i | x_i)
 	\end{equation}
 	where $w_i = p(\theta_i) / q_{\phi_{r-1}}(\theta_i | x_o)$ corrects for sampling from the proposal rather than the prior.
 \end{enumerate}
 
-SNPE is most beneficial when the prior is substantially broader than the posterior, which is common in biological applications where parameter ranges are often set conservatively. The method typically converges within 2--4 rounds, providing substantial efficiency gains over standard NPE while maintaining accuracy. In this work we exclusively use the sequential version of NPE.
+SNPE is most beneficial when the prior is substantially broader than the posterior, which is common in biological applications where parameter ranges are often set conservatively. The method typically converges within 2--4 rounds, providing substantial efficiency gains over standard NPE while maintaining accuracy. In this work we employ SNPE, using the proposal-correction mechanism described above to focus the simulation budget on high-posterior-density regions.
 
 \subsubsection{Implementation Details}
 
-All NPE analyses in this work use the \texttt{sbi} Python package \cite{2020JOSS....5.2505T}, which provides a well-documented implementation of state-of-the-art simulation-based inference algorithms. We employ neural spline flows \cite{durkan2019neural} as our density estimator architecture, which offer excellent expressivity while maintaining computational efficiency. Additional implementation details can be found in the project GitHub repository \footnote{\href{github.com/tomkimpson/NPE_for_RW_inference}{https://github.com/tomkimpson/NPE\_for\_RW\_inference}}.
+All NPE analyses in this work use the \texttt{sbi} Python package \cite{2020JOSS....5.2505T}, which provides a well-documented implementation of state-of-the-art simulation-based inference algorithms. We employ neural spline flows \cite{durkan2019neural} as our density estimator architecture. Neural spline flows construct invertible transformations from monotonic rational-quadratic spline segments, providing highly expressive density estimation with analytically tractable Jacobians and stable training dynamics. Additional implementation details can be found in the project GitHub repository \footnote{\href{github.com/tomkimpson/NPE_for_RW_inference}{https://github.com/tomkimpson/NPE\_for\_RW\_inference}}.
 
 We use broad uniform priors covering the full parameter space: $P \sim \mathcal{U}(0.0, 1.0)$ and $U \sim \mathcal{U}(0.01, 1.0)$. These priors are determined by the physical constraints of the model: $U$ and $P$ are both probabilities and so must lie in $[0,1]$. The lower bound of 0.01 for $U$ excludes the degenerate case of zero initial agents while remaining sufficiently permissive. In the absence of strong prior information about parameter values, these uniform priors represent a weakly informative choice that allows the data to dominate the posterior inference. For NPE, the prior serves the dual role of defining the training distribution from which simulation parameters are drawn, and entering into the posterior distribution via Bayes' theorem \citep{Gelman1995,Gelman2017}.
 
@@ -287,7 +287,7 @@ We use broad uniform priors covering the full parameter space: $P \sim \mathcal{
 
 \subsection{Data Representations and CNN Architecture}\label{sec:data_architecture}
 
-A key feature of the barrier assay experimental design is the reduction of two-dimensional spatial data to one-dimensional measurements. Since the initial macroscopic density is uniform in the vertical ($y$) direction and boundary conditions preserve this symmetry, the resulting agent distribution remains independent of vertical location on average. This motivates quantifying the system by counting the number of agents per column:
+A key feature of the barrier assay experimental design is the reduction of two-dimensional spatial data to one-dimensional measurements. Since the initial macroscopic density is uniform in the vertical ($y$) direction and boundary conditions preserve this symmetry, the resulting agent distribution remains independent of vertical location on average. This motivates quantifying the system by counting the number of agents per column
 \begin{equation}
 	N_i(t) = \sum_{j=1}^{J} n_{i,j}(t),
 \end{equation}
@@ -342,14 +342,14 @@ Collectively, these results highlight the core dilemma: direct methods like ABC 
 	\begin{subfigure}{0.45\textwidth}
 		\centering
 		\includegraphics[width=\textwidth]{images/corner_plot_abc_stochastic2}
-		\caption{Approximate posterior from ABC applied directly to the stochastic model. Computational constraints and information loss lead to a diffuse posterior for $D$.}
+		\caption{}
 		\label{fig:sub1}
 	\end{subfigure}
 	\hfill
 	\begin{subfigure}{0.45\textwidth}
 		\centering
 		\includegraphics[width=\textwidth]{images/corner_plot_abc_surrogate2}
-		\caption{Gaussian approximation of the posterior (Laplace approximation) via MLE on a deterministic surrogate model. This approach is computationally efficient but conditional on the surrogate's fidelity.}
+		\caption{}
 		\label{fig:sub2}
 	\end{subfigure}
 
@@ -359,10 +359,10 @@ Collectively, these results highlight the core dilemma: direct methods like ABC 
 	\begin{subfigure}{0.55\textwidth}
 		\centering
 		\includegraphics[width=\textwidth]{images/corner_plot_mcmc_surrogate2}
-		\caption{Posterior distribution from MCMC using the surrogate model with an assumed Gaussian noise model. This method jointly infers the model parameters alongside an additional noise variance parameter, $\sigma$.}
+		\caption{}
 		\label{fig:sub3}
 	\end{subfigure}
-	\caption{Comparison of posterior distributions obtained using classical inference methods for a scratch assay model. The diagonal panels show the marginalized one-dimensional posteriors for each parameter, while the off-diagonal panel shows the joint two-dimensional posterior illustrating their covariance. The subtitles above each one-dimensional subplot indicate the  posterior median and the central 68\% credible interval. The vertical dashed lines mark 16th, 50th, and 84th percentiles of each one-dimensional posterior, corresponding to the median (central line) and the bounds of the central 68\% credible interval. The orange lines indicate the true parameter values. Each approach demonstrates distinct trade-offs between computational efficiency, precision, and model assumptions.}
+	\caption{Comparison of posterior distributions obtained using classical inference methods for a scratch assay model. (a)~Approximate posterior from ABC applied directly to the stochastic model; computational constraints and information loss lead to a diffuse posterior for $D$. (b)~Gaussian approximation of the posterior (Laplace approximation) via MLE on a deterministic surrogate model; this approach is computationally efficient but conditional on the surrogate's fidelity. (c)~Posterior distribution from MCMC using the surrogate model with an assumed Gaussian noise model; this method jointly infers the model parameters alongside an additional noise variance parameter, $\sigma$. In all panels, the diagonal shows the marginalized one-dimensional posteriors for each parameter and the off-diagonal shows the joint two-dimensional posterior. The subtitles above each one-dimensional subplot indicate the posterior median and the central 68\% credible interval. The vertical dashed lines mark the 16th, 50th, and 84th percentiles, and the orange lines indicate the true parameter values.}
 	\label{fig:three_figures}
 \end{figure}
 
@@ -452,15 +452,21 @@ In the 2D (CNN) results we also note a modest separation between the posterior p
 
 \begin{table}[htbp]
 	\centering
-	\begin{tabular}{lcc}
+	\begin{tabular}{llcc}
 		\toprule
-		\textbf{Data Type} & \textbf{Posterior for $U$} &  \textbf{Posterior for $D$}  \\
+		\textbf{Method} & \textbf{Data Type} & \textbf{Posterior for $U$} &  \textbf{Posterior for $D$}  \\
 		\midrule
-1D Column counts  & $0.298^{+0.009}_{-0.008}$ & $0.164^{+0.024}_{-0.024}$\\
-2D Spatial data   & $0.290^{+0.008}_{-0.009}$ & $0.169^{+0.026}_{-0.023}$\\
+		True value & --- & $0.300$ & $0.175$ \\
+		\midrule
+		ABC & 1D Column counts & Broad posterior (Fig.~\ref{fig:sub1}) & Broad posterior (Fig.~\ref{fig:sub1}) \\
+		Surrogate + MLE/Laplace & 1D Column counts & Tight posterior (Fig.~\ref{fig:sub2}) & Tight posterior (Fig.~\ref{fig:sub2}) \\
+		Surrogate + MCMC & 1D Column counts & Intermediate (Fig.~\ref{fig:sub3}) & Intermediate (Fig.~\ref{fig:sub3}) \\
+		\midrule
+		NPE & 1D Column counts & $0.298^{+0.009}_{-0.008}$ & $0.164^{+0.024}_{-0.024}$\\
+		NPE + CNN & 2D Spatial data & $0.290^{+0.008}_{-0.009}$ & $0.169^{+0.026}_{-0.023}$\\
 		\bottomrule
 	\end{tabular}
-	\caption{Comparison of NPE performance using different data representations. Values show posterior medians with 68\% credible intervals ($x^{+a}_{-b}$). Inference using the 2D spatial data yields comparable posterior precision to the 1D summary statistics.}
+	\caption{Comparison of inference results across methods and data representations. NPE values show posterior medians with 68\% credible intervals ($x^{+a}_{-b}$). Classical method posteriors are shown qualitatively with references to the corresponding corner plots in Figure~\ref{fig:three_figures}; the MCMC method additionally infers a noise variance nuisance parameter $\sigma$. Inference using NPE with 2D spatial data yields comparable posterior precision to the 1D summary statistics.}
 	\label{tab:data_comparison}
 \end{table}
 
