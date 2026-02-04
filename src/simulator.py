@@ -153,10 +153,11 @@ class RandomWalkSimulator:
         
         return new_positions
     
-    def simulate(self, U: float, P: float, T: int, random_seed: Optional[int] = None) -> Tuple[np.ndarray, List[Tuple[int, int]], List[Tuple[int, int]]]:
+    def simulate(self, U: float, P: float, T: int, random_seed: Optional[int] = None,
+                 use_2d_output: bool = False) -> Tuple[np.ndarray, List[Tuple[int, int]], List[Tuple[int, int]]]:
         """
         Run complete simulation from initialization to final time.
-        
+
         Parameters:
         -----------
         U : float
@@ -167,12 +168,14 @@ class RandomWalkSimulator:
             Number of time steps
         random_seed : int, optional
             Random seed for reproducibility
-            
+        use_2d_output : bool
+            If True, return 2D grid (Ly, Lx) instead of 1D column counts.
+
         Returns:
         --------
         Tuple containing:
-        - column_counts : np.ndarray
-            Final observation vector (agent counts per column)
+        - observation : np.ndarray
+            1D column counts (Lx,) or 2D grid (Ly, Lx)
         - initial_positions : List[Tuple[int, int]]
             Initial agent positions
         - final_positions : List[Tuple[int, int]]
@@ -180,19 +183,22 @@ class RandomWalkSimulator:
         """
         if T < 0:
             raise ValueError("Number of time steps T must be non-negative")
-            
+
         # Initialize agents
         positions = self.initialize_lattice(U, random_seed)
         initial_positions = positions.copy()
-        
+
         # Run simulation
         for t in range(T):
             positions = self.simulate_step(positions, P)
-        
-        # Get final column counts
-        column_counts = self.get_column_counts(positions)
-        
-        return column_counts, initial_positions, positions
+
+        # Get final observation
+        if use_2d_output:
+            observation = self.get_2d_grid(positions)
+        else:
+            observation = self.get_column_counts(positions)
+
+        return observation, initial_positions, positions
     
     def get_column_counts(self, positions: List[Tuple[int, int]]) -> np.ndarray:
         """
@@ -219,8 +225,33 @@ class RandomWalkSimulator:
                 # Convert centered coordinate to array index
                 array_index = x - x_min
                 counts[array_index] += 1
-                
+
         return counts
+
+    def get_2d_grid(self, positions: List[Tuple[int, int]]) -> np.ndarray:
+        """
+        Generate 2D grid of agent counts.
+
+        Parameters:
+        -----------
+        positions : List[Tuple[int, int]]
+            Agent positions with centered coordinates
+
+        Returns:
+        --------
+        np.ndarray of shape (Ly, Lx)
+            2D grid where grid[y, x_idx] is the agent count at that site.
+        """
+        grid = np.zeros((self.Ly, self.Lx), dtype=int)
+        x_min = -(self.Lx // 2)
+        x_max = self.Lx // 2 if self.Lx % 2 == 1 else (self.Lx // 2) - 1
+
+        for x, y in positions:
+            if x_min <= x <= x_max and 0 <= y < self.Ly:
+                x_idx = x - x_min
+                grid[y, x_idx] += 1
+
+        return grid
 
 
 # Plotting functions
@@ -420,3 +451,273 @@ def plot_simulation_comparison(
     ax_counts.grid(True, alpha=0.3)
 
     return fig
+
+
+# ---------------------------------------------------------------------------
+# Exclusion-process random walk simulator (Models A, B, C)
+# ---------------------------------------------------------------------------
+
+
+class ExclusionRandomWalkSimulator:
+    """
+    2D lattice random walk simulator with exclusion (crowding), optional
+    bias and optional proliferation, following Simpson & Planck (2025).
+
+    State is stored as a 2D binary occupancy grid of shape (Lx, Ly) where
+    grid[i, j] in {0, 1}.  Zero-flux boundary conditions: agents in the
+    leftmost (i=0) and rightmost (i=Lx-1) columns are never selected for
+    movement or growth.  Agents at bottom (j=0) cannot move/grow down;
+    agents at top (j=Ly-1) cannot move/grow up.
+    """
+
+    def __init__(
+        self,
+        Lx: int,
+        Ly: int,
+        initial_region_half_width: Optional[int] = None,
+        has_bias: bool = False,
+        has_growth: bool = False,
+        Delta: float = 1.0,
+        tau: float = 1.0,
+    ):
+        if Lx <= 0 or Ly <= 0:
+            raise ValueError("Lattice dimensions must be positive")
+
+        self.Lx = Lx
+        self.Ly = Ly
+        self.initial_region_half_width = initial_region_half_width or Lx // 4
+        self.has_bias = has_bias
+        self.has_growth = has_growth
+        self.Delta = Delta
+        self.tau = tau
+
+        if self.initial_region_half_width >= Lx // 2:
+            raise ValueError("Initial region half-width too large for lattice")
+
+    # ------------------------------------------------------------------
+    # Initialisation
+    # ------------------------------------------------------------------
+
+    def initialize_lattice(
+        self, U: float, random_seed: Optional[int] = None
+    ) -> np.ndarray:
+        """
+        Create a binary occupancy grid with agents placed in the central
+        columns with probability U.
+
+        Parameters
+        ----------
+        U : float
+            Occupancy probability in (0, 1].
+        random_seed : int, optional
+            Random seed.
+
+        Returns
+        -------
+        np.ndarray of shape (Lx, Ly), dtype int8
+        """
+        if not 0 < U <= 1:
+            raise ValueError("Occupancy probability U must be in (0, 1]")
+
+        if random_seed is not None:
+            np.random.seed(random_seed)
+
+        grid = np.zeros((self.Lx, self.Ly), dtype=np.int8)
+
+        # Central columns: indices from (Lx//2 - hw) to (Lx//2 + hw) inclusive
+        centre = self.Lx // 2
+        hw = self.initial_region_half_width
+        i_lo = max(0, centre - hw)
+        i_hi = min(self.Lx - 1, centre + hw)
+
+        for i in range(i_lo, i_hi + 1):
+            for j in range(self.Ly):
+                if np.random.random() < U:
+                    grid[i, j] = 1
+
+        return grid
+
+    # ------------------------------------------------------------------
+    # Single timestep
+    # ------------------------------------------------------------------
+
+    def simulate_step(
+        self,
+        grid: np.ndarray,
+        P: float,
+        rho: float = 0.0,
+        R: float = 0.0,
+    ) -> np.ndarray:
+        """
+        Execute one timestep using the random sequential update scheme
+        from S&P2025.
+
+        Parameters
+        ----------
+        grid : np.ndarray (Lx, Ly)
+            Current occupancy grid (modified in place and returned).
+        P : float
+            Movement probability.
+        rho : float
+            Bias parameter (0 = unbiased, positive = rightward bias).
+        R : float
+            Proliferation probability per selection event.
+
+        Returns
+        -------
+        np.ndarray
+            Updated grid (same object as input).
+        """
+        Lx, Ly = self.Lx, self.Ly
+        Q = int(grid.sum())  # total agents at start of step
+
+        count = 0
+        while count < Q:
+            # Pick a random site
+            i = np.random.randint(0, Lx)
+            j = np.random.randint(0, Ly)
+
+            # Check: site occupied AND not on left/right boundary
+            if grid[i, j] != 1 or i == 0 or i == Lx - 1:
+                continue
+
+            count += 1
+
+            # --- MOVEMENT PHASE ---
+            direction = np.random.random()  # selects direction
+            attempt = np.random.random()    # compared to P
+
+            if attempt <= P:
+                # Determine target based on direction with bias
+                if self.has_bias and rho != 0.0:
+                    # left: (1-rho)/4, right: (1+rho)/4, down: 1/4, up: 1/4
+                    p_left = (1.0 - rho) / 4.0
+                    p_right = (1.0 + rho) / 4.0
+                    # cumulative: left | right | down | up
+                    if direction < p_left:
+                        di, dj = -1, 0
+                    elif direction < p_left + p_right:
+                        di, dj = 1, 0
+                    elif direction < p_left + p_right + 0.25:
+                        di, dj = 0, -1
+                    else:
+                        di, dj = 0, 1
+                else:
+                    # Unbiased: equal probability 1/4
+                    if direction < 0.25:
+                        di, dj = -1, 0
+                    elif direction < 0.5:
+                        di, dj = 1, 0
+                    elif direction < 0.75:
+                        di, dj = 0, -1
+                    else:
+                        di, dj = 0, 1
+
+                ni, nj = i + di, j + dj
+
+                # Zero-flux: skip if target is outside domain
+                if 0 <= ni < Lx and 0 <= nj < Ly:
+                    # Exclusion: move only if target site is empty
+                    if grid[ni, nj] == 0:
+                        grid[i, j] = 0
+                        grid[ni, nj] = 1
+                        # Update position for growth phase below
+                        i, j = ni, nj
+
+            # --- GROWTH PHASE ---
+            if self.has_growth and R > 0.0:
+                direction2 = np.random.random()
+                attempt2 = np.random.random()
+
+                if attempt2 <= R:
+                    # Growth direction is always unbiased (1/4 each)
+                    if direction2 < 0.25:
+                        di2, dj2 = -1, 0
+                    elif direction2 < 0.5:
+                        di2, dj2 = 1, 0
+                    elif direction2 < 0.75:
+                        di2, dj2 = 0, -1
+                    else:
+                        di2, dj2 = 0, 1
+
+                    ni2, nj2 = i + di2, j + dj2
+
+                    # Zero-flux + exclusion for daughter cell
+                    if 0 <= ni2 < Lx and 0 <= nj2 < Ly:
+                        if grid[ni2, nj2] == 0:
+                            grid[ni2, nj2] = 1
+
+        return grid
+
+    # ------------------------------------------------------------------
+    # Full simulation
+    # ------------------------------------------------------------------
+
+    def simulate(
+        self,
+        theta_dict: dict,
+        T: int,
+        random_seed: Optional[int] = None,
+        use_2d_output: bool = False,
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Run a complete simulation from initialisation to final time.
+
+        Parameters
+        ----------
+        theta_dict : dict
+            Parameter values.  Must contain keys required by the model
+            (e.g. {'U': .., 'P': .., 'rho': ..}).  For growth models
+            where U is fixed, include the fixed U value here.
+        T : int
+            Number of timesteps.
+        random_seed : int, optional
+            Random seed.
+        use_2d_output : bool
+            If True, return 2D grid (Ly, Lx) instead of 1D column counts.
+
+        Returns
+        -------
+        observation : np.ndarray
+            Column counts (Lx,) or 2D grid (Ly, Lx).
+        initial_grid : np.ndarray of shape (Lx, Ly)
+        final_grid : np.ndarray of shape (Lx, Ly)
+        """
+        if T < 0:
+            raise ValueError("Number of time steps T must be non-negative")
+
+        U = theta_dict['U']
+        P = theta_dict['P']
+        rho = theta_dict.get('rho', 0.0)
+        R = theta_dict.get('R', 0.0)
+
+        grid = self.initialize_lattice(U, random_seed)
+        initial_grid = grid.copy()
+
+        for _ in range(T):
+            grid = self.simulate_step(grid, P, rho, R)
+
+        if use_2d_output:
+            observation = self.get_2d_grid(grid)
+        else:
+            observation = self.get_column_counts(grid)
+        return observation, initial_grid, grid
+
+    # ------------------------------------------------------------------
+    # Observation
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def get_column_counts(grid: np.ndarray) -> np.ndarray:
+        """Sum occupancy over rows to get per-column agent counts."""
+        return grid.sum(axis=1).astype(int)
+
+    @staticmethod
+    def get_2d_grid(grid: np.ndarray) -> np.ndarray:
+        """
+        Return the occupancy grid in (Ly, Lx) layout for CNN input.
+
+        The internal grid is stored as (Lx, Ly); this transposes it to
+        (Ly, Lx) so that rows = y-coordinate, columns = x-coordinate.
+        """
+        return grid.T.copy()

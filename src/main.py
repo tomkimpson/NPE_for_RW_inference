@@ -27,9 +27,9 @@ configure_warnings()
 # Default true parameters per model (used when --theta_true is not given)
 DEFAULT_THETA_TRUE = {
     'original': [0.3, 0.7],          # U, P
-    'A':        [0.5, 1.0, 0.5],     # U, P, rho
-    'B':        [1.0, 0.001],         # P, R
-    'C':        [1.0, 0.5, 0.001],   # P, rho, R
+    'A':        [0.5, 0.7, 0.5],     # U, P, rho
+    'B':        [0.7, 0.01],          # P, R
+    'C':        [0.7, 0.5, 0.01],    # P, rho, R
 }
 
 
@@ -45,6 +45,21 @@ def main():
                        help='Random walk model variant')
     parser.add_argument('--fixed_U', type=float, default=None,
                        help='Override fixed U value for growth models B/C (default from model config)')
+
+    # Method selection
+    parser.add_argument('--method', type=str, default='npe',
+                       choices=['npe', 'abc'],
+                       help='Inference method: npe (Neural Posterior Estimation) or abc (SMC-ABC)')
+
+    # ABC parameters
+    parser.add_argument('--abc_num_particles', type=int, default=500,
+                       help='Number of ABC particles per population')
+    parser.add_argument('--abc_num_simulations', type=int, default=50000,
+                       help='Total ABC simulation budget')
+    parser.add_argument('--abc_num_initial_pop', type=int, default=2000,
+                       help='Number of simulations for initial ABC population')
+    parser.add_argument('--abc_epsilon_decay', type=float, default=0.5,
+                       help='ABC acceptance threshold decay factor')
 
     # Simulation parameters
     parser.add_argument('--Lx', type=int, default=21,
@@ -98,6 +113,10 @@ def main():
                        help='Number of simulations per SNPE round (default: n_samples // snpe_rounds)')
     parser.add_argument('--convergence_threshold', type=float, default=0.01,
                        help='Convergence threshold for early stopping in SNPE')
+
+    # Data format parameters
+    parser.add_argument('--use_2d_data', action='store_true',
+                       help='Use 2D spatial grids with CNN embedding instead of 1D column counts')
 
     # General parameters
     parser.add_argument('--device', type=str, default='auto',
@@ -167,7 +186,10 @@ def main():
     # Create output directory
     if args.output_dir is None:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_dir = Path(f"results/workflow_{model_name}_{timestamp}")
+        method_tag = args.method
+        if args.method == 'npe' and args.use_2d_data:
+            method_tag = 'npe2d'
+        output_dir = Path(f"results/workflow_{model_name}_{method_tag}_{timestamp}")
     else:
         output_dir = Path(args.output_dir)
 
@@ -251,12 +273,7 @@ def main():
         )
 
     # ------------------------------------------------------------------
-    # Initialize NPE
-    # ------------------------------------------------------------------
-    npe = RandomWalkNPE(device=device, seed=args.seed, model_config=cfg)
-
-    # ------------------------------------------------------------------
-    # Generate test observation
+    # Generate test observation (always 1D column counts for observation)
     # ------------------------------------------------------------------
     print(f"\nGenerating test observation with true parameters: {theta_str}")
     true_theta = torch.tensor(theta_true_list, dtype=torch.float32)
@@ -276,8 +293,132 @@ def main():
             theta_dict_obs, T=args.T, random_seed=args.seed + 1000
         )
 
-    x_obs = torch.tensor(column_counts, dtype=torch.float32).unsqueeze(0)
     print(f"   Observed data: {len(column_counts)} columns, {column_counts.sum()} total agents")
+
+    # Build x_obs tensor (1D for ABC/NPE-1D, 2D for NPE+CNN)
+    if args.use_2d_data and args.method == 'npe':
+        # Re-run observation to get 2D grid
+        if model_name == 'original':
+            obs_2d, _, _ = simulator.simulate(
+                U=theta_true_list[0], P=theta_true_list[1],
+                T=args.T, random_seed=args.seed + 1000,
+                use_2d_output=True
+            )
+        else:
+            obs_2d, _, _ = simulator.simulate(
+                theta_dict_obs, T=args.T, random_seed=args.seed + 1000,
+                use_2d_output=True
+            )
+        x_obs = torch.tensor(obs_2d, dtype=torch.float32).unsqueeze(0)  # (1, Ly, Lx)
+    else:
+        x_obs = torch.tensor(column_counts, dtype=torch.float32).unsqueeze(0)  # (1, Lx)
+
+    import pickle
+
+    # ==================================================================
+    # ABC pathway
+    # ==================================================================
+    if args.method == 'abc':
+        from abc_inference import RandomWalkABC
+
+        print(f"\nRunning SMC-ABC inference...")
+        abc = RandomWalkABC(model_config=cfg, device='cpu', seed=args.seed)
+
+        abc_results = abc.run(
+            simulator=simulator,
+            x_obs=x_obs,
+            T=args.T,
+            num_particles=args.abc_num_particles,
+            num_simulations=args.abc_num_simulations,
+            num_initial_pop=args.abc_num_initial_pop,
+            epsilon_decay=args.abc_epsilon_decay,
+            num_workers=args.n_workers,
+        )
+
+        samples_np = abc_results['samples']
+
+        print(f"\nPosterior Summary (ABC):")
+        for pidx, pname in enumerate(param_names):
+            pmean = samples_np[:, pidx].mean()
+            pstd = samples_np[:, pidx].std()
+            pci = np.percentile(samples_np[:, pidx], [2.5, 97.5])
+            true_val = theta_true_list[pidx]
+            in_ci = pci[0] <= true_val <= pci[1]
+            print(f"   {pname}: {pmean:.3f} +/- {pstd:.3f} (true: {true_val})  "
+                  f"95% CI: [{pci[0]:.3f}, {pci[1]:.3f}]  in CI: {in_ci}")
+
+        # Save results
+        posterior_data = {
+            'posterior_samples': samples_np,
+            'true_parameters': theta_true_list,
+            'param_names': param_names,
+            'observed_data': column_counts,
+            'metadata': {
+                'model_name': model_name,
+                'method': 'abc',
+                'abc_num_particles': args.abc_num_particles,
+                'abc_num_simulations': args.abc_num_simulations,
+                'abc_num_initial_pop': args.abc_num_initial_pop,
+                'abc_epsilon_decay': args.abc_epsilon_decay,
+                'lattice_size': (args.Lx, args.Ly),
+                'time_steps': args.T,
+                'seed': args.seed,
+                'elapsed': abc_results['elapsed'],
+            }
+        }
+
+        # Summary statistics
+        summary_stats = {}
+        for pidx, pname in enumerate(param_names):
+            summary_stats[f'{pname}_mean'] = float(samples_np[:, pidx].mean())
+            summary_stats[f'{pname}_std'] = float(samples_np[:, pidx].std())
+            summary_stats[f'{pname}_ci'] = np.percentile(samples_np[:, pidx], [2.5, 97.5]).tolist()
+        posterior_data['summary_statistics'] = summary_stats
+
+        with open(results_dir / "results.pkl", 'wb') as f:
+            pickle.dump(posterior_data, f)
+
+        # Posterior predictive sampling
+        print(f"\nGenerating posterior predictive samples...")
+        n_pred = args.n_pred_samples or min(args.abc_num_particles, 500)
+        predictions = posterior_predictive_sample(
+            posterior_samples=samples_np,
+            simulator=simulator,
+            T=args.T,
+            n_pred_samples=n_pred,
+            random_seed=args.seed + 2000,
+            param_names=param_names,
+            fixed_params=cfg.fixed_params if cfg is not None else {},
+            n_workers=args.n_workers,
+        )
+
+        prediction_results = compute_prediction_intervals(predictions)
+
+        fig5 = plot_prediction_intervals(
+            prediction_results=prediction_results,
+            observed_data=column_counts,
+            Lx=args.Lx,
+            title_suffix=f" (T={args.T}, ABC)"
+        )
+        fig5.savefig(results_dir / "prediction_intervals.png", dpi=150, bbox_inches='tight')
+        plt.close(fig5)
+
+        total_elapsed = time.time() - total_start
+        print(f"\nABC WORKFLOW COMPLETED SUCCESSFULLY!")
+        print(f"Total time: {total_elapsed:.1f} seconds ({total_elapsed/60:.1f} minutes)")
+        print(f"All results saved in: {output_dir}")
+        return
+
+    # ==================================================================
+    # NPE pathway (existing logic, with 2D support)
+    # ==================================================================
+
+    # Initialize NPE
+    spatial_dims = (args.Ly, args.Lx) if args.use_2d_data else None
+    npe = RandomWalkNPE(
+        device=device, seed=args.seed, model_config=cfg,
+        use_2d_data=args.use_2d_data, spatial_dims=spatial_dims,
+    )
 
     # ------------------------------------------------------------------
     # Training
@@ -330,7 +471,6 @@ def main():
                 for pidx, pname in enumerate(param_names):
                     lo, hi = theta[:, pidx].min(), theta[:, pidx].max()
                     print(f"   {pname} range: [{lo:.3f}, {hi:.3f}]")
-                print(f"   Observation range: [{x.min():.0f}, {x.max():.0f}] agents per column")
 
             else:
                 print(f"\nLoading training data from {data_path}")
@@ -357,6 +497,7 @@ def main():
         metadata = {
             'model_name': model_name,
             'training_approach': 'SNPE' if args.use_snpe else 'NPE',
+            'use_2d_data': args.use_2d_data,
             'lattice_size': (args.Lx, args.Ly),
             'time_steps': args.T,
             'training_time': elapsed,
@@ -440,22 +581,23 @@ def main():
     # Save posterior samples
     # ------------------------------------------------------------------
     print(f"\nSaving posterior samples...")
+    method_label = 'NPE-2D' if args.use_2d_data else ('SNPE' if args.use_snpe else 'NPE')
     posterior_data = {
         'posterior_samples': posterior_samples.cpu().numpy(),
         'true_parameters': theta_true_list,
         'param_names': param_names,
         'metadata': {
             'model_name': model_name,
+            'method': method_label,
             'n_samples': args.num_samples,
             'lattice_size': (args.Lx, args.Ly),
             'time_steps': args.T,
             'seed': args.seed,
-            'training_approach': 'SNPE' if args.use_snpe else 'NPE',
+            'training_approach': method_label,
             'sampling_time': elapsed
         }
     }
 
-    import pickle
     with open(results_dir / "posterior_samples.pkl", 'wb') as f:
         pickle.dump(posterior_data, f)
 
@@ -530,11 +672,12 @@ def main():
         'summary_statistics': summary_stats,
         'metadata': {
             'model_name': model_name,
+            'method': method_label,
             'n_samples': args.num_samples,
             'lattice_size': (args.Lx, args.Ly),
             'time_steps': args.T,
             'seed': args.seed,
-            'training_approach': 'SNPE' if args.use_snpe else 'NPE'
+            'training_approach': method_label,
         }
     }
 

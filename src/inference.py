@@ -30,6 +30,7 @@ from sbi.utils import BoxUniform
 
 from simulator import RandomWalkSimulator, ExclusionRandomWalkSimulator
 from models import ModelConfig
+from cnn_utils import create_spatial_embedding_net
 
 
 # --- Pool-initializer pattern for parallel simulation ---
@@ -59,28 +60,28 @@ def _init_worker(sim_class_name, sim_kwargs, cpu_affinity=None):
 
 def _run_single_sim(sim_args):
     """Worker for parallel simulation — reads simulator from process global."""
-    idx, param_values, param_names, fixed_params, use_exclusion, T, random_seed = sim_args
+    idx, param_values, param_names, fixed_params, use_exclusion, T, random_seed, use_2d_output = sim_args
     theta_dict = dict(zip(param_names, param_values))
     if fixed_params:
         theta_dict.update(fixed_params)
     if use_exclusion:
-        column_counts, _, _ = _worker_simulator.simulate(theta_dict, T, random_seed=random_seed)
+        obs, _, _ = _worker_simulator.simulate(theta_dict, T, random_seed=random_seed, use_2d_output=use_2d_output)
     else:
-        column_counts, _, _ = _worker_simulator.simulate(theta_dict['U'], theta_dict['P'], T, random_seed=random_seed)
-    return (idx, column_counts)
+        obs, _, _ = _worker_simulator.simulate(theta_dict['U'], theta_dict['P'], T, random_seed=random_seed, use_2d_output=use_2d_output)
+    return (idx, obs)
 
 
 def _run_single_sim_sequential(sim_args):
     """Worker for sequential simulation — receives simulator explicitly."""
-    idx, param_values, simulator, param_names, fixed_params, use_exclusion, T, random_seed = sim_args
+    idx, param_values, simulator, param_names, fixed_params, use_exclusion, T, random_seed, use_2d_output = sim_args
     theta_dict = dict(zip(param_names, param_values))
     if fixed_params:
         theta_dict.update(fixed_params)
     if use_exclusion:
-        column_counts, _, _ = simulator.simulate(theta_dict, T, random_seed=random_seed)
+        obs, _, _ = simulator.simulate(theta_dict, T, random_seed=random_seed, use_2d_output=use_2d_output)
     else:
-        column_counts, _, _ = simulator.simulate(theta_dict['U'], theta_dict['P'], T, random_seed=random_seed)
-    return (idx, column_counts)
+        obs, _, _ = simulator.simulate(theta_dict['U'], theta_dict['P'], T, random_seed=random_seed, use_2d_output=use_2d_output)
+    return (idx, obs)
 
 
 class RandomWalkNPE:
@@ -89,7 +90,9 @@ class RandomWalkNPE:
     def __init__(self,
                  device: str = 'cpu',
                  seed: Optional[int] = None,
-                 model_config: Optional[ModelConfig] = None):
+                 model_config: Optional[ModelConfig] = None,
+                 use_2d_data: bool = False,
+                 spatial_dims: Optional[Tuple[int, int]] = None):
         """
         Initialize SNPE inference.
 
@@ -102,9 +105,18 @@ class RandomWalkNPE:
         model_config : ModelConfig, optional
             Model configuration.  If None, uses hardcoded [U, P] prior
             for backward compatibility with the original model.
+        use_2d_data : bool
+            If True, use 2D spatial grids (Ly, Lx) with CNN embedding.
+        spatial_dims : tuple of (int, int), optional
+            (Ly, Lx) for 2D data.  Required when use_2d_data=True.
         """
         self.device = device
         self.model_config = model_config
+        self.use_2d_data = use_2d_data
+        self.spatial_dims = spatial_dims
+
+        if use_2d_data and spatial_dims is None:
+            raise ValueError("spatial_dims must be provided when use_2d_data=True")
 
         if seed is not None:
             torch.manual_seed(seed)
@@ -132,22 +144,35 @@ class RandomWalkNPE:
         self.training_history = []  # Store training info from each round
         self.current_round = 0
         
-    def setup_inference(self, x_dim: int, **kwargs):
+    def setup_inference(self, x_dim: int = None, **kwargs):
         """
         Set up SBI inference object.
-        
+
         Parameters:
         -----------
-        x_dim : int
-            Dimension of observations (number of columns)
+        x_dim : int, optional
+            Dimension of 1D observations (number of columns).
+            Ignored when use_2d_data=True.
         **kwargs : additional arguments for SNPE
         """
         # Default neural network configuration
         neural_net_kwargs = {
-            'hidden_features': 128,
+            'hidden_features': 256 if self.use_2d_data else 128,
             'num_transforms': 5,
-            'embedding_net': torch.nn.Identity(),
         }
+
+        if self.use_2d_data:
+            Ly, Lx = self.spatial_dims
+            spatial_embedding = create_spatial_embedding_net(
+                input_height=Ly,
+                input_width=Lx,
+                output_dim=neural_net_kwargs['hidden_features'],
+                dropout=kwargs.get('cnn_dropout', 0.05),
+            )
+            neural_net_kwargs['embedding_net'] = spatial_embedding
+        else:
+            neural_net_kwargs['embedding_net'] = torch.nn.Identity()
+
         neural_net_kwargs.update(kwargs.get('neural_net_kwargs', {}))
         
         # Create neural posterior estimator
@@ -235,7 +260,11 @@ class RandomWalkNPE:
 
         # Initialize storage
         parameters = np.zeros((n_simulations, n_params))
-        observations = np.zeros((n_simulations, simulator.Lx))
+        if self.use_2d_data:
+            Ly, Lx = self.spatial_dims
+            observations = np.zeros((n_simulations, Ly, Lx))
+        else:
+            observations = np.zeros((n_simulations, simulator.Lx))
 
         fixed_params = cfg.fixed_params if cfg is not None else {}
 
@@ -255,6 +284,7 @@ class RandomWalkNPE:
             ]
 
         # Dispatch simulations
+        use_2d = self.use_2d_data
         if n_workers > 1:
             # Build argument tuples WITHOUT simulator (workers get it from global)
             sim_args_list = []
@@ -262,7 +292,7 @@ class RandomWalkNPE:
                 seed_i = random_seed + i if random_seed is not None else None
                 sim_args_list.append((
                     i, all_param_values[i], self.param_names,
-                    fixed_params, use_exclusion, T, seed_i
+                    fixed_params, use_exclusion, T, seed_i, use_2d
                 ))
 
             # Build kwargs to reconstruct simulator in each worker
@@ -311,7 +341,7 @@ class RandomWalkNPE:
                 seed_i = random_seed + i if random_seed is not None else None
                 sim_args_list.append((
                     i, all_param_values[i], simulator, self.param_names,
-                    fixed_params, use_exclusion, T, seed_i
+                    fixed_params, use_exclusion, T, seed_i, use_2d
                 ))
 
             t0 = time.time()
@@ -843,6 +873,8 @@ class RandomWalkNPE:
             'device': self.device,
             'model_config': self.model_config,
             'param_names': self.param_names,
+            'use_2d_data': self.use_2d_data,
+            'spatial_dims': self.spatial_dims,
             'metadata': metadata or {}
         }
         
@@ -877,7 +909,12 @@ class RandomWalkNPE:
         target_device = device or data['device']
 
         saved_config = data.get('model_config', None)
-        obj = cls(device=target_device, model_config=saved_config)
+        obj = cls(
+            device=target_device,
+            model_config=saved_config,
+            use_2d_data=data.get('use_2d_data', False),
+            spatial_dims=data.get('spatial_dims', None),
+        )
         obj.posterior = data['posterior']
         obj.inference = data['inference']
         obj.prior = data['prior']
