@@ -13,9 +13,10 @@ import time
 from pathlib import Path
 from datetime import datetime
 from concurrent.futures import ProcessPoolExecutor, as_completed
+import multiprocessing as mp
+import os
 import numpy as np
 import torch
-import tqdm
 import matplotlib.pyplot as plt
 from scipy import ndimage
 from typing import Tuple, Dict, Any, Optional, List
@@ -29,8 +30,45 @@ from utils import check_device_availability, print_device_info, configure_warnin
 configure_warnings()
 
 
+# --- Pool-initializer pattern for parallel prediction ---
+_worker_simulator = None
+
+
+def _init_worker(sim_class_name, sim_kwargs, cpu_affinity=None):
+    """Initializer called once per worker process to create the simulator."""
+    # Pin each worker to 1 BLAS/OpenMP thread
+    for var in ('OMP_NUM_THREADS', 'OPENBLAS_NUM_THREADS', 'MKL_NUM_THREADS',
+                'VECLIB_MAXIMUM_THREADS', 'NUMEXPR_NUM_THREADS'):
+        os.environ[var] = '1'
+
+    # Restore CPU affinity (torch/CUDA can pin forked children to 1 core)
+    if cpu_affinity is not None:
+        try:
+            os.sched_setaffinity(0, cpu_affinity)
+        except (OSError, AttributeError):
+            pass
+
+    global _worker_simulator
+    if sim_class_name == 'ExclusionRandomWalkSimulator':
+        _worker_simulator = ExclusionRandomWalkSimulator(**sim_kwargs)
+    else:
+        _worker_simulator = RandomWalkSimulator(**sim_kwargs)
+
+
 def _run_single_prediction(pred_args):
-    """Worker for parallel posterior predictive simulation."""
+    """Worker for parallel prediction — reads simulator from process global."""
+    idx, param_values, param_names, fixed_params, use_exclusion, T, random_seed = pred_args
+    theta_dict = dict(zip(param_names, [float(v) for v in param_values]))
+    theta_dict.update(fixed_params)
+    if use_exclusion:
+        column_counts, _, _ = _worker_simulator.simulate(theta_dict, T, random_seed=random_seed)
+    else:
+        column_counts, _, _ = _worker_simulator.simulate(U=theta_dict['U'], P=theta_dict['P'], T=T, random_seed=random_seed)
+    return (idx, column_counts)
+
+
+def _run_single_prediction_sequential(pred_args):
+    """Worker for sequential prediction — receives simulator explicitly."""
     idx, param_values, simulator, param_names, fixed_params, use_exclusion, T, random_seed = pred_args
     theta_dict = dict(zip(param_names, [float(v) for v in param_values]))
     theta_dict.update(fixed_params)
@@ -216,27 +254,73 @@ def posterior_predictive_sample(
     n_columns = simulator.Lx
     predictions = np.zeros((n_pred, n_columns), dtype=int)
 
-    # Build argument tuples for each prediction
-    pred_args_list = []
-    for i in range(n_pred):
-        seed_i = random_seed + i if random_seed is not None else None
-        pred_args_list.append((
-            i, selected_samples[i], simulator, param_names,
-            fixed_params, use_exclusion, T, seed_i
-        ))
-
     # Dispatch predictions
     start_time = time.time()
     if n_workers > 1:
-        with ProcessPoolExecutor(max_workers=n_workers) as executor:
+        # Build argument tuples WITHOUT simulator (workers get it from global)
+        pred_args_list = []
+        for i in range(n_pred):
+            seed_i = random_seed + i if random_seed is not None else None
+            pred_args_list.append((
+                i, selected_samples[i], param_names,
+                fixed_params, use_exclusion, T, seed_i
+            ))
+
+        # Build kwargs to reconstruct simulator in each worker
+        sim_class_name = type(simulator).__name__
+        sim_kwargs = {
+            'Lx': simulator.Lx,
+            'Ly': simulator.Ly,
+            'initial_region_half_width': simulator.initial_region_half_width,
+        }
+        if sim_class_name == 'ExclusionRandomWalkSimulator':
+            sim_kwargs.update({
+                'has_bias': simulator.has_bias,
+                'has_growth': simulator.has_growth,
+                'Delta': simulator.Delta,
+                'tau': simulator.tau,
+            })
+
+        ctx = mp.get_context('fork')
+        try:
+            parent_cpus = set(os.sched_getaffinity(0))
+        except (OSError, AttributeError):
+            parent_cpus = None
+        with ProcessPoolExecutor(
+            max_workers=n_workers,
+            mp_context=ctx,
+            initializer=_init_worker,
+            initargs=(sim_class_name, sim_kwargs, parent_cpus),
+        ) as executor:
             futures = {executor.submit(_run_single_prediction, args): args[0] for args in pred_args_list}
-            for future in tqdm.tqdm(as_completed(futures), total=n_pred, desc="Predictive sampling"):
+            done_count = 0
+            log_interval = max(1, n_pred // 10)
+            for future in as_completed(futures):
                 idx, column_counts = future.result()
                 predictions[idx] = column_counts
+                done_count += 1
+                if done_count % log_interval == 0 or done_count == n_pred:
+                    elapsed = time.time() - start_time
+                    rate = done_count / elapsed if elapsed > 0 else 0
+                    print(f"   [{done_count}/{n_pred}] {elapsed:.1f}s elapsed ({rate:.1f} sims/s)")
     else:
-        for args in tqdm.tqdm(pred_args_list, desc="Predictive sampling"):
-            idx, column_counts = _run_single_prediction(args)
+        # Sequential path — pass simulator explicitly, no pool overhead
+        pred_args_list = []
+        for i in range(n_pred):
+            seed_i = random_seed + i if random_seed is not None else None
+            pred_args_list.append((
+                i, selected_samples[i], simulator, param_names,
+                fixed_params, use_exclusion, T, seed_i
+            ))
+
+        log_interval = max(1, n_pred // 10)
+        for done_count, args in enumerate(pred_args_list, 1):
+            idx, column_counts = _run_single_prediction_sequential(args)
             predictions[idx] = column_counts
+            if done_count % log_interval == 0 or done_count == n_pred:
+                elapsed = time.time() - start_time
+                rate = done_count / elapsed if elapsed > 0 else 0
+                print(f"   [{done_count}/{n_pred}] {elapsed:.1f}s elapsed ({rate:.1f} sims/s)")
 
     elapsed = time.time() - start_time
     print(f"Predictive sampling completed in {elapsed:.1f} seconds")
