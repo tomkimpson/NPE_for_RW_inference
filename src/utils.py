@@ -122,42 +122,53 @@ def print_device_info(device: str, device_info: Dict[str, Any]) -> None:
 
 
 
-def compute_posterior_statistics(samples: np.ndarray) -> Dict[str, Any]:
+def compute_posterior_statistics(
+    samples: np.ndarray,
+    param_names: Optional[List[str]] = None,
+) -> Dict[str, Any]:
     """
     Compute comprehensive statistics from posterior samples.
-    
+
     Parameters:
     -----------
-    samples : np.ndarray of shape (n_samples, 2)
-        Posterior samples [U, P]
-        
+    samples : np.ndarray of shape (n_samples, n_params)
+        Posterior samples.
+    param_names : list of str, optional
+        Parameter names.  Defaults to ['U', 'P'] for backward compatibility.
+
     Returns:
     --------
     Dict[str, Any]
-        Dictionary of statistics
+        Dictionary of per-parameter statistics plus a correlation matrix.
     """
-    stats = {}
-    param_names = ['U', 'P']
-    
+    n_params = samples.shape[1]
+    if param_names is None:
+        param_names = ['U', 'P'][:n_params]
+
+    stats: Dict[str, Any] = {}
+
     for i, name in enumerate(param_names):
         param_samples = samples[:, i]
-        
+
         stats[name] = {
             'mean': float(param_samples.mean()),
             'std': float(param_samples.std()),
             'median': float(np.median(param_samples)),
             'mode': float(param_samples[np.argmax(np.histogram(param_samples, bins=100)[0])]),
-            'ci_95': [float(np.percentile(param_samples, 2.5)), 
+            'ci_95': [float(np.percentile(param_samples, 2.5)),
                      float(np.percentile(param_samples, 97.5))],
-            'ci_68': [float(np.percentile(param_samples, 16)), 
+            'ci_68': [float(np.percentile(param_samples, 16)),
                      float(np.percentile(param_samples, 84))],
             'min': float(param_samples.min()),
             'max': float(param_samples.max())
         }
-    
-    # Correlation between parameters
-    stats['correlation'] = float(np.corrcoef(samples[:, 0], samples[:, 1])[0, 1])
-    
+
+    # Correlation matrix (or scalar for 2-param case)
+    if n_params == 2:
+        stats['correlation'] = float(np.corrcoef(samples[:, 0], samples[:, 1])[0, 1])
+    else:
+        stats['correlation_matrix'] = np.corrcoef(samples.T).tolist()
+
     return stats
 
 

@@ -30,7 +30,7 @@ from sbi.utils import BoxUniform
 
 from simulator import RandomWalkSimulator, ExclusionRandomWalkSimulator
 from models import ModelConfig
-from cnn_utils import create_spatial_embedding_net
+from cnn_utils import create_spatial_embedding_net, create_dual_branch_embedding_net
 
 
 # --- Pool-initializer pattern for parallel simulation ---
@@ -154,6 +154,10 @@ class RandomWalkNPE:
             Dimension of 1D observations (number of columns).
             Ignored when use_2d_data=True.
         **kwargs : additional arguments for SNPE
+            - disable_sbi_standardization : bool
+                If True, disable sbi's z-score standardization of observations.
+                This allows the CNN to see raw density information, which is
+                critical for inferring parameters like P (proliferation rate).
         """
         # Default neural network configuration
         neural_net_kwargs = {
@@ -163,29 +167,59 @@ class RandomWalkNPE:
 
         if self.use_2d_data:
             Ly, Lx = self.spatial_dims
-            spatial_embedding = create_spatial_embedding_net(
-                input_height=Ly,
-                input_width=Lx,
-                output_dim=neural_net_kwargs['hidden_features'],
-                dropout=kwargs.get('cnn_dropout', 0.05),
-            )
+            use_dual_branch = kwargs.get('cnn_dual_branch', False)
+
+            if use_dual_branch:
+                # Dual-branch architecture: 1D for P/density, 2D for rho/U spatial patterns
+                spatial_embedding = create_dual_branch_embedding_net(
+                    input_height=Ly,
+                    input_width=Lx,
+                    output_dim=neural_net_kwargs['hidden_features'],
+                    dropout=kwargs.get('cnn_dropout', 0.05),
+                    use_spatial_pyramid=True,
+                )
+                print("   Note: Using dual-branch CNN (1D for P, 2D for rho/U)")
+            else:
+                # Standard single-branch CNN
+                spatial_embedding = create_spatial_embedding_net(
+                    input_height=Ly,
+                    input_width=Lx,
+                    output_dim=neural_net_kwargs['hidden_features'],
+                    dropout=kwargs.get('cnn_dropout', 0.05),
+                    normalize_input=kwargs.get('cnn_normalize_input', True),
+                    use_auxiliary_features=kwargs.get('cnn_use_auxiliary_features', False),
+                    use_density_channels=kwargs.get('cnn_use_density_channels', False),
+                    use_spatial_pyramid=kwargs.get('cnn_use_spatial_pyramid', False),
+                )
             neural_net_kwargs['embedding_net'] = spatial_embedding
         else:
             neural_net_kwargs['embedding_net'] = torch.nn.Identity()
 
         neural_net_kwargs.update(kwargs.get('neural_net_kwargs', {}))
-        
+
+        # Check if sbi standardization should be disabled
+        # When True, the CNN sees raw (unstandardized) observations, allowing
+        # density-preserving normalization to work correctly for P inference.
+        disable_sbi_standardization = kwargs.get('disable_sbi_standardization', False)
+        if disable_sbi_standardization:
+            neural_net_kwargs['z_score_x'] = "none"
+            print("   Note: sbi z-score standardization disabled (CNN will see raw observations)")
+
         # Create neural posterior estimator
         neural_posterior = posterior_nn(
             model='nsf',  # Neural Spline Flow
             **neural_net_kwargs
         )
-        
+
+        # Filter out CNN-specific and neural_net kwargs before passing to SNPE
+        excluded_kwargs = {'neural_net_kwargs', 'cnn_dropout', 'cnn_normalize_input', 'cnn_use_auxiliary_features',
+                          'cnn_use_density_channels', 'cnn_use_spatial_pyramid', 'disable_sbi_standardization',
+                          'cnn_dual_branch'}
         self.inference = SNPE(
             prior=self.prior,
             density_estimator=neural_posterior,
             device=self.device,
-            **{k: v for k, v in kwargs.items() if k != 'neural_net_kwargs'}
+            **{k: v for k, v in kwargs.items() if k not in excluded_kwargs}
         )
         
     def generate_training_data(
@@ -454,8 +488,14 @@ class RandomWalkNPE:
             setup_kwargs = {}
             if neural_net_kwargs is not None:
                 setup_kwargs['neural_net_kwargs'] = neural_net_kwargs
+            # Pass CNN-specific kwargs through to setup_inference
+            for cnn_kwarg in ['cnn_dropout', 'cnn_normalize_input', 'cnn_use_auxiliary_features',
+                              'cnn_use_density_channels', 'cnn_use_spatial_pyramid', 'disable_sbi_standardization',
+                              'cnn_dual_branch']:
+                if cnn_kwarg in kwargs:
+                    setup_kwargs[cnn_kwarg] = kwargs.pop(cnn_kwarg)
             self.setup_inference(x_dim=x.shape[1], **setup_kwargs)
-            
+
         print(f"Training NPE with {len(theta)} samples...")
         print(f"Parameter shape: {theta.shape}")
         print(f"Observation shape: {x.shape}")
@@ -540,8 +580,14 @@ class RandomWalkNPE:
             setup_kwargs = {}
             if neural_net_kwargs is not None:
                 setup_kwargs['neural_net_kwargs'] = neural_net_kwargs
+            # Pass CNN-specific kwargs through to setup_inference
+            for cnn_kwarg in ['cnn_dropout', 'cnn_normalize_input', 'cnn_use_auxiliary_features',
+                              'cnn_use_density_channels', 'cnn_use_spatial_pyramid', 'disable_sbi_standardization',
+                              'cnn_dual_branch']:
+                if cnn_kwarg in kwargs:
+                    setup_kwargs[cnn_kwarg] = kwargs.pop(cnn_kwarg)
             self.setup_inference(x_dim=x.shape[1], **setup_kwargs)
-            
+
         print(f"Training SNPE round with {len(theta)} samples...")
         print(f"Parameter shape: {theta.shape}")
         print(f"Observation shape: {x.shape}")

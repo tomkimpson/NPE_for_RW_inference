@@ -117,6 +117,18 @@ def main():
     # Data format parameters
     parser.add_argument('--use_2d_data', action='store_true',
                        help='Use 2D spatial grids with CNN embedding instead of 1D column counts')
+    parser.add_argument('--no_cnn_normalize', action='store_true',
+                       help='Disable per-sample normalization in CNN (preserves absolute density info)')
+    parser.add_argument('--cnn_auxiliary_features', action='store_true',
+                       help='Add auxiliary features (total count, asymmetry, center of mass) to CNN')
+    parser.add_argument('--cnn_density_channels', action='store_true',
+                       help='Use 3-channel input with density-preserving normalization (fixes P bias)')
+    parser.add_argument('--cnn_spatial_pyramid', action='store_true',
+                       help='Use spatial pyramid pooling to preserve left-right asymmetry (fixes rho bias)')
+    parser.add_argument('--disable_sbi_standardization', action='store_true',
+                       help='Disable sbi z-score standardization so CNN sees raw observations (critical for P inference)')
+    parser.add_argument('--cnn_dual_branch', action='store_true',
+                       help='Use dual-branch CNN: 1D for density (P), 2D for pattern (rho, U)')
 
     # General parameters
     parser.add_argument('--device', type=str, default='auto',
@@ -449,7 +461,13 @@ def main():
                 convergence_threshold=args.convergence_threshold,
                 random_seed=args.seed,
                 output_dir=str(output_dir),
-                n_workers=args.n_workers
+                n_workers=args.n_workers,
+                cnn_normalize_input=not args.no_cnn_normalize,
+                cnn_use_auxiliary_features=args.cnn_auxiliary_features,
+                cnn_use_density_channels=args.cnn_density_channels,
+                cnn_use_spatial_pyramid=args.cnn_spatial_pyramid,
+                disable_sbi_standardization=args.disable_sbi_standardization,
+                cnn_dual_branch=args.cnn_dual_branch,
             )
 
         else:
@@ -487,7 +505,13 @@ def main():
                 max_num_epochs=args.max_epochs,
                 validation_fraction=args.validation_fraction,
                 stop_after_epochs=args.stop_after_epochs,
-                neural_net_kwargs=neural_net_kwargs
+                neural_net_kwargs=neural_net_kwargs,
+                cnn_normalize_input=not args.no_cnn_normalize,
+                cnn_use_auxiliary_features=args.cnn_auxiliary_features,
+                cnn_use_density_channels=args.cnn_density_channels,
+                cnn_use_spatial_pyramid=args.cnn_spatial_pyramid,
+                disable_sbi_standardization=args.disable_sbi_standardization,
+                cnn_dual_branch=args.cnn_dual_branch,
             )
 
         elapsed = time.time() - start_time
