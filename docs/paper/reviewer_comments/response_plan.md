@@ -247,16 +247,22 @@ Extensive 2D CNN investigation for Model A documented in `docs/2d_npe_bias_inves
 
 R2: "It would be helpful to include a summary table of the hyperparameters in the paper itself."
 
-- [ ] Create table listing:
+- [x] Create table listing:
   - Network architecture: Neural Spline Flows
-  - Hidden features: 128
-  - Number of transforms: 5
+  - Hidden features: 128 (1D) / 256 (2D)
+  - Number of transforms: 8
   - Batch size: 512
   - Learning rate: 1e-4
-  - Training epochs
-  - Number of simulations used for training
-- [ ] Add to Methods section or Appendix
-- [ ] Values currently only in code repository — move into paper
+  - Training epochs: 100
+  - Number of simulations used for training: 10,000 (1D) / 50,000 (2D)
+- [x] Add to Methods section or Appendix — Table 2 in Methods, cross-checked against `run_production.sh` and `run_production_2d_enhanced.sh`
+- [x] Values currently only in code repository — move into paper
+
+**Completed changes (Feb 16 2026):**
+- Replaced Table 2 (lines 300–323) with corrected values matching production scripts. Fixed 6+ wrong values (batch size 128→512, max epochs 300→100, patience 10→20, coupling layers 5→8 for 2D, learning rate 5e-5→1e-4 for 2D). Removed SNPE-specific rows (rounds, sims per round, convergence threshold). Added new rows: Optimizer (Adam), Validation fraction (0.1), Training simulations (10k/50k). Updated caption to say "single-round NPE" and added `\citep` for sbi library.
+- Fixed line 278: replaced SNPE usage claim with clarification that single-round NPE is used, keeping SNPE subsection as pedagogical content.
+- Fixed line 477: replaced "ten rounds" runtime reference with "10,000 simulations" scaling explanation.
+- Verified no other SNPE assumptions remain in results/discussion text.
 
 ---
 

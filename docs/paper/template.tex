@@ -275,7 +275,7 @@ The sequential algorithm proceeds as follows:
 	where $w_i = p(\theta_i) / q_{\phi_{r-1}}(\theta_i | x_o)$ corrects for sampling from the proposal rather than the prior.
 \end{enumerate}
 
-SNPE is most beneficial when the prior is substantially broader than the posterior, which is common in biological applications where parameter ranges are often set conservatively. The method typically converges within 2--4 rounds, providing substantial efficiency gains over standard NPE while maintaining accuracy. In this work we employ SNPE, using the proposal-correction mechanism described above to focus the simulation budget on high-posterior-density regions.
+SNPE is most beneficial when the prior is substantially broader than the posterior, which is common in biological applications where parameter ranges are often set conservatively. The method typically converges within 2--4 rounds, providing substantial efficiency gains over standard NPE while maintaining accuracy. In this work we employ single-round NPE, training the density estimator on a large simulation budget drawn from the prior. While SNPE can improve sample efficiency by iteratively focusing simulations, our prior ranges are sufficiently constrained that single-round training provides accurate posteriors without sequential refinement.
 
 \subsubsection{Implementation Details}
 
@@ -306,19 +306,19 @@ Table~\ref{tab:hyperparameters} summarises the key hyperparameters for both the 
 		\midrule
 		Input dimension & 200 & $50 \times 200 = 10{,}000$ \\
 		Density estimator & Neural Spline Flows & Neural Spline Flows \\
-		Coupling layers & 8 & 5 \\
+		Coupling layers & 8 & 8 \\
 		Hidden features & 128 & 256 \\
 		Embedding network & Feed-forward & CNN (4 conv.\ stages) \\
-		Learning rate & $10^{-4}$ & $5 \times 10^{-5}$ \\
-		Batch size & 128 & 512 \\
-		Max epochs & 300 & 150 \\
-		Early stopping patience & 10 epochs & 40 epochs \\
-		SNPE rounds & 10 & 8 \\
-		Simulations per round & 2{,}000 & 6{,}000 \\
-		Convergence threshold & 0.001 & 0.01 \\
+		Optimizer & Adam & Adam \\
+		Learning rate & $10^{-4}$ & $10^{-4}$ \\
+		Batch size & 512 & 512 \\
+		Max epochs & 100 & 100 \\
+		Early stopping patience & 20 epochs & 20 epochs \\
+		Validation fraction & 0.1 & 0.1 \\
+		Training simulations & 10{,}000 & 50{,}000 \\
 		\bottomrule
 	\end{tabular}
-	\caption{Summary of key hyperparameters for the NPE pipeline in the 1D and 2D configurations. All models were trained on an NVIDIA A100-SXM4-80GB GPU using the \texttt{sbi} library with a PyTorch backend.}
+	\caption{Summary of key hyperparameters for the single-round NPE pipeline in the 1D and 2D configurations. All models were trained on an NVIDIA A100-SXM4-80GB GPU using the \texttt{sbi} library \citep{2020JOSS....5.2505T} with a PyTorch backend.}
 	\label{tab:hyperparameters}
 \end{table}
 
@@ -474,7 +474,7 @@ In the 2D (CNN) results we also note a modest separation between the posterior p
 
 \subsection{Computational Performance}\label{sec:runtime}
 
-To provide a practical comparison of computational costs, Table~\ref{tab:runtimes} summarises representative runtimes for the different inference methods. These figures are illustrative of a typical workflow and are not the result of systematic hyper-parameter optimisation. For example, the NPE training time scales roughly linearly with the number of sequential rounds: the reported 1D case used ten rounds, so halving or doubling this number would proportionally reduce or increase the runtime, with an uninvestigated trade-off in posterior accuracy. Similarly, ABC runtime depends directly on the number of simulations generated (here, $10^5$). Other hyper-parameters (e.g.\ number of network epochs, batch size, learning rate, width/depth of the embedding network) also have a direct influence on both runtime and accuracy, but were fixed to reasonable defaults rather than tuned for performance. We also note the difference in hardware: the computationally expensive NPE training phase was performed on a GPU, whereas the other methods ran on a standard CPU.
+To provide a practical comparison of computational costs, Table~\ref{tab:runtimes} summarises representative runtimes for the different inference methods. These figures are illustrative of a typical workflow and are not the result of systematic hyper-parameter optimisation. For example, the NPE training time scales with the number of training simulations: the reported 1D case used 10{,}000 simulations, so increasing or decreasing this budget would proportionally affect the runtime, with an uninvestigated trade-off in posterior accuracy. Similarly, ABC runtime depends directly on the number of simulations generated (here, $10^5$). Other hyper-parameters (e.g.\ number of network epochs, batch size, learning rate, width/depth of the embedding network) also have a direct influence on both runtime and accuracy, but were fixed to reasonable defaults rather than tuned for performance. We also note the difference in hardware: the computationally expensive NPE training phase was performed on a GPU, whereas the other methods ran on a standard CPU.
 
 \begin{table}[htbp]
 	\centering
