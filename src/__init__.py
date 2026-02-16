@@ -8,6 +8,7 @@ __version__ = "0.1.0"
 
 from . import simulator
 from . import inference
+from . import models
 from . import utils
 
-__all__ = ["simulator", "inference", "utils"]
+__all__ = ["simulator", "inference", "models", "utils"]
