@@ -211,9 +211,9 @@ R2: "It is not clear why authors chose NPE specifically? What about other algori
 
 R2: "Section 4.3.2 states: 'Figure 6 shows the joint posterior distribution... overlaid with the result from the 1D column count analysis.' However, this does not seem to be the case."
 
-- [ ] Check `docs/paper/template.tex` Section 4.3.2 and Figure 6
-- [ ] Either fix Figure 6 to actually show the 1D/2D overlay comparison
-- [ ] Or correct the text to match what the figure currently shows
+- [x] Check `docs/paper/template.tex` Section 4.3.2 and Figure 6
+- [x] Either fix Figure 6 to actually show the 1D/2D overlay comparison — Created overlay corner plot (`notebooks/generate_overlay_corner_plot.py`) showing 1D (blue) and 2D (red) posteriors on the same axes with legend
+- [x] Or correct the text to match what the figure currently shows — Updated body text, caption, and image reference in `template.tex`; also fixed `0.09` → `0.009` typo
 
 ---
 
