@@ -437,6 +437,8 @@ def main():
     # ------------------------------------------------------------------
     if not args.skip_training:
         start_time = time.time()
+        sim_time = 0.0
+        train_time = 0.0
 
         neural_net_kwargs = {
             'hidden_features': args.hidden_features,
@@ -476,6 +478,7 @@ def main():
                 print(f"\nGenerating {args.n_samples} training samples...")
 
                 save_path = args.save_data or data_path
+                sim_start = time.time()
                 theta, x = npe.generate_training_data(
                     simulator=simulator,
                     n_simulations=args.n_samples,
@@ -484,8 +487,9 @@ def main():
                     random_seed=args.seed,
                     n_workers=args.n_workers
                 )
+                sim_time = time.time() - sim_start
 
-                print(f"Data generation completed")
+                print(f"Data generation completed in {sim_time:.1f} seconds")
                 for pidx, pname in enumerate(param_names):
                     lo, hi = theta[:, pidx].min(), theta[:, pidx].max()
                     print(f"   {pname} range: [{lo:.3f}, {hi:.3f}]")
@@ -497,6 +501,7 @@ def main():
 
             # Train standard NPE
             print(f"\nTraining NPE model...")
+            train_start = time.time()
             training_info = npe.train(
                 theta=theta,
                 x=x,
@@ -513,9 +518,13 @@ def main():
                 disable_sbi_standardization=args.disable_sbi_standardization,
                 cnn_dual_branch=args.cnn_dual_branch,
             )
+            train_time = time.time() - train_start
 
         elapsed = time.time() - start_time
         print(f"Training completed in {elapsed:.1f} seconds")
+        if not args.use_snpe:
+            print(f"   Data generation: {sim_time:.1f}s")
+            print(f"   Network training: {train_time:.1f}s")
 
         # Save model
         metadata = {
@@ -525,6 +534,8 @@ def main():
             'lattice_size': (args.Lx, args.Ly),
             'time_steps': args.T,
             'training_time': elapsed,
+            'simulation_time': sim_time if not args.use_snpe else None,
+            'network_training_time': train_time if not args.use_snpe else None,
             'training_epochs': args.max_epochs
         }
 
