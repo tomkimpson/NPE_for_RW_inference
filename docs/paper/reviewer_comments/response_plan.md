@@ -304,12 +304,43 @@ R2: "It would be informative to separate the training of the network and the gen
 
 R2: "It is unclear from the text whether training and parameter inference were performed only once, or if repeating the experiment with different seeds would lead to similar results."
 
-- [ ] Run each model's training + inference pipeline with multiple random seeds (e.g., 5 seeds)
-- [ ] Report mean +/- std of key metrics:
+- [x] Run each model's training + inference pipeline with multiple random seeds (e.g., 5 seeds)
+- [x] Report mean +/- std of key metrics:
   - Posterior means for each parameter
   - Credible interval widths
   - Any summary accuracy metric used
 - [ ] Add statement about reproducibility to Methods or Results section
+
+**Implementation (Feb 17 2026):**
+
+Added `--obs_seed` argument to `src/main.py` to decouple observation generation from training seed. This isolates pipeline stochasticity (what the reviewer asks about) from data variability. When `--obs_seed` is not provided, falls back to `seed + 1000` for full backward compatibility.
+
+Ran 4 models × 5 seeds = 20 jobs (seeds: 42, 123, 456, 789, 1024) with fixed `obs_seed=1042` matching existing production runs. All production hyperparameters identical to `run_production.sh`.
+
+**Files created/modified:**
+- `src/main.py`: Added `--obs_seed` argument, replaced 4 hardcoded `args.seed + 1000`, added `obs_seed` to 3 metadata dicts
+- `slurm/run_seed_single.sh`: SLURM script for one model+seed run
+- `slurm/submit_seed_study.sh`: Driver script submitting all 20 jobs
+- `src/analyze_seed_study.py`: Aggregation script producing plain-text + LaTeX tables + pickle
+
+**Results (all 20/20 jobs completed):**
+
+| Model | Param | True | Post. mean (mean±std) | CI width (mean±std) | Coverage |
+|-------|-------|------|-----------------------|---------------------|----------|
+| original | U | 0.300 | 0.2947 ± 0.0016 | 0.0407 ± 0.0057 | 100% |
+| original | P | 0.700 | 0.6748 ± 0.0194 | 0.4021 ± 0.0391 | 100% |
+| A | U | 0.500 | 0.4976 ± 0.0021 | 0.0463 ± 0.0043 | 100% |
+| A | P | 0.700 | 0.6170 ± 0.0107 | 0.5667 ± 0.0148 | 100% |
+| A | rho | 0.500 | 0.6066 ± 0.0099 | 0.6038 ± 0.0073 | 100% |
+| B | P | 0.700 | 0.7427 ± 0.0262 | 0.3525 ± 0.0265 | 100% |
+| B | R | 0.010 | 0.0099 ± 0.0002 | 0.0020 ± 0.0001 | 100% |
+| C | P | 0.700 | 0.6136 ± 0.0386 | 0.5005 ± 0.0312 | 100% |
+| C | rho | 0.500 | 0.6058 ± 0.0335 | 0.5277 ± 0.0211 | 100% |
+| C | R | 0.010 | 0.0098 ± 0.0003 | 0.0020 ± 0.0002 | 100% |
+
+**Key findings:** 100% coverage across all models and parameters. Very low std of posterior means across seeds (e.g. U in original model: std = 0.0016), demonstrating high pipeline reproducibility. LaTeX table and full stats saved to `results/seed_study/`.
+
+**Results directory:** `results/seed_study/{original,A,B,C}/seed_{42,123,456,789,1024}/`
 
 ---
 
