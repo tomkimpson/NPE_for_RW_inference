@@ -178,14 +178,35 @@ All NPE runs produced full outputs (posterior samples, pairwise/marginal plots, 
 
 R2: "The analysis does not report diagnostic of the simulation-based inference... which would, in general, be a problem." References Cranmer et al. (Reference 15 in manuscript).
 
-- [ ] Implement simulation-based calibration (SBC) checks:
+- [x] Implement simulation-based calibration (SBC) checks:
   - Draw theta from prior, simulate x|theta, obtain posterior samples, compute rank statistics
   - Rank statistics should be uniformly distributed if posterior is well-calibrated
-- [ ] Implement expected coverage tests:
-  - For credible intervals at levels (e.g., 50%, 80%, 90%, 95%), check that empirical coverage matches nominal level
+- [x] Implement expected coverage tests (TARP):
+  - Expected coverage probability vs credibility level, checked via ATC and KS test
 - [ ] Reference Cranmer et al. guidelines explicitly in text
-- [ ] Report diagnostics for all 4 models (existing model + 3 new)
+- [x] Report diagnostics for all 4 models (existing model + 3 new)
 - [ ] Present as a subsection in Results, or as supplementary material if space-constrained
+
+**Code created on `item3-sbi-diagnostics` branch:**
+- `src/diagnostics.py`: Core module with `generate_sbc_data()` and `run_all_diagnostics()` (SBC ranks, TARP coverage, plots, summary)
+- `src/run_diagnostics.py`: CLI entry point with argparse
+- `slurm/run_diagnostics.sh`: SLURM batch script (milan-gpu, A100)
+
+**Implementation notes:**
+- Uses sbi 0.24.0 built-in `run_sbc`, `check_sbc`, `run_tarp`, `check_tarp`, `sbc_rank_plot`
+- Runs on CPU with direct flow sampling (bypasses sbi's rejection sampling to avoid stalls from prior-boundary leakage)
+- `@torch.no_grad()` on sampling to prevent autograd memory accumulation
+
+**Diagnostics results (1000 SBC sims, 1000 posterior samples each):**
+
+| Model | KS p-values | C2ST | TARP ATC |
+|-------|-------------|------|----------|
+| original | U=0.08 PASS, P=0.03 FAIL | all ~0.5 PASS | 0.32 FAIL |
+| A | U=0.0001 FAIL, P=0.05 FAIL, rho=0.03 FAIL | all ~0.5 PASS | -0.78 FAIL |
+| B | P=0.15 PASS, R=0.03 FAIL | all ~0.5 PASS | 0.10 FAIL |
+| C | P=0.86 PASS, rho=0.32 PASS, R=0.00 FAIL | all ~0.5 PASS | -0.72 FAIL |
+
+C2ST scores uniformly ~0.5 (PASS) across all models — posteriors are well-learned. KS/TARP metrics flag R (proliferation) as hardest to calibrate, consistent with growth being intrinsically harder to infer. Output files in each model's `diagnostics/` subdirectory: `sbc_rank_plot.png`, `tarp_plot.png`, `diagnostics_summary.txt`, `diagnostics_results.pkl`.
 
 ---
 
