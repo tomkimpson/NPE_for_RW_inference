@@ -33,9 +33,9 @@ Both reviewers question the paper's fit for JTB. R1: "significant importance on 
 - [x] Rewrite Introduction to lead with biology (scratch/barrier assay problem, cell migration, wound healing)
 - [x] Adopt IMRaD section headings throughout
 - [x] Move all RW model descriptions into Methods
-- [ ] Present results model-by-model, each with biological interpretation (not just parameter recovery)
+- [x] Present results model-by-model, each with biological interpretation (not just parameter recovery) — Added subsections 3.1 (Original), 3.2 (Model A), 3.3 (Model B), 3.4 (Model C), 3.5 (Diagnostics), 3.6 (Computational Performance). Each model subsection ends with biological interpretation paragraph. Added comprehensive results table (Table `all_results`) covering all 4 models with 1D and 2D NPE.
 - [x] Merge Discussion + Conclusion into a single Discussion section
-- [ ] Ensure biological insights are emphasized throughout — what do inferred parameters tell us about cell behaviour?
+- [x] Ensure biological insights are emphasized throughout — what do inferred parameters tell us about cell behaviour? — Updated abstract for multi-model scope, updated Introduction roadmap, added biological interpretation paragraphs in each Results subsection (U=seeding density, D=motility, rho=chemotactic bias, R=proliferation rate), added convenience-to-necessity spectrum paragraph in Discussion §4.1.
 
 ---
 
@@ -183,9 +183,9 @@ R2: "The analysis does not report diagnostic of the simulation-based inference..
   - Rank statistics should be uniformly distributed if posterior is well-calibrated
 - [x] Implement expected coverage tests (TARP):
   - Expected coverage probability vs credibility level, checked via ATC and KS test
-- [ ] Reference Cranmer et al. guidelines explicitly in text
+- [x] Reference Cranmer et al. guidelines explicitly in text — Added sentence in Implementation Details (Methods) referencing Cranmer et al. diagnostic protocol (SBC + TARP), with forward reference to Section 3.5.
 - [x] Report diagnostics for all 4 models (existing model + 3 new)
-- [ ] Present as a subsection in Results, or as supplementary material if space-constrained
+- [x] Present as a subsection in Results, or as supplementary material if space-constrained — Added as Section 3.5 "SBI Diagnostics" with diagnostics summary table (KS, C2ST, TARP ATC for all models) and two representative SBC rank plots (original + Model B).
 
 **Code created on `item3-sbi-diagnostics` branch:**
 - `src/diagnostics.py`: Core module with `generate_sbc_data()` and `run_all_diagnostics()` (SBC ranks, TARP coverage, plots, summary)
@@ -247,7 +247,7 @@ This item directly addresses R2's criticism that the 2D approach showed no impro
 - [x] Apply 2D CNN approach to Model A (crowding + bias + no growth)
 - [x] Rationale: bias creates anisotropic spatial patterns (agents preferentially moving in one direction), which 2D data should capture but 1D column counts collapse
 - [x] Compare 1D column-count posteriors vs 2D CNN posteriors for Model A — expect 2D to give tighter posteriors, especially for bias parameter v
-- [ ] Reframe the narrative: 2D is valuable when spatial structure is informative (bias, clustering, anisotropy), not always
+- [x] Reframe the narrative: 2D is valuable when spatial structure is informative (bias, clustering, anisotropy), not always — Rewrote Discussion §4.2 "Role of Spatial Information" with Model A evidence paragraph and 1D-as-hand-crafted vs 2D-as-automated-feature-extraction framing.
 - [x] Code: extend existing CNN pipeline to handle Model A's 2D lattice output as input
 - [x] **Depends on**: Item 2 (Model A must be implemented first) — DONE
 
@@ -382,16 +382,16 @@ Ran 4 models × 5 seeds = 20 jobs (seeds: 42, 123, 456, 789, 1024) with fixed `o
 
 R2 notes the word is used on p3 and in Table 1 before its definition on p7.
 
-- [ ] Move definition of "amortized" to its first use in the Introduction
-- [ ] Suggested phrasing: "amortized inference (where the upfront cost of training is offset by near-instant posterior estimation for any new observation)"
-- [ ] Affects: `docs/paper/template.tex` Introduction section
+- [x] Move definition of "amortized" to its first use in the Introduction — Changed em-dash explanation to parenthetical at line 112: "amortized inference (where the upfront cost of training is offset by near-instant posterior estimation for any new observation)"
+- [x] Suggested phrasing: "amortized inference (where the upfront cost of training is offset by near-instant posterior estimation for any new observation)"
+- [x] Affects: `docs/paper/template.tex` Introduction section
 
 ---
 
 ### Item 11: Update SBI Package Reference [R2]
 
-- [ ] Change Reference 63 to: Boelts et al., JOSS, https://joss.theoj.org/papers/10.21105/joss.07754
-- [ ] Affects: `docs/paper/template.tex` bibliography / .bib file
+- [x] Change Reference 63 to: Boelts et al., JOSS, https://joss.theoj.org/papers/10.21105/joss.07754 — Replaced `2020JOSS....5.2505T` entry in `references.bib` with `Boelts2025sbi` (Boelts et al. 2025, JOSS v10 n108 p7754). Updated both citation sites in `template.tex` (lines 282 and 321).
+- [x] Affects: `docs/paper/template.tex` bibliography / .bib file
 
 ---
 
@@ -399,9 +399,9 @@ R2 notes the word is used on p3 and in Table 1 before its definition on p7.
 
 R2: "Both the 1D column-wise approach and the 2D spatial approach use 'manually selected summary statistics.'"
 
-- [ ] Reframe the argument: the 2D CNN approach automates feature extraction — you pass raw spatial data and the CNN learns relevant features, unlike 1D column counts which are hand-crafted
-- [ ] Acknowledge that 1D column counts discard spatial information (clustering, anisotropy, local density fluctuations)
-- [ ] Combined with Item 6, present a coherent narrative: 2D approach is valuable when spatial structure is informative, and its main advantage is automation of feature extraction even when it matches 1D precision
+- [x] Reframe the argument: the 2D CNN approach automates feature extraction — you pass raw spatial data and the CNN learns relevant features, unlike 1D column counts which are hand-crafted — Done in Discussion §4.2: "1D column counts are hand-crafted summary statistics... while the 2D CNN performs automated feature extraction directly from raw spatial data."
+- [x] Acknowledge that 1D column counts discard spatial information (clustering, anisotropy, local density fluctuations) — Done in Results §3.2 (Model A): "directional bias creates spatial asymmetries that column counts collapse by summing across rows"
+- [x] Combined with Item 6, present a coherent narrative: 2D approach is valuable when spatial structure is informative, and its main advantage is automation of feature extraction even when it matches 1D precision — Done across Results (Model A overlay comparison) and Discussion (Role of Spatial Information rewrite)
 
 ---
 
