@@ -136,6 +136,8 @@ def main():
                        help='Device for training (auto: use CUDA if available, else CPU)')
     parser.add_argument('--seed', type=int, default=42,
                        help='Random seed')
+    parser.add_argument('--obs_seed', type=int, default=None,
+                       help='Random seed for generating the observation (default: seed + 1000)')
     parser.add_argument('--output_dir', type=str, default=None,
                        help='Output directory (default: results/workflow_TIMESTAMP)')
 
@@ -195,6 +197,9 @@ def main():
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
 
+    # Resolve observation seed
+    obs_seed = args.obs_seed if args.obs_seed is not None else args.seed + 1000
+
     # Create output directory
     if args.output_dir is None:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -235,6 +240,7 @@ def main():
         print(f"Training samples: {args.n_samples}")
 
     print(f"Random seed: {args.seed}")
+    print(f"Observation seed: {obs_seed}")
     if args.n_workers > 1:
         print(f"Parallel workers: {args.n_workers}")
     print()
@@ -295,14 +301,14 @@ def main():
             U=theta_true_list[0],
             P=theta_true_list[1],
             T=args.T,
-            random_seed=args.seed + 1000
+            random_seed=obs_seed
         )
     else:
         # Build full theta_dict including fixed params
         theta_dict_obs = dict(zip(param_names, theta_true_list))
         theta_dict_obs.update(cfg.fixed_params)
         column_counts, _, _ = simulator.simulate(
-            theta_dict_obs, T=args.T, random_seed=args.seed + 1000
+            theta_dict_obs, T=args.T, random_seed=obs_seed
         )
 
     print(f"   Observed data: {len(column_counts)} columns, {column_counts.sum()} total agents")
@@ -313,12 +319,12 @@ def main():
         if model_name == 'original':
             obs_2d, _, _ = simulator.simulate(
                 U=theta_true_list[0], P=theta_true_list[1],
-                T=args.T, random_seed=args.seed + 1000,
+                T=args.T, random_seed=obs_seed,
                 use_2d_output=True
             )
         else:
             obs_2d, _, _ = simulator.simulate(
-                theta_dict_obs, T=args.T, random_seed=args.seed + 1000,
+                theta_dict_obs, T=args.T, random_seed=obs_seed,
                 use_2d_output=True
             )
         x_obs = torch.tensor(obs_2d, dtype=torch.float32).unsqueeze(0)  # (1, Ly, Lx)
@@ -375,6 +381,7 @@ def main():
                 'lattice_size': (args.Lx, args.Ly),
                 'time_steps': args.T,
                 'seed': args.seed,
+                'obs_seed': obs_seed,
                 'elapsed': abc_results['elapsed'],
             }
         }
@@ -437,6 +444,8 @@ def main():
     # ------------------------------------------------------------------
     if not args.skip_training:
         start_time = time.time()
+        sim_time = 0.0
+        train_time = 0.0
 
         neural_net_kwargs = {
             'hidden_features': args.hidden_features,
@@ -476,6 +485,7 @@ def main():
                 print(f"\nGenerating {args.n_samples} training samples...")
 
                 save_path = args.save_data or data_path
+                sim_start = time.time()
                 theta, x = npe.generate_training_data(
                     simulator=simulator,
                     n_simulations=args.n_samples,
@@ -484,8 +494,9 @@ def main():
                     random_seed=args.seed,
                     n_workers=args.n_workers
                 )
+                sim_time = time.time() - sim_start
 
-                print(f"Data generation completed")
+                print(f"Data generation completed in {sim_time:.1f} seconds")
                 for pidx, pname in enumerate(param_names):
                     lo, hi = theta[:, pidx].min(), theta[:, pidx].max()
                     print(f"   {pname} range: [{lo:.3f}, {hi:.3f}]")
@@ -497,6 +508,7 @@ def main():
 
             # Train standard NPE
             print(f"\nTraining NPE model...")
+            train_start = time.time()
             training_info = npe.train(
                 theta=theta,
                 x=x,
@@ -513,9 +525,13 @@ def main():
                 disable_sbi_standardization=args.disable_sbi_standardization,
                 cnn_dual_branch=args.cnn_dual_branch,
             )
+            train_time = time.time() - train_start
 
         elapsed = time.time() - start_time
         print(f"Training completed in {elapsed:.1f} seconds")
+        if not args.use_snpe:
+            print(f"   Data generation: {sim_time:.1f}s")
+            print(f"   Network training: {train_time:.1f}s")
 
         # Save model
         metadata = {
@@ -525,6 +541,8 @@ def main():
             'lattice_size': (args.Lx, args.Ly),
             'time_steps': args.T,
             'training_time': elapsed,
+            'simulation_time': sim_time if not args.use_snpe else None,
+            'network_training_time': train_time if not args.use_snpe else None,
             'training_epochs': args.max_epochs
         }
 
@@ -617,6 +635,7 @@ def main():
             'lattice_size': (args.Lx, args.Ly),
             'time_steps': args.T,
             'seed': args.seed,
+            'obs_seed': obs_seed,
             'training_approach': method_label,
             'sampling_time': elapsed
         }
@@ -701,6 +720,7 @@ def main():
             'lattice_size': (args.Lx, args.Ly),
             'time_steps': args.T,
             'seed': args.seed,
+            'obs_seed': obs_seed,
             'training_approach': method_label,
         }
     }
