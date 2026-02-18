@@ -291,12 +291,46 @@ R2: "It would be helpful to include a summary table of the hyperparameters in th
 
 R2: "It would be informative to separate the training of the network and the generation of the simulation for training, since simulations are usually the bottleneck."
 
-- [ ] Split current Table 3 into three components:
+- [x] Split current Table 3 into three components:
   - (a) Simulation generation time
   - (b) Network training time
   - (c) Amortized inference time (per observation)
-- [ ] Re-run timing benchmarks if current data does not separate these
-- [ ] Report for all 4 models
+- [x] Re-run timing benchmarks if current data does not separate these — No rerunning needed; existing SLURM production logs already contained separated timing data
+- [x] Report for all 4 models
+
+**Completed changes (Feb 17 2026):**
+
+**Step 1 — Instrumented `src/main.py` with separate timers (lines 438-540):**
+- Added `sim_time` and `train_time` variables initialized to `0.0` at start of training block
+- Wrapped `npe.generate_training_data()` with `sim_start`/`sim_time` timer
+- Wrapped `npe.train()` with `train_start`/`train_time` timer
+- Added print lines after training: `Data generation: X.Xs` and `Network training: X.Xs`
+- Updated saved model metadata to include `simulation_time` and `network_training_time` fields
+- SNPE sequential path stores `None` for both (sim/train interleaved there; paper doesn't use SNPE)
+- ~15 lines of net changes; verified with quick local test (50 sims, 2 epochs)
+
+**Step 2 — Updated Table 3 in `template.tex` (lines 479-501):**
+- Replaced 2-data-column table (`Training Time | Inference Time`) with 3-column table (`Sim. Generation | NN Training | Inference`)
+- Expanded from 2 NPE rows (1D, 2D) to 8 rows covering all 4 models x both data types
+- Timing data extracted from production SLURM logs (`npe_prod_929341*.txt`, 10k sims, 8 CPU workers, A100 GPU)
+- Updated caption to specify: 10k training sims, 8 CPU workers for simulation, A100 GPU for NN training, percentage breakdown
+
+**Step 3 — Updated surrounding text in `template.tex` (lines 477, 503):**
+- Rewrote pre-table paragraph (line 477) to discuss: simulation as dominant cost (74% for original, 97% for exclusion models A-C), simulation throughput (~20 sims/s original vs ~2 sims/s exclusion), fast NN training (~2-3 min on A100), negligible 1D vs 2D simulation time difference
+- Updated post-table paragraph (line 503) to note the simulation bottleneck is inherent to the stochastic model and can be mitigated through parallelism, while NN training scales well on GPU hardware
+
+**Timing data used (from production logs):**
+
+| Model | Data | Sim (s) | NN Train (s) | Inference (s) | Source Log |
+|-------|------|---------|-------------|---------------|------------|
+| original | 1D | 512 | 180 | 0.7 | `npe_prod_9293411.txt` |
+| original | 2D | 519 | 167 | 0.5 | `npe_prod_9293421.txt` |
+| A | 1D | 4352 | 120 | 0.2 | `npe_prod_9293412.txt` |
+| A | 2D | 4303 | 147 | 0.5 | `npe_prod_9293422.txt` |
+| B | 1D | 4841 | 139 | 0.2 | `npe_prod_9293413.txt` |
+| B | 2D | 5012 | 114 | 0.2 | `npe_prod_9293423.txt` |
+| C | 1D | 4805 | 156 | 1.0 | `npe_prod_9293414.txt` |
+| C | 2D | 4898 | 177 | 0.6 | `npe_prod_9293424.txt` |
 
 ---
 
@@ -494,7 +528,7 @@ R2: "'NPE offers a fundamentally different approach' is incorrect or unclear."
 ### Phase 2 — Analysis (Items 6, 8, 15)
 
 8. Apply 2D CNN to bias model (Model A), compare 1D vs 2D posterior precision
-9. Collect timing data separated into simulation / training / inference components
+9. ~~Collect timing data separated into simulation / training / inference components~~ — DONE (Item 8)
 10. Collect classical method results (MLE, MCMC) for Table 2 comparisons
 
 ### Phase 3 — Writing (Items 1, 4, 5, 7, 10-24)
