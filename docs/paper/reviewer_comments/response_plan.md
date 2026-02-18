@@ -343,7 +343,7 @@ R2: "It is unclear from the text whether training and parameter inference were p
   - Posterior means for each parameter
   - Credible interval widths
   - Any summary accuracy metric used
-- [ ] Add statement about reproducibility to Methods or Results section
+- [x] Add statement about reproducibility to Methods or Results section — Added Section 3.6 "Reproducibility Across Random Seeds" with table (Tab. seed_study) and paragraph summarizing 5-seed study results: stable posterior means (max std 0.039), consistent CI widths, 100% coverage
 
 **Implementation (Feb 17 2026):**
 
@@ -501,7 +501,7 @@ R2: "'NPE offers a fundamentally different approach' is incorrect or unclear."
 
 - [x] Review R1's annotated PDF (`JTB-D-25-00973_review-commented.pdf`) for all highlighted typos — Addressed colon-before-equation issues
 - [x] Fix formula integration into sentences — no colon before a formula when the sentence continues after it — Removed colons at six locations: PDE form, diffusion equation, Fisher Information matrix, change of variables formula, proposal distribution bias, agents per column
-- [ ] Do a final proofreading pass
+- [x] Do a final proofreading pass — Fixed 10 issues: removed lipsum package, fixed hyphen→en-dash in Fig 1 caption, fixed $x$→$Y$ notation inconsistency in normalizing flows paragraph, fixed $J$→$H$ notation collision (flux vs lattice height), fixed broken grammar in 1D results ("precision, than"), added missing period in Fig 4 caption, clarified $D=P/4=0.175$ in 2D setup, fixed extra column in all_results tabular spec, removed incorrect "data augmentation" mention in seed study section, fixed "amortised"→"amortized" spelling inconsistency
 
 ---
 

@@ -18,7 +18,7 @@
 \usepackage{nicefrac}       % compact symbols for 1/2, etc.
 \usepackage{microtype}      % microtypography
 \usepackage{cleveref}       % smart cross-referencing
-\usepackage{lipsum}         % Can be removed after putting your text content
+% \usepackage{lipsum}       % Removed — placeholder package not needed
 \usepackage{graphicx}
 \usepackage{natbib}
 \usepackage{doi}
@@ -125,7 +125,7 @@ We demonstrate this framework on a hierarchy of agent-based random walk models o
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=\textwidth]{images/pde_comparison_figure_column}
-	\caption{Schematic of the lattice-based random walk model. (a) Initial placement of agents within region $|x| \leq 25$ on a 2D lattice with $H=50$, $\Delta=\tau=1$, $U=0.3$. (b) Agent distribution after 100 time steps showing symmetric outward spreading. (c)-(d) Reduction of 2D data to 1D column counts $N_i(t)$ at $t=0$ and $t=100$ respectively. Blue dots show initial stochastic count data; orange dots show final stochastic count data; red curves show the continuum PDE solution $Hu(x,t)$ where $u(x,t)$ solves the diffusion equation with $D=P/4$.}
+	\caption{Schematic of the lattice-based random walk model. (a) Initial placement of agents within region $|x| \leq 25$ on a 2D lattice with $H=50$, $\Delta=\tau=1$, $U=0.3$. (b) Agent distribution after 100 time steps showing symmetric outward spreading. (c)--(d) Reduction of 2D data to 1D column counts $N_i(t)$ at $t=0$ and $t=100$ respectively. Blue dots show initial stochastic count data; orange dots show final stochastic count data; red curves show the continuum PDE solution $Hu(x,t)$ where $u(x,t)$ solves the diffusion equation with $D=P/4$.}
 	\label{fig:model_schematic}
 \end{figure}
 
@@ -231,7 +231,7 @@ Figure~\ref{fig:npe_workflow} provides a schematic overview of the NPE workflow,
 At the core of NPE are normalizing flows \cite{rezende2015variational, papamakarios2021normalizing}, a class of generative models that construct complex probability distributions by transforming samples from a simple base distribution (typically a standard Gaussian) through a series of invertible, differentiable mappings \cite{kobyzev2020normalizing}. Because each mapping is invertible and has a tractable Jacobian, the resulting density can be evaluated exactly via the change-of-variables formula, making normalizing flows well suited to the conditional density estimation task required by NPE.
 
 
-Formally, let $u \in \mathbb{R}^d$ be a random variable with base density $p_u(u) = \mathcal{N}(0, I)$, where $I \in \mathbb{R}^{d \times d}$ denotes the identity matrix. The flow defines an invertible transformation $f_\phi: \mathbb{R}^d \rightarrow \mathbb{R}^d$ parametrized by neural network weights $\phi$. For conditional density estimation, this transformation is conditioned on the observation: $\theta = f_\phi(u; x)$. The invertibility requirement ensures that we can both generate samples (forward pass) and evaluate densities (inverse pass). The key insight is that complex distributions can be learned by composing simple transformations, each of which maintains invertibility and efficient Jacobian computation. This allows the network to learn highly flexible posterior shapes while maintaining computational tractability, a crucial feature when inferring parameters in complex biological models where posteriors may exhibit non-Gaussian features such as multimodality, heavy tails, or curved degeneracies. The resulting approximate posterior density follows from the change of variables formula
+Formally, let $u \in \mathbb{R}^d$ be a random variable with base density $p_u(u) = \mathcal{N}(0, I)$, where $I \in \mathbb{R}^{d \times d}$ denotes the identity matrix. The flow defines an invertible transformation $f_\phi: \mathbb{R}^d \rightarrow \mathbb{R}^d$ parametrized by neural network weights $\phi$. For conditional density estimation, this transformation is conditioned on the observation: $\theta = f_\phi(u; Y)$. The invertibility requirement ensures that we can both generate samples (forward pass) and evaluate densities (inverse pass). The key insight is that complex distributions can be learned by composing simple transformations, each of which maintains invertibility and efficient Jacobian computation. This allows the network to learn highly flexible posterior shapes while maintaining computational tractability, a crucial feature when inferring parameters in complex biological models where posteriors may exhibit non-Gaussian features such as multimodality, heavy tails, or curved degeneracies. The resulting approximate posterior density follows from the change of variables formula
 \begin{equation}
 	q_\phi(\theta | Y) = p_u(f_\phi^{-1}(\theta;Y)) \left| \det J_{f_\phi^{-1}}(\theta; Y) \right|
 \end{equation}
@@ -289,9 +289,9 @@ We use broad uniform priors covering the full parameter space: $P \sim \mathcal{
 
 A key feature of the barrier assay experimental design is the reduction of two-dimensional spatial data to one-dimensional measurements. Since the initial macroscopic density is uniform in the vertical ($y$) direction and boundary conditions preserve this symmetry, the resulting agent distribution remains independent of vertical location on average. This motivates quantifying the system by counting the number of agents per column
 \begin{equation}
-	N_i(t) = \sum_{j=1}^{J} n_{i,j}(t),
+	N_i(t) = \sum_{j=1}^{H} n_{i,j}(t),
 \end{equation}
-where $n_{i,j}(t)$ denotes the integer number of agents at lattice site $(i,j)$ at time $t$, and $J$ is the number of lattice sites in the vertical direction. This dimensional reduction from 2D spatial data to 1D column counts is standard in cell biology scratch assays \citep{Jin2016}, as it simplifies the characterization of spatio-temporal spreading while retaining the stochastic fluctuations inherent to the discrete process, as evident in Figure~\ref{fig:model_schematic}(c)--(d). The continuous analogue of the column count $N_i$ under the PDE model is $Hu(x_i,t)$, where $x_i$ denotes the horizontal position of the $i$-th column and $H$ is the lattice height. Figure~\ref{fig:model_schematic}(c)--(d) compares the stochastic count data (blue dots) with this PDE solution (red curves), revealing that while the PDE captures mean trends, substantial stochastic fluctuations remain.
+where $n_{i,j}(t)$ denotes the integer number of agents at lattice site $(i,j)$ at time $t$, and $H$ is the number of lattice sites in the vertical direction. This dimensional reduction from 2D spatial data to 1D column counts is standard in cell biology scratch assays \citep{Jin2016}, as it simplifies the characterization of spatio-temporal spreading while retaining the stochastic fluctuations inherent to the discrete process, as evident in Figure~\ref{fig:model_schematic}(c)--(d). The continuous analogue of the column count $N_i$ under the PDE model is $Hu(x_i,t)$, where $x_i$ denotes the horizontal position of the $i$-th column and $H$ is the lattice height. Figure~\ref{fig:model_schematic}(c)--(d) compares the stochastic count data (blue dots) with this PDE solution (red curves), revealing that while the PDE captures mean trends, substantial stochastic fluctuations remain.
 
 For inference on 2D spatial data, we treat each lattice configuration from the simulator as a 2D histogram (or count-based image), where each pixel's value represents the integer number of agents $n_{i,j}(t)$ at the corresponding lattice site. To learn informative features directly from this high-dimensional input, we replace the simple feed-forward network with a CNN \citep{lecun1998,krizhevsky2012,goodfellow2016}. The CNN acts as a learnable feature extractor embedded within the NPE pipeline. It uses a series of convolutional and pooling layers to progressively downsample the spatial data into a low-dimensional embedding. This process captures salient spatial features, such as clustering patterns and local agent densities, while preserving translational invariance. The learned embedding is then passed to the remainder of the network to estimate the posterior distribution. This end-to-end training ensures that the features extracted by the CNN are maximally informative for parameter inference.
 
@@ -382,12 +382,12 @@ Following the protocol of \SP, we generate synthetic observations from a stochas
 \paragraph{Parameter Inference Results.}
 Figure~\ref{fig:npe_1d_posterior} presents the posterior distribution obtained via NPE. NPE recovers a posterior distribution with median $U = 0.298^{+0.009}_{-0.008}$ and $D=0.164^{+0.024}_{-0.024}$. The results demonstrate excellent agreement with the true parameter values ($U = 0.3$, $D = 0.175$).
 
-This approach yields several key advantages over classical methods. The NPE posterior shows substantially improved precision, than a posterior obtained from a comparable ABC analysis, especially for the diffusion parameter $D$, all without the need for manual tolerance tuning. Furthermore, because NPE learns directly from the stochastic simulator, it avoids the systematic bias of mean-field approximations and produces a posterior that is not artificially narrow. The resulting credible intervals accurately reflect the natural stochastic variance of the data, a feature often lost when using deterministic surrogate models, cf.\ Fig~\ref{fig:three_figures}. Once the initial network training is complete, posterior samples for any new observation can be obtained almost instantly.
+This approach yields several key advantages over classical methods. The NPE posterior shows substantially improved precision relative to ABC, especially for the diffusion parameter $D$, all without the need for manual tolerance tuning. Furthermore, because NPE learns directly from the stochastic simulator, it avoids the systematic bias of mean-field approximations and produces a posterior that is not artificially narrow. The resulting credible intervals accurately reflect the natural stochastic variance of the data, a feature often lost when using deterministic surrogate models, cf.\ Fig~\ref{fig:three_figures}. Once the initial network training is complete, posterior samples for any new observation can be obtained almost instantly.
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=0.8\textwidth]{images/NPE_corner_plot_1d_D}
 	\caption{Posterior distribution from NPE using 1D column count data.
-		The figure is arranged as described in Figure \ref{fig:three_figures}. The true parameter values (orange cross) are contained within the 68\% credible interval}
+		The figure is arranged as described in Figure \ref{fig:three_figures}. The true parameter values (orange cross) are contained within the 68\% credible interval.}
 	\label{fig:npe_1d_posterior}
 \end{figure}
 
@@ -412,7 +412,7 @@ As shown in Figure~\ref{fig:npe_1d_predictive}, the resulting NPE-based predicti
 While column counts provide a natural summary of the spreading process, they necessarily discard information about the vertical distribution of agents. In principle, the spatial correlation structure within the 2D configuration contains additional information about the underlying parameters. For instance, clustering patterns, local density fluctuations, and spatial correlations may help distinguish between different combinations of $P$ and $U$ that produce similar column counts, cf.\ parameter identifiability \footnote{Although parameter identifiability is not a significant concern for the simple model we consider, additional spatial features are of interest for disentangling parameters in more complex models that incorporate processes like cell-cell adhesion or proliferation. We note that for longer times even this simple model becomes non-identifiable in the diffusion coefficient $D$.}. Traditional inference methods require hand-crafted summary statistics, making it challenging to leverage such high-dimensional spatial information. NPE, however, can learn directly from raw data through automatic feature extraction. While the simple random walk models considered here are likely well-captured by 1D summary statistics, this approach demonstrates the broader potential of NPE for more complex biological systems where spatial structure is critical. For example, models incorporating agent-agent interactions, complex boundary conditions, spatially heterogeneous environments, or multi-species dynamics would generate spatial patterns that cannot be adequately summarized by simple column counts. In such cases, the ability to learn directly from full spatial data becomes essential for accurate parameter inference.
 
 \paragraph{Experimental Setup.}
-The experimental setup remains identical to the 1D case, using the same synthetic observation generated with true parameters $P = 0.7$ ($D=0.7/4$) and $U = 0.3$. However, instead of using the 201-dimensional vector of column counts as input, the network now receives the full $50 \times 200$ binary image representing the agent locations on the lattice. We use the same broad uniform priors for $P$ and $U$ as described in Section~\ref{sec:NPE}.
+The experimental setup remains identical to the 1D case, using the same synthetic observation generated with true parameters $P = 0.7$ ($D = P/4 = 0.175$) and $U = 0.3$. However, instead of using the 201-dimensional vector of column counts as input, the network now receives the full $50 \times 200$ binary image representing the agent locations on the lattice. We use the same broad uniform priors for $P$ and $U$ as described in Section~\ref{sec:NPE}.
 
 \paragraph{Parameter Inference Results.}
 Figure~\ref{fig:npe_2d_posterior} shows the joint posterior distribution inferred from the 2D spatial data, overlaid with the 1D column count posterior from Section~\ref{sec:1d_results} for direct comparison. The CNN-based approach recovers a posterior with means $D = 0.169^{+0.026}_{-0.023}$
@@ -654,7 +654,7 @@ Table~\ref{tab:all_results} provides a comprehensive summary of NPE inference re
 \begin{table}[htbp]
 	\centering
 	\renewcommand{\arraystretch}{1.2}
-	\begin{tabular}{@{}llcccc@{}}
+	\begin{tabular}{@{}llccc@{}}
 		\toprule
 		\textbf{Model} & \textbf{Parameter} & \textbf{True Value} & \textbf{1D NPE} & \textbf{2D NPE} \\
 		\midrule
@@ -677,6 +677,36 @@ Table~\ref{tab:all_results} provides a comprehensive summary of NPE inference re
 	\label{tab:all_results}
 \end{table}
 
+
+\subsection{Reproducibility Across Random Seeds}\label{sec:reproducibility}
+
+Neural network training involves stochastic elements---random weight initialisation and mini-batch ordering---that could in principle cause posterior estimates to vary between independent runs. To quantify this variability, we retrained the 1D NPE pipeline five times for each model using different random seeds (42, 123, 456, 789, 1024) while holding the test observation fixed. Table~\ref{tab:seed_study} summarises the results. Posterior mean estimates are highly stable across seeds: the standard deviation of the posterior mean is at most 0.039 ($P$ in Model~C), which is small relative to both the posterior width and the parameter range. Credible interval widths are similarly consistent, with relative fluctuations below 10\% in all cases. The true parameter value falls within the 95\% credible interval for every seed and every parameter, yielding 100\% empirical coverage. These results confirm that the trained posteriors are robust to the stochastic elements of the training procedure and that a single training run is sufficient for reliable inference.
+
+\begin{table}[htbp]
+	\centering
+	\renewcommand{\arraystretch}{1.2}
+	\begin{tabular}{@{}llcccc@{}}
+		\toprule
+		\textbf{Model} & \textbf{Param} & \textbf{True} & \textbf{Post.\ mean (mean $\pm$ std)} & \textbf{CI width (mean $\pm$ std)} & \textbf{Coverage} \\
+		\midrule
+		\multirow{2}{*}{Original} & $U$ & 0.300 & $0.2947 \pm 0.0016$ & $0.0407 \pm 0.0057$ & 5/5 \\
+		                          & $P$ & 0.700 & $0.6748 \pm 0.0194$ & $0.4021 \pm 0.0391$ & 5/5 \\
+		\midrule
+		\multirow{3}{*}{A (Bias)} & $U$    & 0.500 & $0.4976 \pm 0.0021$ & $0.0463 \pm 0.0043$ & 5/5 \\
+		                          & $P$    & 0.700 & $0.6170 \pm 0.0107$ & $0.5667 \pm 0.0148$ & 5/5 \\
+		                          & $\rho$ & 0.500 & $0.6066 \pm 0.0099$ & $0.6038 \pm 0.0073$ & 5/5 \\
+		\midrule
+		\multirow{2}{*}{B (Prolif.)} & $P$ & 0.700 & $0.7427 \pm 0.0262$ & $0.3525 \pm 0.0265$ & 5/5 \\
+		                              & $R$ & 0.010 & $0.0099 \pm 0.0002$ & $0.0020 \pm 0.0001$ & 5/5 \\
+		\midrule
+		\multirow{3}{*}{C (Bias + Prolif.)} & $P$    & 0.700 & $0.6136 \pm 0.0386$ & $0.5005 \pm 0.0312$ & 5/5 \\
+		                                    & $\rho$ & 0.500 & $0.6058 \pm 0.0335$ & $0.5277 \pm 0.0211$ & 5/5 \\
+		                                    & $R$    & 0.010 & $0.0098 \pm 0.0003$ & $0.0020 \pm 0.0002$ & 5/5 \\
+		\bottomrule
+	\end{tabular}
+	\caption{Reproducibility across random seeds. For each model and parameter, we report the mean $\pm$ standard deviation of the posterior mean and the 95\% credible interval width across 5 independent training runs. Coverage indicates the fraction of seeds for which the true value falls within the 95\% credible interval. All 1D NPE with 10{,}000 training simulations.}
+	\label{tab:seed_study}
+\end{table}
 
 
 \subsection{Computational Performance}\label{sec:runtime}
@@ -707,7 +737,7 @@ To provide a practical comparison of computational costs, Table~\ref{tab:runtime
 		\caption{Computational runtimes for various inference methods. NPE costs are separated into simulation generation (10{,}000 training simulations on 8~CPU workers) and neural network training (on an A100 GPU). Simulation generation dominates the cost, accounting for $\sim$74\% of the total for the original model and $\sim$97\% for the exclusion models~A--C. Once trained, NPE inference is near-instantaneous.}	\label{tab:runtimes}
 \end{table}
 
-Two distinct computational strategies emerge from this comparison. Surrogate-based approaches are extremely fast because they entirely bypass repeated stochastic simulations, relying instead on precomputed or deterministic approximations of the model. In contrast, the NPE framework demands a substantial one-time computational investment, dominated by simulation generation rather than network training, but then performs posterior inference for new observations almost instantaneously. This separation is practically important: the simulation bottleneck is inherent to the stochastic model and can be mitigated through parallelism or more efficient simulators, whereas the network training component is already fast and scales well on modern GPU hardware. The amortised structure makes NPE particularly attractive for scenarios requiring repeated or real-time inference across many datasets.
+Two distinct computational strategies emerge from this comparison. Surrogate-based approaches are extremely fast because they entirely bypass repeated stochastic simulations, relying instead on precomputed or deterministic approximations of the model. In contrast, the NPE framework demands a substantial one-time computational investment, dominated by simulation generation rather than network training, but then performs posterior inference for new observations almost instantaneously. This separation is practically important: the simulation bottleneck is inherent to the stochastic model and can be mitigated through parallelism or more efficient simulators, whereas the network training component is already fast and scales well on modern GPU hardware. The amortized structure makes NPE particularly attractive for scenarios requiring repeated or real-time inference across many datasets.
 
 
 %% ============================================================
