@@ -1,8 +1,8 @@
-# Handoff: `item2-new-models` branch
+# Handoff: `reviewer-comments` branch
 
 ## Summary
 
-This branch implements the core code infrastructure for the paper revision: 4 random walk models (original + A/B/C), parallelized data generation, CNN embedding for 2D spatial data, and an ABC baseline (retained in code but not for the paper). All production NPE runs (1D and 2D) have completed successfully for all 4 models.
+Paper revision in progress. Core infrastructure complete: 4 random walk models (original + A/B/C), parallelized data generation, CNN embedding for 2D spatial data, SBI diagnostics, seed study, and classical baselines. Paper text largely written in IMRaD format. Currently refining figures and text for space/clarity.
 
 ---
 
@@ -74,21 +74,28 @@ All 12 jobs submitted on 2026-02-04. Results in `results/`:
 - ABC original: **completed** (original model uses the faster non-exclusion simulator).
 - ABC A/B/C: **timed out** at 8 hours. Exclusion simulator too slow (~1-2 sims/s) for SMCABC to converge.
 
+**Pending re-run (2026-02-23)**:
+- Original model 2D NPE re-running with enhanced settings (SLURM job 9899594). The initial 2D run used only 10k samples and hidden_features=128, producing a biased posterior for D (median 0.131 vs true 0.175). The re-run uses 50k samples and hidden_features=256, matching the settings that produced good results for Model A's 2D run. Once complete, need to: (1) verify posterior statistics, (2) update `paper_figures.py` RESULT_PATHS for `("original", "npe2d")`, (3) regenerate the overlay corner plot, (4) update numbers in `docs/paper/template.tex` (caption, text, and Table 4).
+
 Each successful NPE result directory contains: `config.txt`, `npe_model.pkl`, `training_data.pkl`, and under `inference_results/`: posterior samples, marginal/pairwise plots, prediction intervals, and predictive results.
 
-**Observation**: NPE 1D produces tighter posteriors than NPE+CNN 2D with 10k training samples. This is expected — the CNN adds model capacity that needs more data. The key comparison for the paper is whether 2D gives tighter posteriors for the bias parameter rho in Model A, where spatial anisotropy should be informative.
+**Note**: 2D runs require more training samples than 1D. The enhanced 2D settings (50k samples, hidden_features=256) have been validated on Model A and are now being applied to the original model.
 
 ---
 
 ## Production run configuration
 
-From `slurm/run_production.sh`:
+**1D NPE** (`slurm/run_production.sh`):
 - 10,000 training samples, 8 parallel workers
-- NSF architecture: 128 hidden features, 8 transforms
+- NSF: 128 hidden features, 8 transforms
 - Training: max 100 epochs, early stopping after 20, lr=1e-4, batch size 512
-- Lattice: Lx=200, Ly=50, T=100, initial_region_half_width=25
-- Posterior: 5000 samples; predictive: 500 forward simulations
-- GPU: A100 on milan-gpu partition
+
+**2D NPE** (`slurm/run_production_2d_enhanced.sh`):
+- 50,000 training samples, 16 parallel workers
+- NSF: 256 hidden features, 8 transforms
+- Training: max 100 epochs, early stopping after 20, lr=1e-4, batch size 512
+
+**Common**: Lattice Lx=200, Ly=50, T=100, initial_region_half_width=25. Posterior: 5000 samples; predictive: 500 forward simulations. GPU: A100 on milan-gpu partition.
 
 ---
 
@@ -110,26 +117,15 @@ From `slurm/run_production.sh`:
 
 ---
 
-## Next steps (from response_plan.md)
+## Current status (2026-02-23)
 
-### Immediate priorities
+### Completed
+- SBI diagnostics (SBC rank plots, KS tests, C2ST, TARP) for all 4 models
+- Seed study (5 seeds per model, Table in paper)
+- Classical baselines (ABC, surrogate+MLE/Laplace, surrogate+MCMC) for original model
+- IMRaD restructure and full paper text
+- Model A 2D re-run with enhanced settings (50k samples, hidden_features=256)
 
-1. **Item 3 — SBI diagnostics** (response_plan.md): Implement simulation-based calibration (SBC) and expected coverage tests for all 4 models. Reviewer 2 specifically asked for this.
-
-2. **Item 6 — 2D CNN on bias model analysis**: Compare 1D vs 2D posterior precision for Model A, specifically for the bias parameter rho. This is the key result that justifies the CNN approach — bias creates anisotropic spatial patterns that 2D data should capture.
-
-3. **Item 9 — Reproducibility across seeds**: Run each model with 5 random seeds, report mean ± std of posterior means and CI widths.
-
-4. **Classical baseline comparison**: Implement or reference profile likelihood / MLE / MCMC results from Simpson & Plank 2025 for Models A and B. Model C (bias + growth) has no classical benchmark — this is where NPE demonstrates necessity.
-
-### Paper writing
-
-5. **Item 1 — IMRaD restructure**: Already partially done (intro rewritten, IMRaD headings adopted). Still need: model-by-model results with biological interpretation, biological insights throughout.
-
-6. **Items 4, 7, 8, 10-24**: Various text fixes, table additions, figure corrections per reviewer comments. See `docs/paper/reviewer_comments/response_plan.md` for the full checklist.
-
-### Possible enhancements
-
-7. **Increase 2D training samples**: If 2D posteriors are still wider than 1D, try 50k or 100k samples to let the CNN learn effectively.
-
-8. **Multi-round NPE**: Currently using single-round NPE. Sequential (multi-round) NPE could improve sample efficiency for the more complex models.
+### In progress
+- **Original model 2D NPE re-run** (SLURM job 9899594): Previous run used under-resourced settings (10k samples, hidden_features=128), producing biased D posterior (median 0.131 vs true 0.175). Re-running with 50k samples and hidden_features=256. Once complete: verify posteriors, update `paper_figures.py` RESULT_PATHS, regenerate overlay plot, update paper numbers.
+- **Paper figure/text refinement**: Consolidating figures for space (removed redundant corner plots and PPCs, horizontal layout for classical comparison panels).

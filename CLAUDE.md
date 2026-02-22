@@ -1,5 +1,10 @@
 # Project Instructions
 
+## Handoff
+
+- Always consult `handoff.md` at the start of a session for current project state, pending work, and result paths.
+- When completing work or discovering important context, update `handoff.md` to keep it current. Remove stale information.
+
 ## Git Commits
 
 - Never include "Co-Authored-By" lines in commit messages.
