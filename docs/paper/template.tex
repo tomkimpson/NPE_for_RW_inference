@@ -374,7 +374,7 @@ Collectively, these results highlight the core dilemma: direct methods like ABC 
 
 \subsubsection{NPE with 1D Summary Statistics}\label{sec:1d_results}
 
-We demonstrate NPE's effectiveness by applying it to the same synthetic barrier assay data used in Section~\ref{sec:results_classical}. To ensure direct comparison with the classical methods, we first implement NPE using identical 1D column count summary statistics $N_i$, representing the number of agents in each vertical column of the lattice. Following the protocol of \SP, we generate synthetic observations from a stochastic random walk model with true parameters $P = 0.7$ and $U = 0.3$, corresponding to diffusivity $D \approx P/4 = 0.175$. The resulting data consists of a 201-dimensional vector of column counts, corresponding to the 201 discrete lattice columns from $x=-100$ to $x=+100$. We perform inference directly on the stochastic model parameters $P$ and $U$, then transform to $D$ via the relationship $D = P/4$ for comparison with PDE-based approaches. NPE recovers a posterior distribution with median $U = 0.298^{+0.009}_{-0.008}$ and $D=0.164^{+0.024}_{-0.024}$ (blue contours in Figure~\ref{fig:npe_2d_posterior}). The results demonstrate excellent agreement with the true parameter values ($U = 0.3$, $D = 0.175$).
+We demonstrate NPE's effectiveness by applying it to the same synthetic barrier assay data used in Section~\ref{sec:results_classical}. To ensure direct comparison with the classical methods, we first implement NPE using identical 1D column count summary statistics $N_i$, representing the number of agents in each vertical column of the lattice. Following the protocol of \SP, we generate synthetic observations from a stochastic random walk model with true parameters $P = 0.7$ and $U = 0.3$, corresponding to diffusivity $D \approx P/4 = 0.175$. The resulting data consists of a 201-dimensional vector of column counts, corresponding to the 201 discrete lattice columns from $x=-100$ to $x=+100$. We perform inference directly on the stochastic model parameters $P$ and $U$, then transform to $D$ via the relationship $D = P/4$ for comparison with PDE-based approaches. NPE recovers a posterior distribution with median $U = 0.298^{+0.009}_{-0.008}$ and $D=0.164^{+0.024}_{-0.024}$ (Figure~\ref{fig:npe_original_1d}). The results demonstrate excellent agreement with the true parameter values ($U = 0.3$, $D = 0.175$).
 
 This approach yields several key advantages over classical methods. The NPE posterior shows substantially improved precision relative to ABC, especially for the diffusion parameter $D$, all without the need for manual tolerance tuning. Furthermore, because NPE learns directly from the stochastic simulator, it avoids the systematic bias of mean-field approximations and produces a posterior that is not artificially narrow. The resulting credible intervals accurately reflect the natural stochastic variance of the data, a feature often lost when using deterministic surrogate models, cf.\ Fig~\ref{fig:three_figures}. Once the initial network training is complete, posterior samples for any new observation can be obtained almost instantly.
 
@@ -382,9 +382,21 @@ Beyond parameter estimation, we evaluate NPE's predictive capabilities through p
 
 \begin{figure}[htbp]
 	\centering
-	\includegraphics[width=0.8\textwidth]{images/NPE_corner_plot_overlay_1D_2D}
-	\caption{Joint posterior distributions for the diffusion coefficient $D$ and uptake rate $U$. The 1D column count posterior (blue) from Section~\ref{sec:1d_results} is overlaid with the 2D spatial data posterior using CNN embedding networks (red). Orange dashed lines indicate the true parameter values. The 1D posteriors yield $U = 0.298^{+0.009}_{-0.008}$ and $D = 0.164^{+0.024}_{-0.024}$; the 2D posteriors yield $U = 0.290^{+0.008}_{-0.009}$ and $D = 0.169^{+0.026}_{-0.023}$ (medians with 68\% credible intervals). Both approaches recover comparable posteriors, demonstrating that the CNN automatically extracts features from the raw spatial data that are as informative as the curated 1D summary statistics.}
-	\label{fig:npe_2d_posterior}
+	\begin{subfigure}{0.48\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{images/corner_original_1d}
+		\caption{1D column count posterior}
+		\label{fig:npe_original_1d}
+	\end{subfigure}
+	\hfill
+	\begin{subfigure}{0.48\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{images/corner_original_2d}
+		\caption{2D spatial posterior (CNN)}
+		\label{fig:npe_original_2d}
+	\end{subfigure}
+	\caption{Posterior distributions for the original model with true values $U = 0.3$, $D = 0.175$. (a)~NPE posterior from 1D column count data yields $U = 0.298^{+0.009}_{-0.008}$ and $D = 0.164^{+0.024}_{-0.024}$. (b)~NPE posterior from 2D spatial data using CNN embedding yields $U = 0.290^{+0.008}_{-0.009}$ and $D = 0.169^{+0.026}_{-0.023}$ (medians with 68\% credible intervals). Both approaches recover comparable posteriors, demonstrating that the CNN automatically extracts features from the raw spatial data that are as informative as the curated 1D summary statistics.}
+	\label{fig:npe_original_posteriors}
 \end{figure}
 
 \begin{figure}[htbp]
@@ -402,7 +414,7 @@ While column counts provide a natural summary of the spreading process, they nec
 
 The experimental setup remains identical to the 1D case, using the same synthetic observation generated with true parameters $P = 0.7$ ($D = P/4 = 0.175$) and $U = 0.3$. However, instead of using the 201-dimensional vector of column counts as input, the network now receives the full $50 \times 200$ binary image representing the agent locations on the lattice. We use the same broad uniform priors for $P$ and $U$ as described in Section~\ref{sec:NPE}.
 
-Figure~\ref{fig:npe_2d_posterior} compares the posteriors from both data representations. The CNN-based approach recovers a posterior (red contours) with means $D = 0.169^{+0.026}_{-0.023}$
+The CNN-based approach (Figure~\ref{fig:npe_original_2d}) recovers a posterior with medians $D = 0.169^{+0.026}_{-0.023}$
  and $U = 0.290^{+0.008}_{-0.009}$. As summarised in Table~\ref{tab:data_comparison}, leveraging the full spatial data yields a posterior with a precision that is highly comparable to that obtained using curated 1D summary statistics, cf.\ Section~\ref{sec:1d_results}.
 
 This result demonstrates that the CNN can automatically learn features from the raw data that are as informative as the carefully chosen summary statistics. This highlights a critical trade-off: the increased computational cost of training the CNN (Table~\ref{tab:data_comparison}) must be weighed against the major advantage of avoiding manual feature engineering. For more complex models where optimal summary statistics are unknown, this direct-from-pixels approach may be advantageous for accurate inference.
@@ -462,7 +474,7 @@ Using 1D column count data, NPE recovers posteriors $U = 0.498 \pm 0.014$, $P = 
 Using full 2D spatial data with a CNN embedding network, NPE recovers $U = 0.499 \pm 0.017$, $P = 0.652 \pm 0.194$, and $\rho = 0.574 \pm 0.223$ (Figure~\ref{fig:model_A_2d}). The $P$--$\rho$ anti-correlation persists ($r = -0.895$), confirming that it reflects a genuine physical degeneracy rather than an artefact of the data representation.
 
 \subsubsection{1D vs 2D Comparison}
-Figure~\ref{fig:model_A_overlay} overlays the 1D and 2D posteriors for direct comparison. For this anisotropic model, directional bias creates spatial asymmetries that column counts collapse by summing across rows. The 2D CNN has access to these spatial patterns but the $P$--$\rho$ degeneracy persists in both representations, indicating that this is a fundamental limitation of single-timepoint inference rather than an information loss artefact.
+Comparing Figures~\ref{fig:model_A_1d} and~\ref{fig:model_A_2d} directly, the $P$--$\rho$ degeneracy persists in both representations, indicating that this is a fundamental limitation of single-timepoint inference rather than an information loss artefact. For this anisotropic model, directional bias creates spatial asymmetries that column counts collapse by summing across rows, yet the 2D CNN access to these spatial patterns does not resolve the degeneracy.
 
 Biologically, $\rho$ quantifies the directional migration preference (e.g.\ chemotactic bias), while the strong $P$--$\rho$ coupling means the drift velocity $v$ is well-constrained even when individual rates are degenerate. This is scientifically useful: the net directed migration rate is the biologically relevant quantity for predicting wound closure direction and speed.
 
@@ -470,26 +482,19 @@ Biologically, $\rho$ quantifies the directional migration preference (e.g.\ chem
 	\centering
 	\begin{subfigure}{0.48\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{images/model_A_posterior_1d}
+		\includegraphics[width=\textwidth]{images/corner_A_1d}
 		\caption{1D column count posterior}
 		\label{fig:model_A_1d}
 	\end{subfigure}
 	\hfill
 	\begin{subfigure}{0.48\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{images/model_A_posterior_2d}
+		\includegraphics[width=\textwidth]{images/corner_A_2d}
 		\caption{2D spatial posterior (CNN)}
 		\label{fig:model_A_2d}
 	\end{subfigure}
 	\caption{Posterior distributions for Model A (directional bias) with true values $U = 0.5$, $P = 0.7$, $\rho = 0.5$. Both representations recover $U$ precisely but exhibit a strong $P$--$\rho$ anti-correlation reflecting the drift velocity degeneracy $v = P\rho/2$.}
 	\label{fig:model_A_posteriors}
-\end{figure}
-
-\begin{figure}[htbp]
-	\centering
-	\includegraphics[width=0.9\textwidth]{images/model_A_overlay_1D_2D}
-	\caption{Overlay of 1D (blue) and 2D (red) posteriors for Model A. Orange dashed lines indicate true parameter values. The $P$--$\rho$ degeneracy is present in both data representations, confirming it as a genuine physical feature of single-timepoint inference for biased random walks.}
-	\label{fig:model_A_overlay}
 \end{figure}
 
 
@@ -511,14 +516,14 @@ Biologically, the precise recovery of $R$ is significant: in wound healing, both
 	\centering
 	\begin{subfigure}{0.48\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{images/model_B_posterior_1d}
+		\includegraphics[width=\textwidth]{images/corner_B_1d}
 		\caption{1D column count posterior}
 		\label{fig:model_B_1d}
 	\end{subfigure}
 	\hfill
 	\begin{subfigure}{0.48\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{images/model_B_posterior_2d}
+		\includegraphics[width=\textwidth]{images/corner_B_2d}
 		\caption{2D spatial posterior (CNN)}
 		\label{fig:model_B_2d}
 	\end{subfigure}
@@ -545,14 +550,14 @@ Biologically, Model C captures the interplay of cell motility, directional migra
 	\centering
 	\begin{subfigure}{0.48\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{images/model_C_posterior_1d}
+		\includegraphics[width=\textwidth]{images/corner_C_1d}
 		\caption{1D column count posterior}
 		\label{fig:model_C_1d}
 	\end{subfigure}
 	\hfill
 	\begin{subfigure}{0.48\textwidth}
 		\centering
-		\includegraphics[width=\textwidth]{images/model_C_posterior_2d}
+		\includegraphics[width=\textwidth]{images/corner_C_2d}
 		\caption{2D spatial posterior (CNN)}
 		\label{fig:model_C_2d}
 	\end{subfigure}

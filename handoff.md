@@ -125,7 +125,7 @@ Each successful NPE result directory contains: `config.txt`, `npe_model.pkl`, `t
 - Classical baselines (ABC, surrogate+MLE/Laplace, surrogate+MCMC) for original model
 - IMRaD restructure and full paper text
 - Model A 2D re-run with enhanced settings (50k samples, hidden_features=256)
+- **Standardized all corner plots to `corner.corner`**: All posterior figures (original, A, B, C) now use `corner.corner` as separate 1D/2D subfigures. Removed overlay figures (old Figures 4 and 8). Added P→D reparameterization for original model. `paper_figures.py` generates all 8 plots (`corner_{model}_{1d,2d}.png`). LaTeX updated with new image paths and references.
 
 ### In progress
-- **Original model 2D NPE re-run** (SLURM job 9899594): Previous run used under-resourced settings (10k samples, hidden_features=128), producing biased D posterior (median 0.131 vs true 0.175). Re-running with 50k samples and hidden_features=256. Once complete: verify posteriors, update `paper_figures.py` RESULT_PATHS, regenerate overlay plot, update paper numbers.
-- **Paper figure/text refinement**: Consolidating figures for space (removed redundant corner plots and PPCs, horizontal layout for classical comparison panels).
+- **Original model 2D NPE re-run** (SLURM job 9899594): Previous run used under-resourced settings (10k samples, hidden_features=128), producing biased D posterior (median 0.131 vs true 0.175). Re-running with 50k samples and hidden_features=256. Once complete: verify posteriors, update `paper_figures.py` RESULT_PATHS, regenerate corner plots, update paper numbers.
