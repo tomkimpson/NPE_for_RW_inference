@@ -64,7 +64,7 @@ All 12 jobs submitted on 2026-02-04. Results in `results/`:
 
 | Model | NPE 1D | NPE 2D (CNN) | ABC |
 |-------|--------|--------------|-----|
-| original | `workflow_original_npe_20260204_225605` | `workflow_original_npe2d_20260204_230541` | `workflow_original_abc_20260204_225446` |
+| original | `workflow_original_npe_20260204_225605` | `workflow_original_npe2d_20260223_104550` | `workflow_original_abc_20260204_225446` |
 | A | `workflow_A_npe_20260204_230502` | `workflow_A_npe2d_20260204_230837` | `workflow_A_abc_20260204_225446` |
 | B | `workflow_B_npe_20260204_230914` | `workflow_B_npe2d_20260204_234828` | `workflow_B_abc_20260204_225446` |
 | C | `workflow_C_npe_20260204_225447` | `workflow_C_npe2d_20260205_001134` | `workflow_C_abc_20260204_225446` |
@@ -73,9 +73,6 @@ All 12 jobs submitted on 2026-02-04. Results in `results/`:
 - All 8 NPE jobs (4 × 1D, 4 × 2D): **completed successfully**. All true values fall within 95% credible intervals.
 - ABC original: **completed** (original model uses the faster non-exclusion simulator).
 - ABC A/B/C: **timed out** at 8 hours. Exclusion simulator too slow (~1-2 sims/s) for SMCABC to converge.
-
-**Pending re-run (2026-02-23)**:
-- Original model 2D NPE re-running with enhanced settings (SLURM job 9899594). The initial 2D run used only 10k samples and hidden_features=128, producing a biased posterior for D (median 0.131 vs true 0.175). The re-run uses 50k samples and hidden_features=256, matching the settings that produced good results for Model A's 2D run. Once complete, need to: (1) verify posterior statistics, (2) update `paper_figures.py` RESULT_PATHS for `("original", "npe2d")`, (3) regenerate the overlay corner plot, (4) update numbers in `docs/paper/template.tex` (caption, text, and Table 4).
 
 Each successful NPE result directory contains: `config.txt`, `npe_model.pkl`, `training_data.pkl`, and under `inference_results/`: posterior samples, marginal/pairwise plots, prediction intervals, and predictive results.
 
@@ -127,5 +124,7 @@ Each successful NPE result directory contains: `config.txt`, `npe_model.pkl`, `t
 - Model A 2D re-run with enhanced settings (50k samples, hidden_features=256)
 - **Standardized all corner plots to `corner.corner`**: All posterior figures (original, A, B, C) now use `corner.corner` as separate 1D/2D subfigures. Removed overlay figures (old Figures 4 and 8). Added P→D reparameterization for original model. `paper_figures.py` generates all 8 plots (`corner_{model}_{1d,2d}.png`). LaTeX updated with new image paths and references.
 
+- **Original model 2D NPE re-run completed**: Re-ran with enhanced settings (50k samples, hidden_features=256). New result: `workflow_original_npe2d_20260223_104550`. D median improved from 0.131 → 0.156 (true 0.175, within 95% CI). Updated `paper_figures.py` RESULT_PATHS, regenerated corner plots, and updated all three locations in `template.tex` with new posterior statistics (U: 0.294±0.011/0.010, D: 0.156±0.026/0.023).
+
 ### In progress
-- **Original model 2D NPE re-run** (SLURM job 9899594): Previous run used under-resourced settings (10k samples, hidden_features=128), producing biased D posterior (median 0.131 vs true 0.175). Re-running with 50k samples and hidden_features=256. Once complete: verify posteriors, update `paper_figures.py` RESULT_PATHS, regenerate corner plots, update paper numbers.
+- Nothing currently in progress. Paper revision ready for review.
