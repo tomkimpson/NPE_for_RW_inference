@@ -38,6 +38,7 @@ def generate_sbc_data(
     initial_region_half_width: int,
     n_sims: int,
     n_workers: int = 8,
+    use_2d: bool = False,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Sample parameter vectors from the prior and simulate observations for SBC.
@@ -56,7 +57,7 @@ def generate_sbc_data(
     Returns
     -------
     thetas : torch.Tensor of shape (n_sims, n_params)
-    xs : torch.Tensor of shape (n_sims, Lx)
+    xs : torch.Tensor of shape (n_sims, Lx) or (n_sims, Ly*Lx) if use_2d
     """
     prior = BoxUniform(
         low=torch.tensor(model_config.prior_low, dtype=torch.float32),
@@ -84,7 +85,6 @@ def generate_sbc_data(
     thetas_np = thetas.numpy()
     param_names = model_config.param_names
     fixed_params = model_config.fixed_params
-    use_2d = False  # SBC uses 1D column counts
 
     sim_args_list = []
     for i in range(n_sims):
@@ -95,7 +95,7 @@ def generate_sbc_data(
             fixed_params, use_exclusion, T, seed_i, use_2d,
         ))
 
-    observations = np.zeros((n_sims, Lx))
+    observations = np.zeros((n_sims, Ly, Lx)) if use_2d else np.zeros((n_sims, Lx))
 
     try:
         parent_cpus = set(os.sched_getaffinity(0))

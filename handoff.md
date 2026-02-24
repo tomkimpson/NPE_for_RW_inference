@@ -14,8 +14,8 @@ Paper revision in progress. Core infrastructure complete: 4 random walk models (
 - **`src/models.py`**: Created `ModelConfig` dataclass and `MODEL_CONFIGS` registry for all 4 models:
   - **original**: infer U, P (no exclusion)
   - **Model A**: infer U, P, rho (exclusion + bias, no growth)
-  - **Model B**: infer P, R (exclusion + growth, U fixed at 0.5)
-  - **Model C**: infer P, rho, R (exclusion + bias + growth, U fixed at 0.5)
+  - **Model B**: infer U, P, R (exclusion + growth)
+  - **Model C**: infer P, rho, R (exclusion + bias + growth, U fixed at 0.5 — to be updated next)
 - **`src/inference.py`**: Generalized `RandomWalkNPE` for variable parameter dimensions via `ModelConfig`.
 - **`src/main.py`**: Added `--model {original,A,B,C}` routing.
 - **`src/predict.py`**: Generalized posterior predictive sampling for all models.
@@ -65,9 +65,9 @@ All 12 jobs submitted on 2026-02-04. Results in `results/`:
 | Model | NPE 1D | NPE 2D (CNN) | ABC |
 |-------|--------|--------------|-----|
 | original | `workflow_original_npe_20260204_225605` | `workflow_original_npe2d_20260223_104550` | `workflow_original_abc_20260204_225446` |
-| A | `workflow_A_npe_20260204_230502` | `workflow_A_npe2d_20260204_230837` | `workflow_A_abc_20260204_225446` |
-| B | `workflow_B_npe_20260204_230914` | `workflow_B_npe2d_20260204_234828` | `workflow_B_abc_20260204_225446` |
-| C | `workflow_C_npe_20260204_225447` | `workflow_C_npe2d_20260205_001134` | `workflow_C_abc_20260204_225446` |
+| A | `workflow_A_npe_20260204_230502` | `workflow_A_npe2d_20260224_104426` (retrained) | `workflow_A_abc_20260204_225446` |
+| B | `workflow_B_npe_20260224_082130` (R=0.05) | `workflow_B_npe2d_20260224_091648` (R=0.05, 50k) | `workflow_B_abc_20260204_225446` |
+| C | `workflow_C_npe_20260224_082130` (R=0.05) | `workflow_C_npe2d_20260224_092116` (R=0.05, 10k) | `workflow_C_abc_20260204_225446` |
 
 **Status**:
 - All 8 NPE jobs (4 × 1D, 4 × 2D): **completed successfully**. All true values fall within 95% credible intervals.
@@ -114,7 +114,7 @@ Each successful NPE result directory contains: `config.txt`, `npe_model.pkl`, `t
 
 ---
 
-## Current status (2026-02-23)
+## Current status (2026-02-24)
 
 ### Completed
 - SBI diagnostics (SBC rank plots, KS tests, C2ST, TARP) for all 4 models
@@ -126,5 +126,24 @@ Each successful NPE result directory contains: `config.txt`, `npe_model.pkl`, `t
 
 - **Original model 2D NPE re-run completed**: Re-ran with enhanced settings (50k samples, hidden_features=256). New result: `workflow_original_npe2d_20260223_104550`. D median improved from 0.131 → 0.156 (true 0.175, within 95% CI). Updated `paper_figures.py` RESULT_PATHS, regenerated corner plots, and updated all three locations in `template.tex` with new posterior statistics (U: 0.294±0.011/0.010, D: 0.156±0.026/0.023).
 
-### In progress
-- Nothing currently in progress. Paper revision ready for review.
+- **R injection increase completed (R=0.01 → R=0.05 for Models B & C)**: Changed `DEFAULT_THETA_TRUE` in `src/main.py`. Re-ran all 4 jobs (B 1D, B 2D, C 1D, C 2D) reusing existing training data. All true values within 95% CIs. Updated `paper_figures.py` RESULT_PATHS, regenerated corner plots, updated Sections 3.3-3.4, Table 6, and figure captions in `template.tex`. Also fixed R prior in table caption from U(0,0.02) to U(0.001,0.2). Note: Model C 2D used 10k training samples (from original run); all others use enhanced settings.
+
+- **All diagnostics completed (2026-02-24)**:
+  - Model B 1D: re-ran with 3-param (U, P, R). Results at `workflow_B_npe_20260224_082130/diagnostics/`.
+  - Model C 1D: copied from `workflow_C_npe_20260204_225447/diagnostics/` (same training data + seed → identical model).
+  - 2D diagnostics for all 4 models completed. Added `--use_2d` flag to `src/run_diagnostics.py` and `src/diagnostics.py`, extra args passthrough to `slurm/run_diagnostics.sh`.
+  - Model A 2D retrained (old pickle incompatible with current `SpatialCNN`). New result: `workflow_A_npe2d_20260224_104426`.
+  - Paper diagnostics table now shows both 1D and 2D results side-by-side. SBC figure overlays 1D (solid) and 2D (dashed) on same panels in 2x2 grid.
+
+- **Model B seed study re-run (2026-02-24)**: Re-ran 5-seed study with 3-param model (U, P, R, R=0.05). Results at `results/seed_study/B/seed_{42,123,456,789,1024}/`. Updated reproducibility table in paper. All 5/5 coverage.
+
+- **Model A 2D result path updated**: `paper_figures.py` RESULT_PATHS now points to retrained `workflow_A_npe2d_20260224_104426`. Model A 2D posterior values and correlation updated in paper text and Table 6.
+
+### Still needed
+- Re-run seed study for Model C (table still shows old R=0.010; current true value is R=0.05)
+- Model C: decide whether to free U as an inferred parameter (currently fixed at 0.5)
+
+### Paper text edits (2026-02-23)
+- Moved posterior predictive check (PPC) discussion and figures from Section 3.1 to new Appendix A. Main text retains brief references to appendix.
+- Removed subsubsection headings from Sections 3.2, 3.3, 3.4 (Models A, B, C) for better prose flow.
+- Updated Model B section text: removed U-fixed explanation, added 3-param description with U-R degeneracy discussion, updated all posterior values.

@@ -23,6 +23,8 @@ mkdir -p slurm/outputs
 # Positional arguments
 MODEL="${1:-original}"
 MODEL_PATH="${2}"
+shift 2 2>/dev/null || true
+EXTRA_ARGS="$@"
 
 if [ -z "${MODEL_PATH}" ]; then
     echo "ERROR: MODEL_PATH is required."
@@ -45,6 +47,7 @@ export PYTHONUNBUFFERED=1
 echo "========================================"
 echo "SBI DIAGNOSTICS: model=${MODEL}"
 echo "Model path: ${MODEL_PATH}"
+echo "Extra args: ${EXTRA_ARGS}"
 echo "Job ID: ${SLURM_JOB_ID}"
 echo "Started: $(date)"
 echo "========================================"
@@ -55,7 +58,8 @@ python src/run_diagnostics.py \
     --n_sbc_sims 1000 \
     --n_posterior_samples 1000 \
     --n_workers 8 \
-    --Lx 200 --Ly 50 --T 100 --initial_region_half_width 25
+    --Lx 200 --Ly 50 --T 100 --initial_region_half_width 25 \
+    ${EXTRA_ARGS}
 
 echo "========================================"
 echo "Finished: $(date)"

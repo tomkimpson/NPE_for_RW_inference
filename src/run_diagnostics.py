@@ -44,6 +44,8 @@ def main():
     parser.add_argument("--Ly", type=int, default=50)
     parser.add_argument("--T", type=int, default=100)
     parser.add_argument("--initial_region_half_width", type=int, default=25)
+    parser.add_argument("--use_2d", action="store_true",
+                        help="Use 2D spatial observations instead of 1D column counts")
     parser.add_argument("--output_dir", default=None,
                         help="Output directory (default: <model_dir>/diagnostics/)")
     args = parser.parse_args()
@@ -61,6 +63,7 @@ def main():
     print(f"Posterior samples: {args.n_posterior_samples}")
     print(f"Workers:          {args.n_workers}")
     print(f"Grid:             Lx={args.Lx}, Ly={args.Ly}, T={args.T}")
+    print(f"Use 2D:           {args.use_2d}")
     print(f"Output dir:       {args.output_dir}")
     print("=" * 50)
 
@@ -85,6 +88,7 @@ def main():
         initial_region_half_width=args.initial_region_half_width,
         n_sims=args.n_sbc_sims,
         n_workers=args.n_workers,
+        use_2d=args.use_2d,
     )
     print(f"  thetas: {thetas.shape}, xs: {xs.shape}")
 

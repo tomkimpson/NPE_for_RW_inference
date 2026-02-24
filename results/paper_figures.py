@@ -77,11 +77,11 @@ RESULT_PATHS = {
     ("original", "npe2d"): "results/workflow_original_npe2d_20260223_104550",  # Enhanced: 50k samples, hidden_features=256
     ("original", "abc"):   "results/workflow_original_abc_20260204_225446",
     ("A", "npe"):          "results/workflow_A_npe_20260204_230502",
-    ("A", "npe2d"):        "results/workflow_A_npe2d_20260205_150346",  # Enhanced: 50k samples, hidden_features=256
-    ("B", "npe"):          "results/workflow_B_npe_20260204_230914",
-    ("B", "npe2d"):        "results/workflow_B_npe2d_20260204_234828",
-    ("C", "npe"):          "results/workflow_C_npe_20260204_225447",
-    ("C", "npe2d"):        "results/workflow_C_npe2d_20260205_001134",
+    ("A", "npe2d"):        "results/workflow_A_npe2d_20260224_104426",  # Retrained: 50k samples, hidden_features=256
+    ("B", "npe"):          "results/workflow_B_npe_20260224_082130",       # Updated: R=0.05
+    ("B", "npe2d"):        "results/workflow_B_npe2d_20260224_091648",       # Updated: R=0.05
+    ("C", "npe"):          "results/workflow_C_npe_20260224_082130",       # Updated: R=0.05
+    ("C", "npe2d"):        "results/workflow_C_npe2d_20260224_092116",       # Updated: R=0.05
 }
 
 # LaTeX-style labels for each parameter
@@ -338,11 +338,11 @@ def make_prediction_plot(model: str, output_dir: Path, fmt: str):
 # Figure D: SBC rank ECDF plots
 # ---------------------------------------------------------------------------
 
-def make_sbc_plot(model: str, output_dir: Path, fmt: str):
-    """Publication-quality SBC rank ECDF plot.
+def make_sbc_plot(model: str, output_dir: Path, fmt: str, approach: str = "npe"):
+    """Publication-quality SBC rank ECDF plot with 1D and 2D overlaid.
 
-    Plots the empirical CDF of SBC ranks for each parameter, with a DKW 99%
-    confidence band and a uniform-CDF reference diagonal.
+    1D results are plotted as solid lines; 2D results (if available) are
+    overlaid as dashed lines in the same colours.
 
     Parameters
     ----------
@@ -352,16 +352,31 @@ def make_sbc_plot(model: str, output_dir: Path, fmt: str):
         Directory for output figures.
     fmt : str
         File format ('pdf' or 'png').
+    approach : str
+        Kept for backwards compatibility; the function always loads 1D
+        and attempts to overlay 2D.
     """
-    diag = load_diagnostics(model, "npe")
-    ranks = diag["sbc_ranks"]  # torch.Tensor, shape (n_sbc, n_params)
-    if isinstance(ranks, torch.Tensor):
-        ranks = ranks.numpy()
+    diag_1d = load_diagnostics(model, "npe")
+    ranks_1d = diag_1d["sbc_ranks"]
+    if isinstance(ranks_1d, torch.Tensor):
+        ranks_1d = ranks_1d.numpy()
 
-    n_sbc, n_params = ranks.shape
-    # Normalize ranks to [0, 1]
-    rank_max = ranks.max()
-    ranks_norm = ranks / rank_max
+    # Try loading 2D diagnostics
+    try:
+        diag_2d = load_diagnostics(model, "npe2d")
+        ranks_2d = diag_2d["sbc_ranks"]
+        if isinstance(ranks_2d, torch.Tensor):
+            ranks_2d = ranks_2d.numpy()
+        has_2d = True
+    except FileNotFoundError:
+        has_2d = False
+
+    n_sbc, n_params = ranks_1d.shape
+    ranks_1d_norm = ranks_1d / ranks_1d.max()
+
+    if has_2d:
+        ranks_2d_norm = ranks_2d / ranks_2d.max()
+        n_sbc_2d = ranks_2d.shape[0]
 
     cfg = get_model_config(model)
     param_names = cfg.param_names
@@ -372,7 +387,7 @@ def make_sbc_plot(model: str, output_dir: Path, fmt: str):
     # Uniform reference diagonal
     ax.plot([0, 1], [0, 1], ls="--", color="0.5", lw=0.8, zorder=1)
 
-    # DKW 99% confidence band: epsilon = sqrt(ln(2/alpha) / (2n))
+    # DKW 99% confidence band (use 1D n_sbc)
     alpha = 0.01
     epsilon = np.sqrt(np.log(2.0 / alpha) / (2 * n_sbc))
     t = np.linspace(0, 1, 200)
@@ -383,23 +398,34 @@ def make_sbc_plot(model: str, output_dir: Path, fmt: str):
         color="0.85", zorder=0, label="99% DKW band",
     )
 
-    # Plot ECDF for each parameter
-    ecdf_y = np.arange(1, n_sbc + 1) / n_sbc
+    # Plot 1D ECDFs (solid lines)
+    ecdf_y_1d = np.arange(1, n_sbc + 1) / n_sbc
     for j in range(n_params):
         name = param_names[j]
-        sorted_ranks = np.sort(ranks_norm[:, j])
-        label = PARAM_LATEX.get(name, name)
+        sorted_ranks = np.sort(ranks_1d_norm[:, j])
+        label = PARAM_LATEX.get(name, name) + " (1D)"
         color = PARAM_COLORS.get(name, f"C{j}")
-        ax.plot(sorted_ranks, ecdf_y, color=color, lw=1.2, label=label, zorder=2)
+        ax.plot(sorted_ranks, ecdf_y_1d, color=color, lw=1.2, ls="-",
+                label=label, zorder=2)
+
+    # Overlay 2D ECDFs (dashed lines)
+    if has_2d:
+        ecdf_y_2d = np.arange(1, n_sbc_2d + 1) / n_sbc_2d
+        for j in range(n_params):
+            name = param_names[j]
+            sorted_ranks = np.sort(ranks_2d_norm[:, j])
+            label = PARAM_LATEX.get(name, name) + " (2D)"
+            color = PARAM_COLORS.get(name, f"C{j}")
+            ax.plot(sorted_ranks, ecdf_y_2d, color=color, lw=1.2, ls="--",
+                    label=label, zorder=2)
 
     ax.set_xlabel("Normalized rank")
     ax.set_ylabel("ECDF")
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     ax.set_aspect("equal")
-    ax.legend(fontsize=7, loc="upper left")
+    ax.legend(fontsize=6, loc="upper left", ncol=2 if has_2d else 1)
 
-    # Match LaTeX naming: sbc_original, sbc_model_A, sbc_model_B, sbc_model_C
     tag = model if model == "original" else f"model_{model}"
     outfile = output_dir / f"sbc_{tag}.{fmt}"
     fig.savefig(outfile, dpi=DPI, bbox_inches="tight")
@@ -457,7 +483,7 @@ def main():
         except FileNotFoundError as e:
             print(f"  SKIP prediction plot: {e}")
 
-        # SBC rank ECDF
+        # SBC rank ECDF (1D + 2D overlay)
         try:
             make_sbc_plot(model, output_dir, fmt)
         except FileNotFoundError as e:
