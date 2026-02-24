@@ -15,7 +15,7 @@ Paper revision in progress. Core infrastructure complete: 4 random walk models (
   - **original**: infer U, P (no exclusion)
   - **Model A**: infer U, P, rho (exclusion + bias, no growth)
   - **Model B**: infer U, P, R (exclusion + growth)
-  - **Model C**: infer P, rho, R (exclusion + bias + growth, U fixed at 0.5 — to be updated next)
+  - **Model C**: infer U, P, rho, R (exclusion + bias + growth, 4 parameters)
 - **`src/inference.py`**: Generalized `RandomWalkNPE` for variable parameter dimensions via `ModelConfig`.
 - **`src/main.py`**: Added `--model {original,A,B,C}` routing.
 - **`src/predict.py`**: Generalized posterior predictive sampling for all models.
@@ -67,7 +67,7 @@ All 12 jobs submitted on 2026-02-04. Results in `results/`:
 | original | `workflow_original_npe_20260204_225605` | `workflow_original_npe2d_20260223_104550` | `workflow_original_abc_20260204_225446` |
 | A | `workflow_A_npe_20260204_230502` | `workflow_A_npe2d_20260224_104426` (retrained) | `workflow_A_abc_20260204_225446` |
 | B | `workflow_B_npe_20260224_082130` (R=0.05) | `workflow_B_npe2d_20260224_091648` (R=0.05, 50k) | `workflow_B_abc_20260204_225446` |
-| C | `workflow_C_npe_20260224_082130` (R=0.05) | `workflow_C_npe2d_20260224_092116` (R=0.05, 10k) | `workflow_C_abc_20260204_225446` |
+| C | `workflow_C_npe_20260224_171233` (4-param U,P,rho,R) | `workflow_C_npe2d_20260224_171232` (4-param, 50k) | `workflow_C_abc_20260204_225446` |
 
 **Status**:
 - All 8 NPE jobs (4 × 1D, 4 × 2D): **completed successfully**. All true values fall within 95% credible intervals.
@@ -139,9 +139,17 @@ Each successful NPE result directory contains: `config.txt`, `npe_model.pkl`, `t
 
 - **Model A 2D result path updated**: `paper_figures.py` RESULT_PATHS now points to retrained `workflow_A_npe2d_20260224_104426`. Model A 2D posterior values and correlation updated in paper text and Table 6.
 
+- **Model C extended to 4 parameters (2026-02-25)**: Freed U as an inferred parameter. Model C now infers (U, P, rho, R) — 4 params, no fixed params. Creates clear complexity progression: original(2) → A(3) → B(3) → C(4). Changes:
+  - `src/models.py`: param_names, prior bounds, removed fixed_params
+  - `src/main.py`: DEFAULT_THETA_TRUE `[0.5, 0.7, 0.5, 0.05]`
+  - 1D NPE: `workflow_C_npe_20260224_171233` — all 4 params in 95% CI
+  - 2D NPE (50k): `workflow_C_npe2d_20260224_171232` — U, P, R in CI; rho slightly outside (0.392 vs true 0.5)
+  - Diagnostics: completed for both 1D and 2D. C2ST scores all near 0.5. KS failures: P & R (1D), P & rho (2D)
+  - Seed study (5 seeds): all 100% coverage for all 4 params. Results at `results/seed_study/C/seed_{42,123,456,789,1024}/`
+  - `paper_figures.py` RESULT_PATHS updated, figures regenerated, paper text fully updated (Section 3.4, Tables 4/5/6, SBC discussion, figure captions)
+
 ### Still needed
-- Re-run seed study for Model C (table still shows old R=0.010; current true value is R=0.05)
-- Model C: decide whether to free U as an inferred parameter (currently fixed at 0.5)
+- None — all Model C work complete. Paper ready for compilation and review.
 
 ### Paper text edits (2026-02-23)
 - Moved posterior predictive check (PPC) discussion and figures from Section 3.1 to new Appendix A. Main text retains brief references to appendix.

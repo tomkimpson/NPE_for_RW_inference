@@ -80,8 +80,8 @@ RESULT_PATHS = {
     ("A", "npe2d"):        "results/workflow_A_npe2d_20260224_104426",  # Retrained: 50k samples, hidden_features=256
     ("B", "npe"):          "results/workflow_B_npe_20260224_082130",       # Updated: R=0.05
     ("B", "npe2d"):        "results/workflow_B_npe2d_20260224_091648",       # Updated: R=0.05
-    ("C", "npe"):          "results/workflow_C_npe_20260224_082130",       # Updated: R=0.05
-    ("C", "npe2d"):        "results/workflow_C_npe2d_20260224_092116",       # Updated: R=0.05
+    ("C", "npe"):          "results/workflow_C_npe_20260224_171233",       # 4-param: U, P, rho, R
+    ("C", "npe2d"):        "results/workflow_C_npe2d_20260224_171232",       # 4-param: U, P, rho, R (50k samples)
 }
 
 # LaTeX-style labels for each parameter

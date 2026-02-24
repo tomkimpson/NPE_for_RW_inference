@@ -28,8 +28,8 @@ configure_warnings()
 DEFAULT_THETA_TRUE = {
     'original': [0.3, 0.7],          # U, P
     'A':        [0.5, 0.7, 0.5],     # U, P, rho
-    'B':        [0.7, 0.01],          # P, R
-    'C':        [0.7, 0.5, 0.01],    # P, rho, R
+    'B':        [0.5, 0.7, 0.05],     # U, P, R
+    'C':        [0.5, 0.7, 0.5, 0.05],    # U, P, rho, R
 }
 
 
