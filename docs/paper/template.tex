@@ -446,7 +446,7 @@ Biologically, $U$ represents the initial cell seeding density and $D$ the effect
 
 Model A extends the isotropic random walk by introducing a directional bias parameter $\rho \in [0,1]$, which controls the probability of stepping in the positive $x$-direction relative to the negative $x$-direction (see Section~\ref{sec:model_description}). This model has three free parameters: the initial occupation probability $U$, the total motility probability $P$, and the bias $\rho$, with true values $U = 0.5$, $P = 0.7$, $\rho = 0.5$.
 
-Using 1D column count data, NPE recovers posteriors $U = 0.498 \pm 0.014$, $P = 0.627 \pm 0.156$, and $\rho = 0.593 \pm 0.170$ (Figure~\ref{fig:model_A_1d}). The initial density $U$ is tightly constrained, while $P$ and $\rho$ exhibit broader posteriors with a strong anti-correlation ($r = -0.955$). This degeneracy is physics-driven: the macroscopic drift velocity $v = P\rho/2$ is well-constrained by the data, but individual values of $P$ and $\rho$ that yield the same drift are interchangeable when viewed through 1D column counts alone. That is, the composite quantity $v$ is identifiable, but $P$ and $\rho$ are individually weakly identifiable from 1D data. Using full 2D spatial data with a CNN embedding network, NPE recovers $U = 0.489 \pm 0.012$, $P = 0.801^{+0.086}_{-0.083}$, and $\rho = 0.409^{+0.047}_{-0.039}$ (Figure~\ref{fig:model_A_2d}). The $P$--$\rho$ anti-correlation persists ($r = -0.907$), confirming that it reflects a genuine physical degeneracy rather than an artefact of the data representation.
+Using 1D column count data, NPE recovers posteriors $U = 0.498 \pm 0.014$, $P = 0.627 \pm 0.156$, and $\rho = 0.593 \pm 0.170$ (Figure~\ref{fig:model_A_1d}). The initial density $U$ is tightly constrained, while $P$ and $\rho$ exhibit broader posteriors with a strong anti-correlation ($r = -0.955$). This degeneracy is physics-driven: the macroscopic drift velocity $v = P\rho/2$ is well-constrained by the data, but individual values of $P$ and $\rho$ that yield the same drift are interchangeable when viewed through 1D column counts alone. That is, the composite quantity $v$ is identifiable, but $P$ and $\rho$ are individually weakly identifiable from 1D data. Using full 2D spatial data with a CNN embedding network, NPE recovers $U = 0.508 \pm 0.030$, $P = 0.801^{+0.170}_{-0.200}$, and $\rho = 0.416^{+0.147}_{-0.073}$ (Figure~\ref{fig:model_A_2d}). The $P$--$\rho$ anti-correlation persists ($r = -0.924$), confirming that it reflects a genuine physical degeneracy rather than an artefact of the data representation.
 
 Comparing Figures~\ref{fig:model_A_1d} and~\ref{fig:model_A_2d} directly, the $P$--$\rho$ degeneracy persists in both representations, indicating that this is a fundamental limitation of single-timepoint inference rather than an information loss artefact. For this anisotropic model, directional bias creates spatial asymmetries that column counts collapse by summing across rows, yet the 2D CNN access to these spatial patterns does not resolve the degeneracy. Biologically, $\rho$ quantifies the directional migration preference (e.g.\ chemotactic bias), while the strong $P$--$\rho$ coupling means the drift velocity $v$ is well-constrained even when individual rates are degenerate. This is scientifically useful: the net directed migration rate is the biologically relevant quantity for predicting wound closure direction and speed.
 
@@ -536,11 +536,11 @@ Biologically, Model C captures the interplay of initial cell density, cell motil
 
 Following the diagnostic protocol recommended by \cite{Cranmer2020FrontierSBI} and \cite{2025arXiv250812939D}, we validate all trained posteriors using three complementary diagnostics: the Kolmogorov--Smirnov (KS) test for marginal calibration, the classifier two-sample test (C2ST) for posterior quality, and Tests of Accuracy with Random Points (TARP) for coverage calibration.
 
-Table~\ref{tab:diagnostics} summarises the diagnostic results for both 1D and 2D posteriors across all models. The C2ST scores are consistently close to $0.5$ across all models, parameters, and data representations, indicating that the learned posteriors are nearly indistinguishable from the true posteriors and that the density estimators have been well-trained. The TARP area-under-the-curve (ATC) metric shows moderate calibration for Models B and Original in both representations, with larger deviations for Models A and C that reflect the $P$--$\rho$ degeneracy.
+Table~\ref{tab:diagnostics} summarises the diagnostic results for both 1D and 2D posteriors across all models. The C2ST scores are consistently close to $0.5$ across all models, parameters, and data representations, indicating that the learned posteriors are nearly indistinguishable from the true posteriors and that the density estimators have been well-trained. The TARP area-under-the-curve (ATC) metric passes for Model~A 2D (ATC $= 0.08$) and shows moderate deviations for the remaining models.
 
-For the 1D posteriors, the KS test reveals marginal failures for several parameters. In Model~B, the proliferation rate $P$ marginally fails (KS $p = 0.01$) while $U$ and $R$ pass comfortably. In Model~C, $P$ and $R$ fail the KS test, with the SBC rank ECDF (Figure~\ref{fig:sbc_plots}d) bowing below the diagonal for $R$, indicating an excess of low ranks. This signature is characteristic of mild overconfidence: the learned posteriors for $R$ are sharp and precise (as seen in the corner plots, Figures~\ref{fig:model_B_posteriors}--\ref{fig:model_C_posteriors}), but slightly too narrow, so that the true value falls in the upper tail of the posterior more often than expected. This is distinct from the broad, uninformative posteriors that would signal a lack of identifiability. The overconfidence likely reflects the nonlinear and relatively flat mapping from $R$ to the observable column counts at small proliferation rates: modest changes in $R$ produce only subtle differences in the data, making it difficult for the normalizing flow to accurately learn the posterior width.
+For the 1D posteriors, the KS test passes for all parameters in the Original and Model~B posteriors, indicating good marginal calibration. In Model~A, $U$ fails the KS test while $P$ and $\rho$ pass comfortably. In Model~C, $P$ and $R$ fail the KS test, with the SBC rank ECDF (Figure~\ref{fig:sbc_plots}d) bowing below the diagonal for $R$, indicating an excess of low ranks. This signature is characteristic of mild overconfidence: the learned posteriors for $R$ are sharp and precise (as seen in the corner plots, Figures~\ref{fig:model_B_posteriors}--\ref{fig:model_C_posteriors}), but slightly too narrow, so that the true value falls in the upper tail of the posterior more often than expected. This is distinct from the broad, uninformative posteriors that would signal a lack of identifiability. The overconfidence likely reflects the nonlinear and relatively flat mapping from $R$ to the observable column counts at small proliferation rates: modest changes in $R$ produce only subtle differences in the data, making it difficult for the normalizing flow to accurately learn the posterior width.
 
-The 2D posteriors exhibit broadly similar calibration patterns (dashed lines in Figure~\ref{fig:sbc_plots}), with C2ST scores remaining near 0.5 throughout. The KS test is somewhat more sensitive in the 2D setting, with additional marginal failures for $U$ in the Original and Model A posteriors, likely reflecting the challenge of learning accurate posterior widths in the higher-dimensional observation space. Model~C shows KS failures for $P$ and $\rho$ in the 2D setting, consistent with the challenge of learning a four-parameter posterior from spatial data. This tendency to underestimate posterior variance is not unique to NPE but is a recognised challenge across all simulation-based inference methods \citep{hermans2022crisis}. Notably, \cite{hermans2022crisis} find that amortized approaches such as NPE tend to be more conservative (less overconfident) than their non-amortized counterparts, and are more simulation-efficient when accounting for hyper-parameter tuning and diagnostic evaluation. Increasing the training budget or employing sequential refinement strategies could potentially improve calibration further, but we note that the miscalibration observed here is mild, with curves remaining close to the DKW confidence bands.
+The 2D posteriors exhibit broadly similar calibration patterns (dashed lines in Figure~\ref{fig:sbc_plots}), with C2ST scores remaining near 0.5 throughout. The KS test is somewhat more sensitive in the 2D setting, with failures for $U$ in the Original, Model~A, and Model~C posteriors, likely reflecting the challenge of learning accurate posterior widths in the higher-dimensional observation space. Model~A and C also show KS failures for $\rho$ in the 2D setting, while Model~B shows a marginal failure for $R$. This tendency to underestimate posterior variance is not unique to NPE but is a recognised challenge across all simulation-based inference methods \citep{hermans2022crisis}. Notably, \cite{hermans2022crisis} find that amortized approaches such as NPE tend to be more conservative (less overconfident) than their non-amortized counterparts, and are more simulation-efficient when accounting for hyper-parameter tuning and diagnostic evaluation. Importantly, we note that the KS test is highly sensitive to subtle deviations in the tails of the rank distribution, which may not affect practical inference quality. The C2ST diagnostic---which directly tests whether posterior samples are distinguishable from the true posterior---passes consistently across all models and parameters, providing stronger evidence that the learned posteriors are well-calibrated for practical use. Increasing the training budget or employing sequential refinement strategies could potentially improve KS calibration further, but we note that the miscalibration observed here is mild, with curves remaining close to the DKW confidence bands.
 
 \begin{table}[htbp]
 	\centering
@@ -551,21 +551,21 @@ The 2D posteriors exhibit broadly similar calibration patterns (dashed lines in 
 		\cmidrule(lr){3-5} \cmidrule(lr){6-8}
 		\textbf{Model} & \textbf{Param.} & \textbf{KS $p$} & \textbf{C2ST} & \textbf{ATC} & \textbf{KS $p$} & \textbf{C2ST} & \textbf{ATC} \\
 		\midrule
-		Original & $U$ & 0.08 & 0.58 & \multirow{2}{*}{0.32} & 0.0001\rlap{$^*$} & 0.59 & \multirow{2}{*}{0.18} \\
-		         & $P$ & 0.03\rlap{$^*$} & 0.58 & & 0.36 & 0.58 & \\
+		Original & $U$ & 0.08 & 0.59 & \multirow{2}{*}{0.48} & 0.0001\rlap{$^*$} & 0.58 & \multirow{2}{*}{$-0.41$} \\
+		         & $P$ & 0.08 & 0.58 & & 0.02\rlap{$^*$} & 0.59 & \\
 		\midrule
-		A        & $U$    & 0.0001\rlap{$^*$} & 0.57 & \multirow{3}{*}{$-0.78$} & 0.0000\rlap{$^*$} & 0.62 & \multirow{3}{*}{0.27} \\
-		         & $P$    & 0.05\rlap{$^*$}   & 0.56 & & 0.81 & 0.58 & \\
-		         & $\rho$ & 0.03\rlap{$^*$}   & 0.57 & & 0.0000\rlap{$^*$} & 0.58 & \\
+		A        & $U$    & 0.0001\rlap{$^*$} & 0.57 & \multirow{3}{*}{$-0.24$} & 0.0000\rlap{$^*$} & 0.64 & \multirow{3}{*}{0.08} \\
+		         & $P$    & 0.07   & 0.56 & & 0.0000\rlap{$^*$} & 0.56 & \\
+		         & $\rho$ & 0.96   & 0.57 & & 0.02\rlap{$^*$} & 0.58 & \\
 		\midrule
-		B        & $U$ & 0.71 & 0.57 & \multirow{3}{*}{$-0.23$} & 0.17 & 0.60 & \multirow{3}{*}{$-0.38$} \\
-		         & $P$ & 0.01\rlap{$^*$} & 0.58 & & 0.41 & 0.58 & \\
-		         & $R$ & 0.50 & 0.59 & & 0.0004\rlap{$^*$} & 0.58 & \\
+		B        & $U$ & 0.60 & 0.58 & \multirow{3}{*}{$-0.31$} & 0.11 & 0.57 & \multirow{3}{*}{$-0.36$} \\
+		         & $P$ & 0.45 & 0.59 & & 0.41 & 0.57 & \\
+		         & $R$ & 0.32 & 0.57 & & 0.009\rlap{$^*$} & 0.59 & \\
 		\midrule
-		C        & $U$    & 0.55 & 0.59 & \multirow{4}{*}{$-0.59$} & 0.11 & 0.57 & \multirow{4}{*}{$-0.64$} \\
-		         & $P$    & 0.0007\rlap{$^*$} & 0.57 & & 0.0000\rlap{$^*$} & 0.57 & \\
-		         & $\rho$ & 0.22 & 0.59 & & 0.0000\rlap{$^*$} & 0.56 & \\
-		         & $R$    & 0.0000\rlap{$^*$} & 0.59 & & 0.11 & 0.58 & \\
+		C        & $U$    & 0.13 & 0.56 & \multirow{4}{*}{$-0.73$} & 0.004\rlap{$^*$} & 0.58 & \multirow{4}{*}{$-0.12$} \\
+		         & $P$    & 0.002\rlap{$^*$} & 0.56 & & 0.07 & 0.58 & \\
+		         & $\rho$ & 0.25 & 0.59 & & 0.0000\rlap{$^*$} & 0.58 & \\
+		         & $R$    & 0.0000\rlap{$^*$} & 0.56 & & 0.22 & 0.58 & \\
 		\bottomrule
 	\end{tabular}
 	\caption{Diagnostic summary for 1D and 2D NPE posteriors across all models. KS $p$-values marked with $^*$ indicate failure ($p < 0.05$). C2ST scores near 0.5 indicate well-learned posteriors. TARP ATC values near zero indicate good calibration.}
@@ -605,7 +605,7 @@ Figure~\ref{fig:sbc_plots} shows SBC rank plots for all four models, with 1D pos
 		\caption{Model C (bias + proliferation)}
 		\label{fig:sbc_model_C}
 	\end{subfigure}
-	\caption{Simulation-based calibration (SBC) rank ECDF plots for all four models. Solid lines show 1D NPE posteriors; dashed lines show 2D NPE (CNN) posteriors. A uniform rank distribution (diagonal within the shaded 99\% DKW confidence bands) indicates well-calibrated posteriors; an ECDF bowing below the diagonal indicates mild overconfidence. (a)~Original model: both representations show good calibration, with the 2D posterior for $U$ slightly deviating. (b)~Model A: 1D posteriors deviate for all parameters due to the $P$--$\rho$ degeneracy; 2D posteriors show similar patterns for $U$ and $\rho$ but improved calibration for $P$. (c)~Model B: $U$ and $R$ are well-calibrated in both representations; $P$ marginally deviates in 1D while $R$ deviates in 2D. (d)~Model C: the four-parameter space shows mild miscalibration for $P$ and $R$ in 1D, and for $P$ and $\rho$ in 2D, while $U$ is well-calibrated in both representations.}
+	\caption{Simulation-based calibration (SBC) rank ECDF plots for all four models. Solid lines show 1D NPE posteriors; dashed lines show 2D NPE (CNN) posteriors. A uniform rank distribution (diagonal within the shaded 99\% DKW confidence bands) indicates well-calibrated posteriors; an ECDF bowing below the diagonal indicates mild overconfidence. (a)~Original model: 1D posteriors are well-calibrated for both parameters; 2D posteriors show slight deviations for $U$ and $P$. (b)~Model A: $U$ deviates in both representations; $P$ and $\rho$ are well-calibrated in 1D, while $P$ and $\rho$ show marginal deviations in 2D. (c)~Model B: all parameters are well-calibrated in 1D; $R$ shows marginal deviation in 2D. (d)~Model C: the four-parameter space shows mild miscalibration for $P$ and $R$ in 1D, and for $U$ and $\rho$ in 2D.}
 	\label{fig:sbc_plots}
 \end{figure}
 
@@ -624,9 +624,9 @@ Table~\ref{tab:all_results} provides a comprehensive summary of NPE inference re
 		\multirow{2}{*}{Original} & $U$ & 0.300 & $0.298^{+0.009}_{-0.008}$ & $0.294^{+0.011}_{-0.010}$ \\
 		                          & $D$ & 0.175 & $0.164^{+0.024}_{-0.024}$ & $0.156^{+0.026}_{-0.023}$ \\
 		\midrule
-		\multirow{3}{*}{A (Bias)} & $U$    & 0.500 & $0.498 \pm 0.014$ & $0.489 \pm 0.012$ \\
-		                          & $P$    & 0.700 & $0.627 \pm 0.156$ & $0.801^{+0.086}_{-0.083}$ \\
-		                          & $\rho$ & 0.500 & $0.593 \pm 0.170$ & $0.409^{+0.047}_{-0.039}$ \\
+		\multirow{3}{*}{A (Bias)} & $U$    & 0.500 & $0.498 \pm 0.014$ & $0.508 \pm 0.030$ \\
+		                          & $P$    & 0.700 & $0.627 \pm 0.156$ & $0.801^{+0.170}_{-0.200}$ \\
+		                          & $\rho$ & 0.500 & $0.593 \pm 0.170$ & $0.416^{+0.147}_{-0.073}$ \\
 		\midrule
 		\multirow{3}{*}{B (Proliferation)} & $U$ & 0.500 & $0.600^{+0.349}_{-0.464}$ & $0.345^{+0.290}_{-0.223}$ \\
 		                                   & $P$ & 0.700 & $0.801^{+0.163}_{-0.283}$ & $0.777^{+0.158}_{-0.129}$ \\

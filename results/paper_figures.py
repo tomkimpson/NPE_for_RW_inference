@@ -77,7 +77,7 @@ RESULT_PATHS = {
     ("original", "npe2d"): "results/workflow_original_npe2d_20260223_104550",  # Enhanced: 50k samples, hidden_features=256
     ("original", "abc"):   "results/workflow_original_abc_20260204_225446",
     ("A", "npe"):          "results/workflow_A_npe_20260204_230502",
-    ("A", "npe2d"):        "results/workflow_A_npe2d_20260224_104426",  # Retrained: 50k samples, hidden_features=256
+    ("A", "npe2d"):        "results/workflow_A_npe2d_20260225_140808",  # Retrained: 50k, SPP + no sbi standardization
     ("B", "npe"):          "results/workflow_B_npe_20260224_082130",       # Updated: R=0.05
     ("B", "npe2d"):        "results/workflow_B_npe2d_20260224_091648",       # Updated: R=0.05
     ("C", "npe"):          "results/workflow_C_npe_20260224_171233",       # 4-param: U, P, rho, R

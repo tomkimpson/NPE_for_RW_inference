@@ -148,8 +148,14 @@ Each successful NPE result directory contains: `config.txt`, `npe_model.pkl`, `t
   - Seed study (5 seeds): all 100% coverage for all 4 params. Results at `results/seed_study/C/seed_{42,123,456,789,1024}/`
   - `paper_figures.py` RESULT_PATHS updated, figures regenerated, paper text fully updated (Section 3.4, Tables 4/5/6, SBC discussion, figure captions)
 
+- **SBC clamping fix and diagnostics re-run (2026-02-25)**: Fixed `src/diagnostics.py` to clamp raw flow samples to prior bounds before SBC rank computation (previously used unclamped flow samples, which violated prior support). Added flow leakage measurement to diagnostics output. Re-ran all 8 models (4 × 1D, 4 × 2D). Flow leakage was small (0.2–1.9%), ruling out leakage as the dominant cause of KS failures.
+
+- **Model A 2D retrained with SPP + no standardization (2026-02-25)**: Retrained with `--disable_sbi_standardization --cnn_spatial_pyramid` using existing 50k training data. New result: `workflow_A_npe2d_20260225_140808`. TARP ATC improved dramatically (0.43→0.08, now passing). rho KS improved (0.00→0.02) but U KS unchanged. P KS worsened. Decision: accept results — C2ST passes everywhere, TARP passes, all true values in 95% CIs. See `docs/sbc_investigation.md` for full analysis.
+
+- **Paper updated with new Model A 2D results**: Updated `paper_figures.py` RESULT_PATHS, regenerated corner/SBC figures, updated posterior statistics in text and Table 6, updated diagnostics Table and discussion text.
+
 ### Still needed
-- None — all Model C work complete. Paper ready for compilation and review.
+- None — paper fully updated with accepted results.
 
 ### Paper text edits (2026-02-23)
 - Moved posterior predictive check (PPC) discussion and figures from Section 3.1 to new Appendix A. Main text retains brief references to appendix.

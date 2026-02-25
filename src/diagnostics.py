@@ -177,9 +177,14 @@ def run_all_diagnostics(
     # Bypass sbi's rejection sampling in posterior.sample() /
     # sample_batched().  DirectPosterior rejects any flow sample
     # outside the prior box, which can stall if the flow has even
-    # modest leakage.  For SBC/TARP we want raw flow samples.
+    # modest leakage.  Instead, we draw raw flow samples and clamp
+    # them to the prior bounds.  This preserves the speed advantage
+    # of direct sampling while ensuring samples respect the prior
+    # support as required by SBC theory (Talts et al. 2018).
     _flow = posterior.posterior_estimator
     _cond_shape = _flow.condition_shape
+    _prior_low = low   # already on CPU from prior reconstruction above
+    _prior_high = high
 
     def _ensure_batch_dim(x):
         """Add batch dimension if missing."""
@@ -192,17 +197,19 @@ def run_all_diagnostics(
         x = posterior._x_else_default_x(x)
         x = _ensure_batch_dim(x)
         n = torch.Size(sample_shape).numel()
-        return _flow.sample((n,), condition=x)[:, 0]
+        raw = _flow.sample((n,), condition=x)[:, 0]
+        return torch.clamp(raw, min=_prior_low, max=_prior_high)
 
     @torch.no_grad()
     def _direct_sample_batched(sample_shape, x, **kw):
         x = _ensure_batch_dim(x)
         n = torch.Size(sample_shape).numel()
-        return _flow.sample((n,), condition=x)
+        raw = _flow.sample((n,), condition=x)
+        return torch.clamp(raw, min=_prior_low, max=_prior_high)
 
     posterior.sample = _direct_sample
     posterior.sample_batched = _direct_sample_batched
-    print("Running diagnostics on CPU (direct flow sampling, no rejection)")
+    print("Running diagnostics on CPU (direct flow sampling, clamped to prior bounds)")
 
     results = {}
 
@@ -227,7 +234,34 @@ def run_all_diagnostics(
     print(f"  C2ST ranks: {sbc_checks['c2st_ranks']}")
     print(f"  C2ST DAP:   {sbc_checks['c2st_dap']}")
 
-    print("Plotting SBC ranks...")
+    # ------------------------------------------------------------------
+    # Flow leakage measurement
+    # ------------------------------------------------------------------
+    print("\n--- Measuring flow leakage outside prior bounds ---")
+    n_leakage_obs = min(100, xs.shape[0])
+    n_leakage_samples = 1000
+    leakage_below = torch.zeros(len(param_names))
+    leakage_above = torch.zeros(len(param_names))
+    with torch.no_grad():
+        for i in range(n_leakage_obs):
+            x_i = xs[i].unsqueeze(0)
+            raw_samples = _flow.sample((n_leakage_samples,), condition=x_i)[:, 0]
+            for j in range(len(param_names)):
+                leakage_below[j] += (raw_samples[:, j] < _prior_low[j]).sum().float()
+                leakage_above[j] += (raw_samples[:, j] > _prior_high[j]).sum().float()
+    total_samples = n_leakage_obs * n_leakage_samples
+    leakage_below_frac = (leakage_below / total_samples).numpy()
+    leakage_above_frac = (leakage_above / total_samples).numpy()
+    leakage_total_frac = leakage_below_frac + leakage_above_frac
+    results['leakage_below_frac'] = leakage_below_frac
+    results['leakage_above_frac'] = leakage_above_frac
+    results['leakage_total_frac'] = leakage_total_frac
+    for j, name in enumerate(param_names):
+        print(f"  {name}: {leakage_total_frac[j]*100:.2f}% total "
+              f"({leakage_below_frac[j]*100:.2f}% below, "
+              f"{leakage_above_frac[j]*100:.2f}% above)")
+
+    print("\nPlotting SBC ranks...")
     fig_sbc, _ = sbc_rank_plot(
         ranks, n_posterior_samples,
         parameter_labels=param_names,
@@ -305,7 +339,18 @@ def run_all_diagnostics(
         f"  ATC: {atc:.4f} {'PASS' if abs(atc) < 0.1 else 'FAIL'}",
         f"  KS p-value: {ks_pval:.4f} {'PASS' if ks_pval > 0.05 else 'FAIL'}",
         "",
+        "Flow Leakage (raw samples outside prior bounds)",
+        "-" * 40,
+    ]
+    for i, name in enumerate(param_names):
+        summary_lines.append(
+            f"  {name}: {leakage_total_frac[i]*100:.2f}% total "
+            f"(below: {leakage_below_frac[i]*100:.2f}%, above: {leakage_above_frac[i]*100:.2f}%)"
+        )
+    summary_lines += [
+        "",
         "Criteria: KS p > 0.05, C2ST_ranks ~ 0.5 (+/- 0.1), C2ST_dap ~ 0.5 (+/- 0.1), ATC ~ 0 (+/- 0.1)",
+        "Note: Flow samples are clamped to prior bounds before SBC rank computation.",
     ]
 
     summary_text = "\n".join(summary_lines)
