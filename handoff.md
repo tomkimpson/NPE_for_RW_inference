@@ -155,7 +155,8 @@ Each successful NPE result directory contains: `config.txt`, `npe_model.pkl`, `t
 - **Paper updated with new Model A 2D results**: Updated `paper_figures.py` RESULT_PATHS, regenerated corner/SBC figures, updated posterior statistics in text and Table 6, updated diagnostics Table and discussion text.
 
 ### Still needed
-- None — paper fully updated with accepted results.
+- **Rerun all 4 models 1D NPE with 50k training simulations**: Current 1D results use 10k sims while 2D results use 50k. This creates a confound in the 1D vs 2D comparisons (tighter 2D posteriors for Models B/C could be due to 5x more training data rather than richer spatial information). Rerun original, A, B, C with `--n_samples 50000` (no `--use_2d_data`) to match the 2D simulation budget. Reuse existing training data where possible via `--skip_data --data_path`. After rerun, update: (1) posterior values in paper text and Table 6, (2) regenerate corner plots, (3) runtime Table 5 body values and re-derive simulation generation percentages, (4) remove red "Note for TK" markers from Table 2, Table 5, and Table 5b (seed study) captions.
+- **Run seed study for Original and Model A**: Seed study results only exist for Models B and C (`results/seed_study/B/`, `results/seed_study/C/`). Missing for Original and A. Run 5-seed study (seeds 42, 123, 456, 789, 1024) for both models using 1D NPE with 50k sims. Update Table 5b values and verify the "below 10%" CI width fluctuation claim in the text.
 
 ### Paper text edits (2026-02-23)
 - Moved posterior predictive check (PPC) discussion and figures from Section 3.1 to new Appendix A. Main text retains brief references to appendix.
