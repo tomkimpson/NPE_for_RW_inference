@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 # Project imports
 from simulator import RandomWalkSimulator, ExclusionRandomWalkSimulator
 from inference import RandomWalkNPE
-from models import get_model_config
+from models import get_model_config, lattice_to_continuum_theta, continuum_to_lattice_theta
 from utils import check_device_availability, print_device_info, configure_warnings
 from predict import posterior_predictive_sample, compute_prediction_intervals, plot_prediction_intervals
 
@@ -129,6 +129,8 @@ def main():
                        help='Disable sbi z-score standardization so CNN sees raw observations (critical for P inference)')
     parser.add_argument('--cnn_dual_branch', action='store_true',
                        help='Use dual-branch CNN: 1D for density (P), 2D for pattern (rho, U)')
+    parser.add_argument('--reparam_continuum', action='store_true',
+                       help='Reparameterize Model A from (U,P,rho) to (U,D,v) for training')
 
     # General parameters
     parser.add_argument('--device', type=str, default='auto',
@@ -165,11 +167,25 @@ def main():
     if args.fixed_U is not None and cfg is not None and 'U' in cfg.fixed_params:
         cfg.fixed_params['U'] = args.fixed_U
 
+    # Reparameterization: override model config to use continuum space
+    reparam = args.reparam_continuum
+    if reparam:
+        if model_name != 'A':
+            parser.error("--reparam_continuum is currently only supported for Model A")
+        cfg = get_model_config('A_reparam')
+        print(f"[REPARAM] Reparameterizing Model A: (U,P,rho) -> (U,D,v)")
+
     # Resolve true parameters
     if args.theta_true is not None:
         theta_true_list = args.theta_true
     else:
         theta_true_list = DEFAULT_THETA_TRUE[model_name]
+        if reparam and model_name == 'A':
+            # Transform default true params from lattice to continuum
+            theta_true_list = lattice_to_continuum_theta(
+                np.array([theta_true_list]), model_name='A'
+            )[0].tolist()
+            print(f"[REPARAM] True parameters transformed: (U,D,v) = {theta_true_list}")
 
     param_names = cfg.param_names if cfg is not None else ['U', 'P']
     n_params = len(param_names)
@@ -304,9 +320,18 @@ def main():
             random_seed=obs_seed
         )
     else:
-        # Build full theta_dict including fixed params
-        theta_dict_obs = dict(zip(param_names, theta_true_list))
-        theta_dict_obs.update(cfg.fixed_params)
+        # For reparameterized models, convert back to lattice params for simulation
+        if reparam:
+            theta_lattice = continuum_to_lattice_theta(
+                np.array([theta_true_list]), model_name='A'
+            )[0].tolist()
+            lattice_cfg = get_model_config('A')
+            theta_dict_obs = dict(zip(lattice_cfg.param_names, theta_lattice))
+            theta_dict_obs.update(lattice_cfg.fixed_params)
+            print(f"[REPARAM] Simulating with lattice params: {theta_dict_obs}")
+        else:
+            theta_dict_obs = dict(zip(param_names, theta_true_list))
+            theta_dict_obs.update(cfg.fixed_params)
         column_counts, _, _ = simulator.simulate(
             theta_dict_obs, T=args.T, random_seed=obs_seed
         )
@@ -506,6 +531,16 @@ def main():
                 theta, x, metadata = RandomWalkNPE.load_training_data(data_path)
                 print(f"Loaded {len(theta)} training samples")
 
+            # Transform theta to continuum space if reparameterizing
+            if reparam:
+                theta_np = theta.numpy() if isinstance(theta, torch.Tensor) else theta
+                theta_np = lattice_to_continuum_theta(theta_np, model_name='A')
+                theta = torch.tensor(theta_np, dtype=torch.float32)
+                print(f"[REPARAM] Transformed {len(theta)} training thetas: (U,P,rho) -> (U,D,v)")
+                for pidx, pname in enumerate(cfg.param_names):
+                    lo, hi = theta[:, pidx].min(), theta[:, pidx].max()
+                    print(f"   {pname} range: [{lo:.3f}, {hi:.3f}]")
+
             # Train standard NPE
             print(f"\nTraining NPE model...")
             train_start = time.time()
@@ -578,7 +613,7 @@ def main():
     # Compute summary statistics
     samples_np = posterior_samples.cpu().numpy()
 
-    print(f"\nPosterior Summary:")
+    print(f"\nPosterior Summary (continuum space: U, D, v):" if reparam else "\nPosterior Summary:")
     for pidx, pname in enumerate(param_names):
         pmean = samples_np[:, pidx].mean()
         pstd = samples_np[:, pidx].std()
@@ -587,6 +622,23 @@ def main():
         in_ci = pci[0] <= true_val <= pci[1]
         print(f"   {pname}: {pmean:.3f} +/- {pstd:.3f} (true: {true_val})  "
               f"95% CI: [{pci[0]:.3f}, {pci[1]:.3f}]  in CI: {in_ci}")
+
+    # Back-transform to lattice space for reporting and posterior predictive
+    if reparam:
+        samples_lattice = continuum_to_lattice_theta(samples_np, model_name='A')
+        lattice_cfg = get_model_config('A')
+        lattice_true = continuum_to_lattice_theta(
+            np.array([theta_true_list]), model_name='A'
+        )[0].tolist()
+        print(f"\nPosterior Summary (lattice space: U, P, rho):")
+        for pidx, pname in enumerate(lattice_cfg.param_names):
+            pmean = samples_lattice[:, pidx].mean()
+            pstd = samples_lattice[:, pidx].std()
+            pci = np.percentile(samples_lattice[:, pidx], [2.5, 97.5])
+            true_val = lattice_true[pidx]
+            in_ci = pci[0] <= true_val <= pci[1]
+            print(f"   {pname}: {pmean:.3f} +/- {pstd:.3f} (true: {true_val:.3f})  "
+                  f"95% CI: [{pci[0]:.3f}, {pci[1]:.3f}]  in CI: {in_ci}")
 
     # ------------------------------------------------------------------
     # Visualizations
@@ -651,14 +703,23 @@ def main():
     pred_start_time = time.time()
 
     n_pred = args.n_pred_samples or args.num_samples
+    # Use lattice-space samples for posterior predictive (simulator needs U, P, rho)
+    if reparam:
+        pred_samples = samples_lattice
+        pred_param_names = lattice_cfg.param_names
+        pred_fixed_params = lattice_cfg.fixed_params
+    else:
+        pred_samples = posterior_samples.cpu().numpy()
+        pred_param_names = param_names
+        pred_fixed_params = cfg.fixed_params if cfg is not None else {}
     predictions = posterior_predictive_sample(
-        posterior_samples=posterior_samples.cpu().numpy(),
+        posterior_samples=pred_samples,
         simulator=simulator,
         T=args.T,
         n_pred_samples=n_pred,
         random_seed=args.seed + 2000,
-        param_names=param_names,
-        fixed_params=cfg.fixed_params if cfg is not None else {},
+        param_names=pred_param_names,
+        fixed_params=pred_fixed_params,
         n_workers=args.n_workers,
     )
 
@@ -722,8 +783,14 @@ def main():
             'seed': args.seed,
             'obs_seed': obs_seed,
             'training_approach': method_label,
+            'reparam_continuum': reparam,
         }
     }
+
+    if reparam:
+        results['lattice_samples'] = samples_lattice
+        results['lattice_param_names'] = lattice_cfg.param_names
+        results['lattice_true_parameters'] = lattice_true
 
     if args.use_snpe and 'training_info' in locals():
         results['snpe_results'] = {

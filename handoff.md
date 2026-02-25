@@ -154,8 +154,24 @@ Each successful NPE result directory contains: `config.txt`, `npe_model.pkl`, `t
 
 - **Paper updated with new Model A 2D results**: Updated `paper_figures.py` RESULT_PATHS, regenerated corner/SBC figures, updated posterior statistics in text and Table 6, updated diagnostics Table and discussion text.
 
+- **Model A reparameterization to (U, D, v) (2026-02-26)**: Added `--reparam_continuum` flag to train NPE in identifiable continuum parameter space (U, D, v) instead of lattice space (U, P, rho). Addresses P/rho multiplicative degeneracy (v=P*rho/2). Changes:
+  - `src/models.py`: Added `lattice_to_continuum_theta()`, `continuum_to_lattice_theta()` transforms, `A_reparam` ModelConfig, `is_reparameterized()` method
+  - `src/main.py`: Added `--reparam_continuum` flag, theta transform after data loading, inverse transform after posterior sampling, dual (U,D,v)+(U,P,rho) summaries, lattice-space posterior predictive
+  - `src/diagnostics.py`: SBC support for A_reparam (rejection sampling to exclude rho>1 region)
+  - `src/run_diagnostics.py`: Added `--reparam_continuum` flag
+  - `slurm/run_model_a_reparam.sh`: SLURM script reusing existing 50k training data
+  - Reuses existing training data (only theta columns transformed, observations unchanged)
+  - Submit with: `sbatch slurm/run_model_a_reparam.sh`
+
+  - **Diagnostics comparison (baseline vs reparam)**:
+    - Baseline (U,P,rho) from `workflow_A_npe2d_20260225_140808`: KS fails all 3 params, C2ST_ranks fails U (0.64), TARP ATC=0.084
+    - Reparam (U,D,v) from `workflow_A_npe2d_20260226_083659`: D KS passes (0.60), U C2ST_ranks now passes (0.60), TARP ATC=0.035
+    - Key wins: D fully calibrated (KS PASS), U C2ST fixed, TARP halved, all 6/6 C2ST pass vs 5/6 baseline
+    - Reparam result dir: `results/workflow_A_npe2d_20260226_083659/`
+    - Baseline result dir (parent repo): `/fred/oz022/tkimpson/SNPE/NPE_for_RW_inference/results/workflow_A_npe2d_20260225_140808/`
+
 ### Still needed
-- None — paper fully updated with accepted results.
+- None — reparameterization implemented, trained, and validated with diagnostics.
 
 ### Paper text edits (2026-02-23)
 - Moved posterior predictive check (PPC) discussion and figures from Section 3.1 to new Appendix A. Main text retains brief references to appendix.
