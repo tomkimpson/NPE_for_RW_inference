@@ -114,7 +114,14 @@ Each successful NPE result directory contains: `config.txt`, `npe_model.pkl`, `t
 
 ---
 
-## Current status (2026-02-24)
+## Current status (2026-02-26)
+
+### Claims review completed
+- Systematic review of paper claims against evidence: **`docs/claims_review.md`**
+- Found 1 factually incorrect item (Table 2 training sims), 5 claims unsupported due to the 1D/2D confound, 4 over-egged claims, and 2 misleading omissions.
+- Core issue: all 1D results use 10k sims / 128 hidden features; all 2D results use 50k sims / 256 hidden features. Any 1D-vs-2D precision comparison is confounded.
+- Well-supported claims: NPE works across all 4 models (1D), scales with complexity, CNN pipeline is viable, column counts are near-sufficient for isotropic models, P-ρ degeneracy is physics-driven, amortization advantage.
+- Resolution: rerun 1D with 50k sims to enable fair comparison, then fix text. Over-egged wording (abstract, intro, discussion) can be fixed independently.
 
 ### Completed
 - SBI diagnostics (SBC rank plots, KS tests, C2ST, TARP) for all 4 models
@@ -154,9 +161,28 @@ Each successful NPE result directory contains: `config.txt`, `npe_model.pkl`, `t
 
 - **Paper updated with new Model A 2D results**: Updated `paper_figures.py` RESULT_PATHS, regenerated corner/SBC figures, updated posterior statistics in text and Table 6, updated diagnostics Table and discussion text.
 
-### Still needed
-- **Rerun all 4 models 1D NPE with 50k training simulations**: Current 1D results use 10k sims while 2D results use 50k. This creates a confound in the 1D vs 2D comparisons (tighter 2D posteriors for Models B/C could be due to 5x more training data rather than richer spatial information). Rerun original, A, B, C with `--n_samples 50000` (no `--use_2d_data`) to match the 2D simulation budget. Reuse existing training data where possible via `--skip_data --data_path`. After rerun, update: (1) posterior values in paper text and Table 6, (2) regenerate corner plots, (3) runtime Table 5 body values and re-derive simulation generation percentages, (4) remove red "Note for TK" markers from Table 2, Table 5, and Table 5b (seed study) captions.
-- **Run seed study for Original and Model A**: Seed study results only exist for Models B and C (`results/seed_study/B/`, `results/seed_study/C/`). Missing for Original and A. Run 5-seed study (seeds 42, 123, 456, 789, 1024) for both models using 1D NPE with 50k sims. Update Table 5b values and verify the "below 10%" CI width fluctuation claim in the text.
+### In progress (2026-02-26)
+
+- **1D NPE 50k rerun — jobs submitted, awaiting results**: Converted 2D training data to 1D via `src/convert_2d_to_1d.py` (summing along Ly axis). Converted data at `results/training_data_1d_50k/{original,A,B,C}_training_data_1d.pkl`. Submitted 4 production training jobs (SLURM 9973666-9973669) using `slurm/run_production_1d_50k.sh` with `--skip_data --data_path`. All use 50k sims, 256 hidden features, 16 workers.
+- **Seed study 50k — jobs submitted**: Created `slurm/run_seed_single_50k.sh`. Submitted 20 jobs (4 models × 5 seeds, SLURM 9973670-9973689) to `results/seed_study_50k/{model}/seed_{seed}/`.
+- **Over-egged wording — FIXED**: Applied all 6 text fixes from `docs/claims_review.md` items 6–11 to `template.tex`:
+  - Abstract: "well-calibrated" → "validated through SBC diagnostics"
+  - Intro: "removing the need" → "reducing reliance"
+  - Section 2.4: "maximally informative" → "optimized"
+  - Discussion: "substantial information loss" → "may discard information"
+  - Section 3.2: Added sentence about shifted 2D medians for Model A
+  - Diagnostics: Added Model A specific KS failure explanation
+- **Table 2 fixed**: Hidden features 128→256 for 1D. Red note removed.
+- **Table 5 and 5b red notes removed**.
+- **Runtime caption**: Updated "8 CPU workers" → "16 CPU workers".
+
+### Still needed (after jobs complete)
+- **Submit SBC diagnostics** for new 1D 50k models (4 jobs)
+- **Update `paper_figures.py` RESULT_PATHS** to point to new 1D 50k result directories
+- **Regenerate all figures** via `python results/paper_figures.py`
+- **Update template.tex** with new posterior values (Tables 3, 4, 5, 5b, 6; Sections 3.1–3.4; runtime table)
+- **Reassess confound-dependent claims** (`docs/claims_review.md` items 1–5) based on new 50k 1D posteriors
+- **Update handoff.md** with final result directory names
 
 ### Paper text edits (2026-02-23)
 - Moved posterior predictive check (PPC) discussion and figures from Section 3.1 to new Appendix A. Main text retains brief references to appendix.
