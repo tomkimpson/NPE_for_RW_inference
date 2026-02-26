@@ -36,7 +36,7 @@ In response to the reviewers' concerns, we have made the following major changes
 \begin{enumerate}[leftmargin=*]
   \item \textbf{IMRaD restructure and biological reframing.} The manuscript has been reorganised into a standard Introduction--Methods--Results--Discussion structure. The narrative now leads with the biological problem (parameter inference for cell migration models) and presents NPE as the tool to address it.
   \item \textbf{Three new models of increasing complexity.} We now present four random walk models: the original model (unbiased diffusion), Model~A (directional bias), Model~B (proliferation), and Model~C (bias + proliferation). This demonstrates NPE across a spectrum from convenience (where classical methods suffice) to necessity (where no tractable likelihood exists).
-  \item \textbf{SBI diagnostics.} A complete diagnostic workflow (simulation-based calibration, TARP coverage tests, classifier two-sample tests) is now reported for all four models (Section~3.5, Table~4, Figure~8).
+  \item \textbf{SBI diagnostics.} A complete diagnostic workflow (simulation-based calibration, TARP coverage tests, classifier two-sample tests) is now reported for all four models (Section~3.5, Table~4, Figure~9).
   \item \textbf{Reproducibility study.} A five-seed reproducibility study demonstrates stable posterior estimates across independent training runs (Section~3.6, Table~6).
   \item \textbf{Timing breakdown.} Computational runtimes are now separated into simulation generation, network training, and inference components for all models (Section~3.7, Table~7).
   \item \textbf{Hyperparameter table.} All key hyperparameters are now reported in the paper (Table~2).
@@ -65,7 +65,7 @@ Yes.
 \end{reviewercomment}
 
 \response
-We have further strengthened replicability by adding a five-seed reproducibility study (Section~3.6, Table~6). Across all four models and all parameters, posterior means are stable (maximum standard deviation of 0.024 across seeds) and 95\% credible intervals achieve 100\% coverage of the true values. The code repository has also been updated.
+We have further strengthened replicability by adding a five-seed reproducibility study (Section~3.6, Table~6). Across all four models and all parameters, posterior means are stable (maximum standard deviation of 0.032 across seeds) and 95\% credible intervals achieve 100\% coverage of the true values. The code repository has also been updated.
 
 
 %% ----- Q3: Statistics -----
@@ -76,7 +76,7 @@ Yes. [Requires additional peer review by a statistician.]
 \end{reviewercomment}
 
 \response
-We have added a complete SBI diagnostic workflow following the guidelines of Cranmer et al.\ (2020). Section~3.5 now reports simulation-based calibration (SBC) rank statistics, classifier two-sample tests (C2ST), and TARP expected-coverage tests for all four models. The results are summarised in Table~4, with SBC rank ECDF plots shown in Figure~8. C2ST scores are uniformly near 0.5 across all models, indicating well-learned posteriors.
+We have added a complete SBI diagnostic workflow following the guidelines of Cranmer et al.\ (2020). Section~3.5 now reports simulation-based calibration (SBC) rank statistics, classifier two-sample tests (C2ST), and TARP expected-coverage tests for all four models. The results are summarised in Table~4, with SBC rank ECDF plots shown in Figure~9. C2ST scores are uniformly near 0.5 across all models, indicating well-learned posteriors.
 
 
 %% ----- Q4: Figures -----
@@ -87,7 +87,7 @@ Yes, because I have the impression that the scope of the journal is not being me
 \end{reviewercomment}
 
 \response
-We have substantially revised the figures and tables. All posterior figures now use separate subfigures for the 1D and 2D results (Figures~4--7), resolving the overlay issue in the original Figure~6. A hyperparameter summary table has been added (Table~2). The timing table has been expanded to separate simulation, training, and inference components for all four models (Table~7). SBC diagnostic plots have been added (Figure~8). Posterior predictive checks are presented in Appendix~A.
+We have substantially revised the figures and tables. All posterior figures now use separate subfigures for the 1D and 2D results (Figures~4--7), resolving the overlay issue in the original Figure~6. A hyperparameter summary table has been added (Table~2). The timing table has been expanded to separate simulation, training, and inference components for all four models (Table~7). SBC diagnostic plots have been added (Figure~9). Posterior predictive checks are presented in Appendix~A.
 
 
 %% ----- Q5: Single example -----
@@ -192,7 +192,7 @@ It is unclear from the text whether training and parameter inference were perfor
 \end{reviewercomment}
 
 \response
-We have added Section~3.6, which presents a five-seed reproducibility study. Each model was retrained from scratch with five independent random seeds (42, 123, 456, 789, 1024) while holding the observed data fixed. Table~6 reports the mean and standard deviation of posterior means and 95\% credible interval widths across seeds. Results are highly stable: the maximum standard deviation of any posterior mean across seeds is 0.024 (for $\rho$ in Model~C), and all seeds achieve 100\% coverage of the true parameter values.
+We have added Section~3.6, which presents a five-seed reproducibility study. Each model was retrained from scratch with five independent random seeds (42, 123, 456, 789, 1024) while holding the observed data fixed. Table~6 reports the mean and standard deviation of posterior means and 95\% credible interval widths across seeds. Results are highly stable: the maximum standard deviation of any posterior mean across seeds is 0.032 (for $P$ in Model~A), and all seeds achieve 100\% coverage of the true parameter values.
 
 
 %% ----- R2 Q4: SBI diagnostics -----
@@ -205,7 +205,7 @@ The analysis does not report diagnostic of the simulation-based inference (altho
 \response
 We have added a complete diagnostic workflow following Cranmer et al.\ (2020), now reported in Section~3.5. For each of the four models, we perform:
 \begin{itemize}[nosep]
-  \item \textbf{Simulation-based calibration (SBC)}: 1000 simulations with rank uniformity assessed via Kolmogorov--Smirnov tests. SBC rank ECDF plots are shown in Figure~8.
+  \item \textbf{Simulation-based calibration (SBC)}: 1000 simulations with rank uniformity assessed via Kolmogorov--Smirnov tests. SBC rank ECDF plots are shown in Figure~9.
   \item \textbf{Classifier two-sample tests (C2ST)}: Scores near 0.5 across all models confirm well-learned posteriors.
   \item \textbf{TARP expected-coverage tests}: Average total coverage (ATC) values quantify calibration quality.
 \end{itemize}
