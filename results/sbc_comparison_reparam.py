@@ -17,8 +17,7 @@ from pathlib import Path
 
 # Paths
 REPO_ROOT = Path(__file__).resolve().parent.parent
-BASELINE_DIAG = Path("/fred/oz022/tkimpson/SNPE/NPE_for_RW_inference/results/"
-                     "workflow_A_npe2d_20260225_140808/diagnostics/diagnostics_results.pkl")
+BASELINE_DIAG = REPO_ROOT / "results/workflow_A_npe2d_20260225_140808/diagnostics/diagnostics_results.pkl"
 REPARAM_DIAG = REPO_ROOT / "results/workflow_A_npe2d_20260226_083659/diagnostics/diagnostics_results.pkl"
 OUTPUT_DIR = REPO_ROOT / "results" / "figures"
 

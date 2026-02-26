@@ -203,6 +203,17 @@ Each successful NPE result directory contains: `config.txt`, `npe_model.pkl`, `t
 | B | `workflow_B_npe_20260226_110956` |
 | C | `workflow_C_npe_20260226_094822` |
 
+- **Reparameterization discussion added to paper (2026-02-26)**: Added inline prose + two new figures to `template.tex`:
+  - Section 3.2 (Model A): new paragraph describing (U,D,v) reparameterization, posterior results, diagnostics improvements, and why it works.
+  - New Figure (`fig:reparam_corners`): side-by-side corner plots comparing baseline (U,P,rho) vs reparameterized (U,D,v) posteriors. Subfigures: `corner_A_2d_baseline` and `corner_A_2d_reparam`.
+  - New Figure (`fig:sbc_reparam`): SBC rank ECDF comparison showing calibration improvement.
+  - Section 3.5 (Diagnostics): cross-reference sentence noting reparameterization as route to calibration improvement.
+  - Discussion (Role of Spatial Information): sentence noting reparameterization as complementary to spatial data for improving calibration.
+  - Copied reparam results from worktree: `results/workflow_A_npe2d_20260226_083659/` (was only in experiment worktree).
+  - Copied `sbc_comparison_reparam.py` from worktree and fixed hardcoded paths to use REPO_ROOT.
+  - Added `A_reparam` entry to `paper_figures.py` RESULT_PATHS, added `make_reparam_corner_comparison()` function, added D/v to PARAM_LATEX and PARAM_COLORS.
+  - Generated `corner_A_2d_baseline.{png,pdf}` and `corner_A_2d_reparam.{png,pdf}` in `docs/paper/images/`.
+
 ### Still needed
 - Final proofread of template.tex
 

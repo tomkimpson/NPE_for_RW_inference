@@ -450,24 +450,33 @@ Using 1D column count data, NPE recovers posteriors $U = 0.498 \pm 0.011$, $P = 
 
 Comparing Figures~\ref{fig:model_A_1d} and~\ref{fig:model_A_2d} directly, the $P$--$\rho$ degeneracy persists in both representations, indicating that this is a fundamental limitation of single-timepoint inference rather than an information loss artefact. For this anisotropic model, directional bias creates spatial asymmetries that column counts collapse by summing across rows, yet the 2D CNN access to these spatial patterns does not resolve the degeneracy. Biologically, $\rho$ quantifies the directional migration preference (e.g.\ chemotactic bias), while the strong $P$--$\rho$ coupling means the drift velocity $v$ is well-constrained even when individual rates are degenerate. This is scientifically useful: the net directed migration rate is the biologically relevant quantity for predicting wound closure direction and speed.
 
-\begin{figure}[htbp]
+\begin{figure*}[htbp]
 	\centering
-	\begin{subfigure}{0.48\textwidth}
+	\begin{subfigure}{0.32\textwidth}
 		\centering
 		\includegraphics[width=\textwidth]{images/corner_A_1d}
-		\caption{1D column count posterior}
+		\caption{1D column counts $(U, P, \rho)$}
 		\label{fig:model_A_1d}
 	\end{subfigure}
 	\hfill
-	\begin{subfigure}{0.48\textwidth}
+	\begin{subfigure}{0.32\textwidth}
 		\centering
 		\includegraphics[width=\textwidth]{images/corner_A_2d}
-		\caption{2D spatial posterior (CNN)}
+		\caption{2D spatial $(U, P, \rho)$}
 		\label{fig:model_A_2d}
 	\end{subfigure}
-	\caption{Posterior distributions for Model A (directional bias) with true values $U = 0.5$, $P = 0.7$, $\rho = 0.5$. Both representations recover $U$ precisely but exhibit a strong $P$--$\rho$ anti-correlation reflecting the drift velocity degeneracy $v = P\rho/2$.}
+	\hfill
+	\begin{subfigure}{0.32\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{images/corner_A_2d_reparam}
+		\caption{2D reparameterized $(U, D, v)$}
+		\label{fig:corner_A_reparam}
+	\end{subfigure}
+	\caption{Posterior distributions for Model~A (directional bias) with true values $U = 0.5$, $P = 0.7$, $\rho = 0.5$. (a,\,b) Both 1D and 2D representations recover $U$ precisely but exhibit a strong $P$--$\rho$ anti-correlation reflecting the drift velocity degeneracy $v = P\rho/2$. (c) Reparameterizing to continuum parameters $(U, D, v)$, where $D = P/4$ and $v = P\rho/2$, transforms the banana-shaped degeneracy into a near-Gaussian posterior, with $v$ constrained to ${\sim}3.4\%$ relative error.}
 	\label{fig:model_A_posteriors}
-\end{figure}
+\end{figure*}
+
+Since the drift velocity $v = P\rho/2$ is the identifiable quantity, a natural strategy is to reparameterize the NPE to infer continuum parameters $(U, D, v)$ directly, where $D = P/4$ is the diffusivity and $v = P\rho/2$ is the drift velocity. This transformation reuses the same 50{,}000 training simulations---only the parameter columns are transformed; the observations are unchanged. In the reparameterized space the NPE recovers $U = 0.508 \pm 0.014$, $D = 0.195 \pm 0.021$ (true $0.175$), and $v = 0.169 \pm 0.006$ (true $0.175$), with $v$ constrained to ${\sim}3.4\%$ relative error (Figure~\ref{fig:corner_A_reparam}). The banana-shaped $P$--$\rho$ posterior (Figure~\ref{fig:model_A_2d}) becomes a near-Gaussian $D$--$v$ posterior (Figure~\ref{fig:corner_A_reparam}), which normalizing flows can represent faithfully with fewer transforms. This simpler posterior geometry also yields substantially improved SBC diagnostics, as we discuss in Section~\ref{sec:diagnostics}. More broadly, when parameter degeneracies are understood \emph{a~priori}, reparameterizing to physically identifiable quantities offers a simple and effective route to improved flow calibration.
 
 
 
@@ -541,6 +550,15 @@ Table~\ref{tab:diagnostics} summarises the diagnostic results for both 1D and 2D
 For the 1D posteriors, the KS test results are mixed across models. In the Original model, $U$ passes comfortably ($p = 0.96$) while $P$ fails ($p = 0.0001$). In Model~A, $U$ fails ($p = 0.0005$), $P$ passes marginally ($p = 0.07$), and $\rho$ passes ($p = 0.15$). Model~B shows KS failures for all three parameters ($U$, $P$, and $R$), and Model~C fails for $U$, $P$, and $R$ while $\rho$ passes ($p = 0.36$). The KS failures are concentrated in the proliferation models (B and C), where the SBC rank ECDFs (Figure~\ref{fig:sbc_plots}c--d) show systematic deviations characteristic of mild overconfidence: the learned posteriors are precise but slightly too narrow, so that the true value falls in the tails more often than expected. This likely reflects the nonlinear and relatively flat mapping from parameters to observable column counts in the proliferation models: modest changes in $R$ or $U$ produce only subtle differences in the data, making it difficult for the normalizing flow to accurately learn the posterior width.
 
 The 2D posteriors exhibit broadly similar calibration patterns (dashed lines in Figure~\ref{fig:sbc_plots}), with C2ST scores remaining near 0.5 throughout. The KS test is somewhat more sensitive in the 2D setting: the Original model shows failures for both $U$ and $P$; Model~A fails for all three parameters ($U$, $P$, and $\rho$); Model~B shows a marginal failure for $R$; and Model~C fails for $U$ and $\rho$ while $P$ and $R$ pass. These failures likely reflect the challenge of learning accurate posterior widths in the higher-dimensional observation space. For Model~A, where $P$ and $\rho$ are strongly degenerate, the KS failures may additionally reflect the CNN concentrating posterior mass on a different region of the degenerate manifold than the 1D embedding, as evidenced by the shifted marginal medians (Section~\ref{sec:model_a}). This tendency to underestimate posterior variance is not unique to NPE but is a recognised challenge across all simulation-based inference methods \citep{hermans2022crisis}. Notably, \cite{hermans2022crisis} find that amortized approaches such as NPE tend to be more conservative (less overconfident) than their non-amortized counterparts, and are more simulation-efficient when accounting for hyper-parameter tuning and diagnostic evaluation. Importantly, we note that the KS test is highly sensitive to subtle deviations in the tails of the rank distribution, which may not affect practical inference quality. The C2ST diagnostic---which directly tests whether posterior samples are distinguishable from the true posterior---passes consistently across all models and parameters, providing stronger evidence that the learned posteriors are well-calibrated for practical use. Increasing the training budget or employing sequential refinement strategies could potentially improve KS calibration further, but we note that the miscalibration observed here is mild, with curves remaining close to the DKW confidence bands.
+
+Alternatively, when parameter degeneracies are understood \emph{a~priori}, reparameterizing to identifiable quantities can substantially improve calibration. For Model~A, reparameterizing from lattice parameters $(U, P, \rho)$ to continuum parameters $(U, D, v)$ (Section~\ref{sec:model_a}) yields markedly better diagnostics (Figure~\ref{fig:sbc_reparam}): $D$ now passes the KS test ($p = 0.60$, versus $p < 0.001$ for $P$ in the baseline), the $U$ C2ST score improves from $0.64$ to $0.60$, the TARP ATC halves from $0.084$ to $0.035$, and all six C2ST tests pass (versus five of six in the baseline). The improvement arises because the reparameterization transforms the curved $P$--$\rho$ banana into a near-Gaussian $D$--$v$ posterior that the normalizing flow represents more faithfully.
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=\columnwidth]{images/sbc_model_A_reparam_comparison}
+	\caption{SBC rank ECDFs for Model~A (2D): baseline parameterization $(U, P, \rho)$ (left) versus reparameterized $(U, D, v)$ (right). The reparameterization substantially improves calibration: $D$ passes the KS test (versus a failure for $P$), the TARP ATC halves, and all C2ST tests pass. Shaded bands show the 95\% DKW confidence envelope.}
+	\label{fig:sbc_reparam}
+\end{figure}
 
 \begin{table}[htbp]
 	\centering
@@ -723,7 +741,7 @@ NPE is one of several neural approaches to simulation-based inference \citep{Cra
 \subsection{Role of Spatial Information}
 Our results reveal a nuanced picture of when spatial information improves inference. For the original isotropic model, 1D column counts and 2D spatial data yield comparable posterior precision (Table~\ref{tab:all_results}), confirming that well-chosen summary statistics are highly effective when the model's symmetry aligns with the summary statistic. This framing clarifies the role of each data representation: 1D column counts are hand-crafted summary statistics that exploit known model symmetries, while the 2D CNN performs automated feature extraction directly from raw spatial data. For isotropic models, the CNN learns features functionally equivalent to column counts; the two approaches converge because no additional spatial information exists to exploit.
 
-The value of spatial inference is demonstrated concretely by the extended models. Model A (directional bias) creates anisotropic spreading patterns where agents preferentially migrate in one direction, producing spatial asymmetries that are collapsed when column counts sum across rows. The 2D CNN has access to these directional features, and while the $P$--$\rho$ degeneracy persists in both representations (Section~\ref{sec:model_a}), the spatial approach provides a representation that naturally accommodates anisotropy without requiring the analyst to design bias-aware summary statistics. When comparing matched training budgets (50{,}000 simulations for both 1D and 2D), the benefits of spatial data are parameter-dependent. In Model~B, the 1D and 2D posteriors are comparable in width for all three parameters, indicating that column counts already capture the information relevant to this model. In Model~A, the 2D posteriors for $P$ and $\rho$ are roughly two to four times tighter than 1D (ratios of $\sim$0.57 and $\sim$0.28, respectively), reflecting the spatial asymmetries created by directional bias. In Model~C, the picture is mixed: the 2D posteriors are tighter for $P$ ($\sim$0.86$\times$) and $\rho$ ($\sim$0.70$\times$), while $U$ and $R$ are comparably or better constrained by 1D column counts, suggesting that spatial information provides additional constraining power for some parameters but not uniformly across all. More broadly, the cost-benefit calculation shifts decisively toward spatial approaches for models where crucial information is encoded in patterns that resist simple summarization: agent-agent interactions, chemotaxis, cell-cell adhesion, heterogeneous environments, and multi-species dynamics all generate spatial structure that 1D projections discard.
+The value of spatial inference is demonstrated concretely by the extended models. Model A (directional bias) creates anisotropic spreading patterns where agents preferentially migrate in one direction, producing spatial asymmetries that are collapsed when column counts sum across rows. The 2D CNN has access to these directional features, and while the $P$--$\rho$ degeneracy persists in both representations (Section~\ref{sec:model_a}), the spatial approach provides a representation that naturally accommodates anisotropy without requiring the analyst to design bias-aware summary statistics. When comparing matched training budgets (50{,}000 simulations for both 1D and 2D), the benefits of spatial data are parameter-dependent. In Model~B, the 1D and 2D posteriors are comparable in width for all three parameters, indicating that column counts already capture the information relevant to this model. In Model~A, the 2D posteriors for $P$ and $\rho$ are roughly two to four times tighter than 1D (ratios of $\sim$0.57 and $\sim$0.28, respectively), reflecting the spatial asymmetries created by directional bias. In Model~C, the picture is mixed: the 2D posteriors are tighter for $P$ ($\sim$0.86$\times$) and $\rho$ ($\sim$0.70$\times$), while $U$ and $R$ are comparably or better constrained by 1D column counts, suggesting that spatial information provides additional constraining power for some parameters but not uniformly across all. More broadly, the cost-benefit calculation shifts decisively toward spatial approaches for models where crucial information is encoded in patterns that resist simple summarization: agent-agent interactions, chemotaxis, cell-cell adhesion, heterogeneous environments, and multi-species dynamics all generate spatial structure that 1D projections discard. When the degenerate structure is known \emph{a~priori}, reparameterizing to identifiable continuum parameters (Section~\ref{sec:model_a}) provides an additional route to improved calibration beyond increasing the training budget or changing the data representation.
 
 
 

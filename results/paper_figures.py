@@ -64,6 +64,8 @@ PARAM_COLORS = {
     "P":   "#E67E22",   # orange
     "rho": "#27AE60",   # green
     "R":   "#8E44AD",   # purple
+    "D":   "#E67E22",   # orange (same slot as P)
+    "v":   "#27AE60",   # green (same slot as rho)
 }
 
 SINGLE_COL_WIDTH_IN = 3.46   # ~88 mm
@@ -82,6 +84,7 @@ RESULT_PATHS = {
     ("B", "npe2d"):        "results/workflow_B_npe2d_20260224_091648",        # R=0.05, 50k sims
     ("C", "npe"):          "results/workflow_C_npe_20260226_094822",          # 50k sims, 256 hidden features, 4-param
     ("C", "npe2d"):        "results/workflow_C_npe2d_20260224_171232",        # 50k sims, 4-param
+    ("A_reparam", "npe2d"): "results/workflow_A_npe2d_20260226_083659",      # reparam (U,D,v), 50k sims
 }
 
 # LaTeX-style labels for each parameter
@@ -90,6 +93,8 @@ PARAM_LATEX = {
     "P":   r"$P$",
     "rho": r"$\rho$",
     "R":   r"$R$",
+    "D":   r"$D$",
+    "v":   r"$v$",
 }
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -212,6 +217,85 @@ def make_corner_plot(model: str, approach: str, output_dir: Path, fmt: str):
     fig.savefig(outfile, dpi=DPI, bbox_inches="tight")
     plt.close(fig)
     print(f"  Saved {outfile}")
+
+
+# ---------------------------------------------------------------------------
+# Figure A2: Reparameterization comparison corner plot (side-by-side)
+# ---------------------------------------------------------------------------
+
+def make_reparam_corner_comparison(output_dir: Path, fmt: str):
+    """Generate two separate corner plots for LaTeX subfigure composition:
+    baseline (U,P,rho) and reparameterized (U,D,v) for Model A 2D.
+
+    Outputs:
+        corner_A_2d_baseline.{fmt}  -- baseline (U, P, rho)
+        corner_A_2d_reparam.{fmt}   -- reparameterized (U, D, v)
+    """
+    cfg_a = get_model_config("A")
+
+    title_fs = 11
+    label_fs = 12
+    panel_width = SINGLE_COL_WIDTH_IN * 1.4
+
+    corner_kwargs = dict(
+        truth_color=COLOR_TRUTH,
+        color=COLOR_2D,
+        show_titles=True,
+        title_kwargs={"fontsize": title_fs},
+        label_kwargs={"fontsize": label_fs},
+        title_fmt=".3f",
+        smooth=1.0,
+        smooth1d=1.0,
+        bins=50,
+        quantiles=[0.16, 0.5, 0.84],
+        plot_density=True,
+        plot_datapoints=False,
+        fill_contours=True,
+        max_n_ticks=4,
+    )
+
+    # --- Left panel: baseline (U, P, rho) ---
+    data_base = load_results("A", "npe2d")
+    samples_base = data_base["posterior_samples"].copy()
+    truths_base = list(data_base["true_parameters"])
+    labels_base = [r"$U$", r"$P$", r"$\rho$"]
+    ranges_base = list(zip(cfg_a.prior_low, cfg_a.prior_high))
+
+    fig_left = corner.corner(
+        samples_base, labels=labels_base, truths=truths_base,
+        range=ranges_base, **corner_kwargs,
+    )
+    fig_left.set_size_inches(panel_width, panel_width)
+    outfile_left = output_dir / f"corner_A_2d_baseline.{fmt}"
+    fig_left.savefig(outfile_left, dpi=DPI, bbox_inches="tight")
+    plt.close(fig_left)
+    print(f"  Saved {outfile_left}")
+
+    # --- Right panel: reparameterized (U, D, v) ---
+    data_repa = load_results("A_reparam", "npe2d")
+    samples_repa = data_repa["posterior_samples"].copy()
+    truths_repa = list(data_repa["true_parameters"])
+    labels_repa = [PARAM_LATEX.get(n, n) for n in data_repa["param_names"]]
+
+    # Ranges: U same; D = P/4; v = P*rho/2
+    u_lo, u_hi = cfg_a.prior_low[0], cfg_a.prior_high[0]
+    p_lo, p_hi = cfg_a.prior_low[1], cfg_a.prior_high[1]
+    rho_lo, rho_hi = cfg_a.prior_low[2], cfg_a.prior_high[2]
+    ranges_repa = [
+        (u_lo, u_hi),
+        (p_lo / 4.0, p_hi / 4.0),
+        (p_lo * rho_lo / 2.0, p_hi * rho_hi / 2.0),
+    ]
+
+    fig_right = corner.corner(
+        samples_repa, labels=labels_repa, truths=truths_repa,
+        range=ranges_repa, **corner_kwargs,
+    )
+    fig_right.set_size_inches(panel_width, panel_width)
+    outfile_right = output_dir / f"corner_A_2d_reparam.{fmt}"
+    fig_right.savefig(outfile_right, dpi=DPI, bbox_inches="tight")
+    plt.close(fig_right)
+    print(f"  Saved {outfile_right}")
 
 
 # ---------------------------------------------------------------------------
@@ -489,6 +573,15 @@ def main():
         except FileNotFoundError as e:
             print(f"  SKIP SBC plot: {e}")
 
+        print()
+
+    # Reparameterization comparison (Model A only)
+    if "A" in args.models:
+        print("--- Model A reparameterization comparison ---")
+        try:
+            make_reparam_corner_comparison(output_dir, fmt)
+        except FileNotFoundError as e:
+            print(f"  SKIP reparam comparison: {e}")
         print()
 
     print("Done.")
