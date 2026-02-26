@@ -73,15 +73,15 @@ DPI = 300
 # Mapping from (model, approach) -> result directory (relative to repo root).
 # approach: 'npe' (1D), 'npe2d' (2D), 'abc'
 RESULT_PATHS = {
-    ("original", "npe"):   "results/workflow_original_npe_20260204_225605",
-    ("original", "npe2d"): "results/workflow_original_npe2d_20260223_104550",  # Enhanced: 50k samples, hidden_features=256
+    ("original", "npe"):   "results/workflow_original_npe_20260226_094822",  # 50k sims, 256 hidden features
+    ("original", "npe2d"): "results/workflow_original_npe2d_20260223_104550",  # 50k sims, 256 hidden features
     ("original", "abc"):   "results/workflow_original_abc_20260204_225446",
-    ("A", "npe"):          "results/workflow_A_npe_20260204_230502",
-    ("A", "npe2d"):        "results/workflow_A_npe2d_20260225_140808",  # Retrained: 50k, SPP + no sbi standardization
-    ("B", "npe"):          "results/workflow_B_npe_20260224_082130",       # Updated: R=0.05
-    ("B", "npe2d"):        "results/workflow_B_npe2d_20260224_091648",       # Updated: R=0.05
-    ("C", "npe"):          "results/workflow_C_npe_20260224_171233",       # 4-param: U, P, rho, R
-    ("C", "npe2d"):        "results/workflow_C_npe2d_20260224_171232",       # 4-param: U, P, rho, R (50k samples)
+    ("A", "npe"):          "results/workflow_A_npe_20260226_095713",          # 50k sims, 256 hidden features
+    ("A", "npe2d"):        "results/workflow_A_npe2d_20260225_140808",        # 50k, SPP + no sbi standardization
+    ("B", "npe"):          "results/workflow_B_npe_20260226_110956",          # 50k sims, 256 hidden features
+    ("B", "npe2d"):        "results/workflow_B_npe2d_20260224_091648",        # R=0.05, 50k sims
+    ("C", "npe"):          "results/workflow_C_npe_20260226_094822",          # 50k sims, 256 hidden features, 4-param
+    ("C", "npe2d"):        "results/workflow_C_npe2d_20260224_171232",        # 50k sims, 4-param
 }
 
 # LaTeX-style labels for each parameter
