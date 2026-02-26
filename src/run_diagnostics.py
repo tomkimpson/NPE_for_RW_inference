@@ -46,6 +46,8 @@ def main():
     parser.add_argument("--initial_region_half_width", type=int, default=25)
     parser.add_argument("--use_2d", action="store_true",
                         help="Use 2D spatial observations instead of 1D column counts")
+    parser.add_argument("--reparam_continuum", action="store_true",
+                        help="Use reparameterized model (A_reparam: U,D,v)")
     parser.add_argument("--output_dir", default=None,
                         help="Output directory (default: <model_dir>/diagnostics/)")
     args = parser.parse_args()
@@ -64,6 +66,7 @@ def main():
     print(f"Workers:          {args.n_workers}")
     print(f"Grid:             Lx={args.Lx}, Ly={args.Ly}, T={args.T}")
     print(f"Use 2D:           {args.use_2d}")
+    print(f"Reparam:          {args.reparam_continuum}")
     print(f"Output dir:       {args.output_dir}")
     print("=" * 50)
 
@@ -75,7 +78,11 @@ def main():
     print("\nLoading trained model...")
     npe = RandomWalkNPE.load_model(args.model_path, device=device)
     posterior = npe.posterior
-    model_config = get_model_config(args.model)
+    if args.reparam_continuum:
+        model_config = get_model_config('A_reparam')
+        print(f"[REPARAM] Using A_reparam config: (U, D, v)")
+    else:
+        model_config = get_model_config(args.model)
     print(f"  Parameters: {model_config.param_names}")
 
     # Generate SBC data

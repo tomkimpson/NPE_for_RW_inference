@@ -22,7 +22,7 @@ from sbi.utils import BoxUniform
 from sbi.diagnostics import run_sbc, check_sbc, run_tarp, check_tarp
 from sbi.analysis import sbc_rank_plot
 
-from models import ModelConfig, get_model_config
+from models import ModelConfig, get_model_config, lattice_to_continuum_theta
 from simulator import RandomWalkSimulator, ExclusionRandomWalkSimulator
 from inference import _init_worker, _run_single_sim, RandomWalkNPE
 from utils import configure_warnings
@@ -59,11 +59,42 @@ def generate_sbc_data(
     thetas : torch.Tensor of shape (n_sims, n_params)
     xs : torch.Tensor of shape (n_sims, Lx) or (n_sims, Ly*Lx) if use_2d
     """
+    is_reparam = model_config.is_reparameterized()
+
     prior = BoxUniform(
         low=torch.tensor(model_config.prior_low, dtype=torch.float32),
         high=torch.tensor(model_config.prior_high, dtype=torch.float32),
     )
-    thetas = prior.sample((n_sims,))
+
+    if is_reparam and model_config.name == 'A_reparam':
+        # Sample (U, D, v) from box prior, reject where rho = v/(2D) > 1
+        from models import continuum_to_lattice_theta
+        accepted = []
+        batch_size = n_sims * 2  # oversample to account for rejections
+        while len(accepted) < n_sims:
+            candidates = prior.sample((batch_size,)).numpy()
+            lattice = continuum_to_lattice_theta(candidates, model_name='A')
+            # Valid samples: rho <= 1 (before clamping)
+            D = candidates[:, 1].astype(np.float64)
+            v = candidates[:, 2].astype(np.float64)
+            rho_raw = np.where(D > 1e-10, v / (2.0 * D), 0.0)
+            valid = rho_raw <= 1.0
+            accepted.extend(candidates[valid][:n_sims - len(accepted)])
+        thetas_np = np.array(accepted[:n_sims], dtype=np.float32)
+        thetas = torch.tensor(thetas_np)
+        # Convert to lattice for simulation
+        thetas_lattice = continuum_to_lattice_theta(thetas_np, model_name='A')
+        lattice_cfg = get_model_config('A')
+        param_names_sim = lattice_cfg.param_names
+        fixed_params_sim = lattice_cfg.fixed_params
+        print(f"[REPARAM] SBC: sampled {n_sims} valid (U,D,v) points "
+              f"(rejection rate: rho>1 excluded from box prior)")
+    else:
+        thetas = prior.sample((n_sims,))
+        thetas_np = thetas.numpy()
+        thetas_lattice = None
+        param_names_sim = model_config.param_names
+        fixed_params_sim = model_config.fixed_params
 
     # Build simulator
     use_exclusion = model_config.has_exclusion
@@ -82,17 +113,15 @@ def generate_sbc_data(
             'initial_region_half_width': initial_region_half_width,
         }
 
-    thetas_np = thetas.numpy()
-    param_names = model_config.param_names
-    fixed_params = model_config.fixed_params
+    sim_thetas = thetas_lattice if thetas_lattice is not None else thetas_np
 
     sim_args_list = []
     for i in range(n_sims):
-        param_values = thetas_np[i].tolist()
+        param_values = sim_thetas[i].tolist()
         seed_i = 90000 + i  # deterministic seeds for reproducibility
         sim_args_list.append((
-            i, param_values, param_names,
-            fixed_params, use_exclusion, T, seed_i, use_2d,
+            i, param_values, param_names_sim,
+            fixed_params_sim, use_exclusion, T, seed_i, use_2d,
         ))
 
     observations = np.zeros((n_sims, Ly, Lx)) if use_2d else np.zeros((n_sims, Lx))
