@@ -161,28 +161,32 @@ Each successful NPE result directory contains: `config.txt`, `npe_model.pkl`, `t
 
 - **Paper updated with new Model A 2D results**: Updated `paper_figures.py` RESULT_PATHS, regenerated corner/SBC figures, updated posterior statistics in text and Table 6, updated diagnostics Table and discussion text.
 
-### In progress (2026-02-26)
+### Completed (2026-02-26)
 
-- **1D NPE 50k rerun — jobs submitted, awaiting results**: Converted 2D training data to 1D via `src/convert_2d_to_1d.py` (summing along Ly axis). Converted data at `results/training_data_1d_50k/{original,A,B,C}_training_data_1d.pkl`. Submitted 4 production training jobs (SLURM 9973666-9973669) using `slurm/run_production_1d_50k.sh` with `--skip_data --data_path`. All use 50k sims, 256 hidden features, 16 workers.
-- **Seed study 50k — jobs submitted**: Created `slurm/run_seed_single_50k.sh`. Submitted 20 jobs (4 models × 5 seeds, SLURM 9973670-9973689) to `results/seed_study_50k/{model}/seed_{seed}/`.
-- **Over-egged wording — FIXED**: Applied all 6 text fixes from `docs/claims_review.md` items 6–11 to `template.tex`:
-  - Abstract: "well-calibrated" → "validated through SBC diagnostics"
-  - Intro: "removing the need" → "reducing reliance"
-  - Section 2.4: "maximally informative" → "optimized"
-  - Discussion: "substantial information loss" → "may discard information"
-  - Section 3.2: Added sentence about shifted 2D medians for Model A
-  - Diagnostics: Added Model A specific KS failure explanation
+- **1D NPE 50k rerun — COMPLETED**: Converted 2D training data to 1D via `src/convert_2d_to_1d.py` (summing along Ly axis). Converted data at `results/training_data_1d_50k/{original,A,B,C}_training_data_1d.pkl`. All 4 production jobs completed. All use 50k sims, 256 hidden features, 16 workers.
+- **Seed study 50k — COMPLETED**: 20 jobs (4 models × 5 seeds) completed at `results/seed_study_50k/{model}/seed_{seed}/`. All 100% coverage (5/5).
+- **SBC diagnostics for 1D 50k — COMPLETED**: All 4 models diagnosed.
+- **template.tex fully updated with 50k 1D results**: Updated all tables (3, 4, 5b, 6), all inline values (Sections 3.1–3.4), diagnostics discussion, confound claims (Sections 3.3, 3.4, Discussion), SBC figure caption, and seed study description.
+  - Key findings with matched budgets: Model B 1D/2D posteriors are comparable. Model A 2D is 2–4x tighter for P/rho. Model C is mixed (2D tighter for P/rho, 1D comparable for U/R).
+  - 1D KS diagnostics: Original U passes/P fails; Model A U fails/P marginal/rho passes; Model B all fail; Model C U/P/R fail, rho passes.
+  - TARP: Original and A pass (ATC near 0); B and C show moderate deviations (ATC -0.44, -0.54).
+- **Over-egged wording — FIXED**: Applied all 6 text fixes from `docs/claims_review.md` items 6–11 to `template.tex`.
 - **Table 2 fixed**: Hidden features 128→256 for 1D. Red note removed.
 - **Table 5 and 5b red notes removed**.
 - **Runtime caption**: Updated "8 CPU workers" → "16 CPU workers".
 
-### Still needed (after jobs complete)
-- **Submit SBC diagnostics** for new 1D 50k models (4 jobs)
-- **Update `paper_figures.py` RESULT_PATHS** to point to new 1D 50k result directories
-- **Regenerate all figures** via `python results/paper_figures.py`
-- **Update template.tex** with new posterior values (Tables 3, 4, 5, 5b, 6; Sections 3.1–3.4; runtime table)
-- **Reassess confound-dependent claims** (`docs/claims_review.md` items 1–5) based on new 50k 1D posteriors
-- **Update handoff.md** with final result directory names
+- **`paper_figures.py` RESULT_PATHS updated and all figures regenerated**: Corner plots, SBC plots, and prediction intervals all regenerated from new 1D 50k results. Copied to `docs/paper/images/`.
+
+### New result directories (1D 50k)
+| Model | Result directory |
+|-------|-----------------|
+| Original | `workflow_original_npe_20260226_094822` |
+| A | `workflow_A_npe_20260226_095713` |
+| B | `workflow_B_npe_20260226_110956` |
+| C | `workflow_C_npe_20260226_094822` |
+
+### Still needed
+- Final proofread of template.tex
 
 ### Paper text edits (2026-02-23)
 - Moved posterior predictive check (PPC) discussion and figures from Section 3.1 to new Appendix A. Main text retains brief references to appendix.

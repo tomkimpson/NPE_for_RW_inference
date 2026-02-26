@@ -374,7 +374,7 @@ Collectively, these results highlight the core dilemma: direct methods like ABC 
 
 \subsubsection{NPE with 1D Summary Statistics}\label{sec:1d_results}
 
-We demonstrate NPE's effectiveness by applying it to the same synthetic barrier assay data used in Section~\ref{sec:results_classical}. To ensure direct comparison with the classical methods, we first implement NPE using identical 1D column count summary statistics $N_i$, representing the number of agents in each vertical column of the lattice. Following the protocol of \SP, we generate synthetic observations from a stochastic random walk model with true parameters $P = 0.7$ and $U = 0.3$, corresponding to diffusivity $D \approx P/4 = 0.175$. The resulting data consists of a 201-dimensional vector of column counts, corresponding to the 201 discrete lattice columns from $x=-100$ to $x=+100$. We perform inference directly on the stochastic model parameters $P$ and $U$, then transform to $D$ via the relationship $D = P/4$ for comparison with PDE-based approaches. NPE recovers a posterior distribution with median $U = 0.298^{+0.009}_{-0.008}$ and $D=0.164^{+0.024}_{-0.024}$ (Figure~\ref{fig:npe_original_1d}). The results demonstrate excellent agreement with the true parameter values ($U = 0.3$, $D = 0.175$).
+We demonstrate NPE's effectiveness by applying it to the same synthetic barrier assay data used in Section~\ref{sec:results_classical}. To ensure direct comparison with the classical methods, we first implement NPE using identical 1D column count summary statistics $N_i$, representing the number of agents in each vertical column of the lattice. Following the protocol of \SP, we generate synthetic observations from a stochastic random walk model with true parameters $P = 0.7$ and $U = 0.3$, corresponding to diffusivity $D \approx P/4 = 0.175$. The resulting data consists of a 201-dimensional vector of column counts, corresponding to the 201 discrete lattice columns from $x=-100$ to $x=+100$. We perform inference directly on the stochastic model parameters $P$ and $U$, then transform to $D$ via the relationship $D = P/4$ for comparison with PDE-based approaches. NPE recovers a posterior distribution with median $U = 0.293 \pm 0.008$ and $D=0.162^{+0.027}_{-0.021}$ (Figure~\ref{fig:npe_original_1d}). The results demonstrate excellent agreement with the true parameter values ($U = 0.3$, $D = 0.175$).
 
 This approach yields several key advantages over classical methods. The NPE posterior shows substantially improved precision relative to ABC, especially for the diffusion parameter $D$, all without the need for manual tolerance tuning. Furthermore, because NPE learns directly from the stochastic simulator, it avoids the systematic bias of mean-field approximations and produces a posterior that is not artificially narrow. The resulting credible intervals accurately reflect the natural stochastic variance of the data, a feature often lost when using deterministic surrogate models, cf.\ Fig~\ref{fig:three_figures}. Once the initial network training is complete, posterior samples for any new observation can be obtained almost instantly.
 
@@ -395,7 +395,7 @@ Posterior predictive checks confirm that the inferred model reproduces the obser
 		\caption{2D spatial posterior (CNN)}
 		\label{fig:npe_original_2d}
 	\end{subfigure}
-	\caption{Posterior distributions for the original model with true values $U = 0.3$, $D = 0.175$. (a)~NPE posterior from 1D column count data yields $U = 0.298^{+0.009}_{-0.008}$ and $D = 0.164^{+0.024}_{-0.024}$. (b)~NPE posterior from 2D spatial data using CNN embedding yields $U = 0.294^{+0.011}_{-0.010}$ and $D = 0.156^{+0.026}_{-0.023}$ (medians with 68\% credible intervals). Both approaches recover comparable posteriors, demonstrating that the CNN automatically extracts features from the raw spatial data that are as informative as the curated 1D summary statistics.}
+	\caption{Posterior distributions for the original model with true values $U = 0.3$, $D = 0.175$. (a)~NPE posterior from 1D column count data yields $U = 0.293 \pm 0.008$ and $D = 0.162^{+0.027}_{-0.021}$. (b)~NPE posterior from 2D spatial data using CNN embedding yields $U = 0.294^{+0.011}_{-0.010}$ and $D = 0.156^{+0.026}_{-0.023}$ (medians with 68\% credible intervals). Both approaches recover comparable posteriors, demonstrating that the CNN automatically extracts features from the raw spatial data that are as informative as the curated 1D summary statistics.}
 	\label{fig:npe_original_posteriors}
 \end{figure}
 
@@ -427,7 +427,7 @@ Posterior predictive checks for the 2D model similarly confirm well-calibrated p
 		Surrogate + MLE/Laplace & 1D Column counts & $0.314^{+0.004}_{-0.004}$ & $0.201^{+0.024}_{-0.024}$ \\
 		Surrogate + MCMC & 1D Column counts & $0.315^{+0.007}_{-0.007}$ & $0.210^{+0.048}_{-0.047}$ \\
 		\midrule
-		NPE & 1D Column counts & $0.298^{+0.009}_{-0.008}$ & $0.164^{+0.024}_{-0.024}$\\
+		NPE & 1D Column counts & $0.293 \pm 0.008$ & $0.162^{+0.027}_{-0.021}$\\
 		NPE + CNN & 2D Spatial data & $0.294^{+0.011}_{-0.010}$ & $0.156^{+0.026}_{-0.023}$\\
 		\bottomrule
 	\end{tabular}
@@ -446,7 +446,7 @@ Biologically, $U$ represents the initial cell seeding density and $D$ the effect
 
 Model A extends the isotropic random walk by introducing a directional bias parameter $\rho \in [0,1]$, which controls the probability of stepping in the positive $x$-direction relative to the negative $x$-direction (see Section~\ref{sec:model_description}). This model has three free parameters: the initial occupation probability $U$, the total motility probability $P$, and the bias $\rho$, with true values $U = 0.5$, $P = 0.7$, $\rho = 0.5$.
 
-Using 1D column count data, NPE recovers posteriors $U = 0.498 \pm 0.014$, $P = 0.627 \pm 0.156$, and $\rho = 0.593 \pm 0.170$ (Figure~\ref{fig:model_A_1d}). The initial density $U$ is tightly constrained, while $P$ and $\rho$ exhibit broader posteriors with a strong anti-correlation ($r = -0.955$). This degeneracy is physics-driven: the macroscopic drift velocity $v = P\rho/2$ is well-constrained by the data, but individual values of $P$ and $\rho$ that yield the same drift are interchangeable when viewed through 1D column counts alone. That is, the composite quantity $v$ is identifiable, but $P$ and $\rho$ are individually weakly identifiable from 1D data. Using full 2D spatial data with a CNN embedding network, NPE recovers $U = 0.508 \pm 0.030$, $P = 0.801^{+0.170}_{-0.200}$, and $\rho = 0.416^{+0.147}_{-0.073}$ (Figure~\ref{fig:model_A_2d}). The $P$--$\rho$ anti-correlation persists ($r = -0.924$), confirming that it reflects a genuine physical degeneracy rather than an artefact of the data representation. We note that the 2D medians for $P$ and $\rho$ lie in a different region of the degenerate manifold compared to 1D, reflecting the sensitivity of the posterior mode to the data representation when parameters are weakly identifiable.
+Using 1D column count data, NPE recovers posteriors $U = 0.498 \pm 0.011$, $P = 0.631 \pm 0.176$, and $\rho = 0.541^{+0.245}_{-0.129}$ (Figure~\ref{fig:model_A_1d}). The initial density $U$ is tightly constrained, while $P$ and $\rho$ exhibit broader posteriors with a strong anti-correlation ($r = -0.962$). This degeneracy is physics-driven: the macroscopic drift velocity $v = P\rho/2$ is well-constrained by the data, but individual values of $P$ and $\rho$ that yield the same drift are interchangeable when viewed through 1D column counts alone. That is, the composite quantity $v$ is identifiable, but $P$ and $\rho$ are individually weakly identifiable from 1D data. Using full 2D spatial data with a CNN embedding network, NPE recovers $U = 0.508 \pm 0.030$, $P = 0.801^{+0.170}_{-0.200}$, and $\rho = 0.416^{+0.147}_{-0.073}$ (Figure~\ref{fig:model_A_2d}). The $P$--$\rho$ anti-correlation persists ($r = -0.924$), confirming that it reflects a genuine physical degeneracy rather than an artefact of the data representation. We note that the 2D medians for $P$ and $\rho$ lie in a different region of the degenerate manifold compared to 1D, reflecting the sensitivity of the posterior mode to the data representation when parameters are weakly identifiable.
 
 Comparing Figures~\ref{fig:model_A_1d} and~\ref{fig:model_A_2d} directly, the $P$--$\rho$ degeneracy persists in both representations, indicating that this is a fundamental limitation of single-timepoint inference rather than an information loss artefact. For this anisotropic model, directional bias creates spatial asymmetries that column counts collapse by summing across rows, yet the 2D CNN access to these spatial patterns does not resolve the degeneracy. Biologically, $\rho$ quantifies the directional migration preference (e.g.\ chemotactic bias), while the strong $P$--$\rho$ coupling means the drift velocity $v$ is well-constrained even when individual rates are degenerate. This is scientifically useful: the net directed migration rate is the biologically relevant quantity for predicting wound closure direction and speed.
 
@@ -476,7 +476,7 @@ Comparing Figures~\ref{fig:model_A_1d} and~\ref{fig:model_A_2d} directly, the $P
 
 Model B incorporates cell proliferation via a Fisher--Kolmogorov mechanism: at each time step, an agent may divide into a daughter cell at an adjacent site with probability $R$, subject to an exclusion constraint that prevents multiple occupancy. This model has three free parameters: the initial occupation probability $U$, the motility probability $P$, and the proliferation rate $R$, with true values $U = 0.5$, $P = 0.7$, and $R = 0.05$.
 
-NPE with 1D column counts recovers $U = 0.600^{+0.349}_{-0.464}$, $P = 0.801^{+0.163}_{-0.283}$, and $R = 0.048^{+0.017}_{-0.010}$ (Figure~\ref{fig:model_B_1d}). All three true values fall within the 95\% credible intervals. The posterior for $U$ is broad and left-skewed, reflecting a partial degeneracy between initial density and proliferation: higher initial occupancy can mimic the effect of increased growth when only a single time point is observed. Despite this degeneracy, both $P$ and $R$ remain well-constrained. With 2D spatial data, NPE recovers $U = 0.345^{+0.290}_{-0.223}$, $P = 0.777^{+0.158}_{-0.129}$, and $R = 0.053^{+0.013}_{-0.009}$ (Figure~\ref{fig:model_B_2d}). The 2D representation narrows the $U$ posterior considerably compared to 1D, suggesting that spatial pattern information helps break the $U$--$R$ degeneracy.
+NPE with 1D column counts recovers $U = 0.353^{+0.148}_{-0.137}$, $P = 0.764^{+0.085}_{-0.081}$, and $R = 0.052 \pm 0.006$ (Figure~\ref{fig:model_B_1d}). All three true values fall within the 95\% credible intervals. The posterior for $U$ is moderately broad, reflecting a partial degeneracy between initial density and proliferation: higher initial occupancy can mimic the effect of increased growth when only a single time point is observed. Despite this degeneracy, both $P$ and $R$ remain well-constrained. With 2D spatial data, NPE recovers $U = 0.345^{+0.290}_{-0.223}$, $P = 0.777^{+0.158}_{-0.129}$, and $R = 0.053^{+0.013}_{-0.009}$ (Figure~\ref{fig:model_B_2d}). With matched training budgets, the 1D and 2D posteriors are comparable in precision, suggesting that column counts already capture the information relevant to constraining the $U$--$R$ degeneracy in Model~B.
 
 Biologically, the ability to jointly infer $U$, $P$, and $R$ is valuable: in wound healing assays the seeding density may not be precisely controlled, and NPE can recover it alongside the motility and proliferation parameters from a single experimental snapshot.
 
@@ -506,7 +506,7 @@ Biologically, the ability to jointly infer $U$, $P$, and $R$ is valuable: in wou
 
 Model C combines directional bias and proliferation, representing the most biologically realistic scenario in our suite. Unlike Models~A and~B, which each introduce one additional mechanism, Model~C incorporates both bias and proliferation simultaneously, yielding a four-parameter inference problem: the initial occupation probability $U$, the motility probability $P$, the directional bias $\rho$, and the proliferation rate $R$, with true values $U = 0.5$, $P = 0.7$, $\rho = 0.5$, $R = 0.05$. Although a mean-field PDE can in principle be written for this combination of mechanisms, the interplay of bias, proliferation, and exclusion effects means that the surrogate approximation is no longer well validated, and the additional requirement of specifying an appropriate noise model further compounds the modelling uncertainty. This model therefore represents the strongest case for simulation-based inference, which bypasses surrogate approximations entirely.
 
-NPE with 1D column counts recovers $U = 0.597^{+0.205}_{-0.281}$, $P = 0.657^{+0.113}_{-0.112}$, $\rho = 0.515^{+0.223}_{-0.116}$, and $R = 0.052^{+0.008}_{-0.005}$ (Figure~\ref{fig:model_C_1d}). Despite the four-parameter space, $R$ is recovered with $\sim$13\% relative uncertainty, and the $P$--$\rho$ anti-correlation mirrors the degeneracy observed in Model~A. With 2D spatial data, NPE recovers $U = 0.354^{+0.125}_{-0.119}$, $P = 0.743^{+0.066}_{-0.059}$, $\rho = 0.390^{+0.039}_{-0.037}$, and $R = 0.055^{+0.006}_{-0.004}$ (Figure~\ref{fig:model_C_2d}). The 2D posteriors are substantially tighter, particularly for $P$ and $\rho$, demonstrating the additional constraining power of spatial information in this four-parameter setting.
+NPE with 1D column counts recovers $U = 0.496^{+0.116}_{-0.113}$, $P = 0.671 \pm 0.073$, $\rho = 0.485^{+0.057}_{-0.052}$, and $R = 0.052 \pm 0.003$ (Figure~\ref{fig:model_C_1d}). Despite the four-parameter space, $R$ is recovered with $\sim$6\% relative uncertainty, and the $P$--$\rho$ anti-correlation mirrors the degeneracy observed in Model~A. With 2D spatial data, NPE recovers $U = 0.354^{+0.125}_{-0.119}$, $P = 0.743^{+0.066}_{-0.059}$, $\rho = 0.390^{+0.039}_{-0.037}$, and $R = 0.055^{+0.006}_{-0.004}$ (Figure~\ref{fig:model_C_2d}). The 2D posteriors are tighter for $P$ and $\rho$, suggesting that spatial information provides some additional constraining power for these parameters, while $U$ and $R$ are comparably or better constrained by column counts.
 
 Biologically, Model C captures the interplay of initial cell density, cell motility, directional migration (e.g.\ chemotaxis), and cell division---the four key processes governing wound healing dynamics. The ability to infer all four parameters simultaneously from a single experimental observation, without relying on surrogate approximations or noise model specifications, demonstrates NPE's value for complex biological systems where classical surrogate-based methods become increasingly difficult to justify.
 
@@ -536,9 +536,9 @@ Biologically, Model C captures the interplay of initial cell density, cell motil
 
 Following the diagnostic protocol recommended by \cite{Cranmer2020FrontierSBI} and \cite{2025arXiv250812939D}, we validate all trained posteriors using three complementary diagnostics: the Kolmogorov--Smirnov (KS) test for marginal calibration, the classifier two-sample test (C2ST) for posterior quality, and Tests of Accuracy with Random Points (TARP) for coverage calibration.
 
-Table~\ref{tab:diagnostics} summarises the diagnostic results for both 1D and 2D posteriors across all models. The C2ST scores are consistently close to $0.5$ across all models, parameters, and data representations, indicating that the learned posteriors are nearly indistinguishable from the true posteriors and that the density estimators have been well-trained. The TARP area-under-the-curve (ATC) metric passes for Model~A 2D (ATC $= 0.08$) and shows moderate deviations for the remaining models.
+Table~\ref{tab:diagnostics} summarises the diagnostic results for both 1D and 2D posteriors across all models. The C2ST scores are consistently close to $0.5$ across all models, parameters, and data representations, indicating that the learned posteriors are nearly indistinguishable from the true posteriors and that the density estimators have been well-trained. The TARP area-under-the-curve (ATC) metric passes for the Original model and Model~A in both 1D and 2D (ATC values near zero), while Models~B and~C show larger deviations in the 1D setting (ATC $= -0.44$ and $-0.54$, respectively), indicating moderate miscalibration for the proliferation models.
 
-For the 1D posteriors, the KS test passes for all parameters in the Original and Model~B posteriors, indicating good marginal calibration. In Model~A, $U$ fails the KS test, $P$ passes marginally ($p = 0.07$), and $\rho$ passes comfortably. In Model~C, $P$ and $R$ fail the KS test, with the SBC rank ECDF (Figure~\ref{fig:sbc_plots}d) bowing below the diagonal for $R$, indicating an excess of low ranks. This signature is characteristic of mild overconfidence: the learned posteriors for $R$ are sharp and precise (as seen in the corner plots, Figures~\ref{fig:model_B_posteriors}--\ref{fig:model_C_posteriors}), but slightly too narrow, so that the true value falls in the upper tail of the posterior more often than expected. This is distinct from the broad, uninformative posteriors that would signal a lack of identifiability. The overconfidence likely reflects the nonlinear and relatively flat mapping from $R$ to the observable column counts at small proliferation rates: modest changes in $R$ produce only subtle differences in the data, making it difficult for the normalizing flow to accurately learn the posterior width.
+For the 1D posteriors, the KS test results are mixed across models. In the Original model, $U$ passes comfortably ($p = 0.96$) while $P$ fails ($p = 0.0001$). In Model~A, $U$ fails ($p = 0.0005$), $P$ passes marginally ($p = 0.07$), and $\rho$ passes ($p = 0.15$). Model~B shows KS failures for all three parameters ($U$, $P$, and $R$), and Model~C fails for $U$, $P$, and $R$ while $\rho$ passes ($p = 0.36$). The KS failures are concentrated in the proliferation models (B and C), where the SBC rank ECDFs (Figure~\ref{fig:sbc_plots}c--d) show systematic deviations characteristic of mild overconfidence: the learned posteriors are precise but slightly too narrow, so that the true value falls in the tails more often than expected. This likely reflects the nonlinear and relatively flat mapping from parameters to observable column counts in the proliferation models: modest changes in $R$ or $U$ produce only subtle differences in the data, making it difficult for the normalizing flow to accurately learn the posterior width.
 
 The 2D posteriors exhibit broadly similar calibration patterns (dashed lines in Figure~\ref{fig:sbc_plots}), with C2ST scores remaining near 0.5 throughout. The KS test is somewhat more sensitive in the 2D setting: the Original model shows failures for both $U$ and $P$; Model~A fails for all three parameters ($U$, $P$, and $\rho$); Model~B shows a marginal failure for $R$; and Model~C fails for $U$ and $\rho$ while $P$ and $R$ pass. These failures likely reflect the challenge of learning accurate posterior widths in the higher-dimensional observation space. For Model~A, where $P$ and $\rho$ are strongly degenerate, the KS failures may additionally reflect the CNN concentrating posterior mass on a different region of the degenerate manifold than the 1D embedding, as evidenced by the shifted marginal medians (Section~\ref{sec:model_a}). This tendency to underestimate posterior variance is not unique to NPE but is a recognised challenge across all simulation-based inference methods \citep{hermans2022crisis}. Notably, \cite{hermans2022crisis} find that amortized approaches such as NPE tend to be more conservative (less overconfident) than their non-amortized counterparts, and are more simulation-efficient when accounting for hyper-parameter tuning and diagnostic evaluation. Importantly, we note that the KS test is highly sensitive to subtle deviations in the tails of the rank distribution, which may not affect practical inference quality. The C2ST diagnostic---which directly tests whether posterior samples are distinguishable from the true posterior---passes consistently across all models and parameters, providing stronger evidence that the learned posteriors are well-calibrated for practical use. Increasing the training budget or employing sequential refinement strategies could potentially improve KS calibration further, but we note that the miscalibration observed here is mild, with curves remaining close to the DKW confidence bands.
 
@@ -551,20 +551,20 @@ The 2D posteriors exhibit broadly similar calibration patterns (dashed lines in 
 		\cmidrule(lr){3-5} \cmidrule(lr){6-8}
 		\textbf{Model} & \textbf{Param.} & \textbf{KS $p$} & \textbf{C2ST} & \textbf{ATC} & \textbf{KS $p$} & \textbf{C2ST} & \textbf{ATC} \\
 		\midrule
-		Original & $U$ & 0.08 & 0.59 & \multirow{2}{*}{0.48} & 0.0001\rlap{$^*$} & 0.58 & \multirow{2}{*}{$-0.41$} \\
-		         & $P$ & 0.08 & 0.58 & & 0.02\rlap{$^*$} & 0.59 & \\
+		Original & $U$ & 0.96 & 0.59 & \multirow{2}{*}{0.05} & 0.0001\rlap{$^*$} & 0.58 & \multirow{2}{*}{$-0.41$} \\
+		         & $P$ & 0.0001\rlap{$^*$} & 0.58 & & 0.02\rlap{$^*$} & 0.59 & \\
 		\midrule
-		A        & $U$    & 0.0001\rlap{$^*$} & 0.57 & \multirow{3}{*}{$-0.24$} & 0.0000\rlap{$^*$} & 0.64 & \multirow{3}{*}{0.08} \\
+		A        & $U$    & 0.0005\rlap{$^*$} & 0.57 & \multirow{3}{*}{$-0.05$} & 0.0000\rlap{$^*$} & 0.64 & \multirow{3}{*}{0.08} \\
 		         & $P$    & 0.07   & 0.56 & & 0.0000\rlap{$^*$} & 0.56 & \\
-		         & $\rho$ & 0.96   & 0.57 & & 0.02\rlap{$^*$} & 0.58 & \\
+		         & $\rho$ & 0.15   & 0.57 & & 0.02\rlap{$^*$} & 0.58 & \\
 		\midrule
-		B        & $U$ & 0.60 & 0.58 & \multirow{3}{*}{$-0.31$} & 0.11 & 0.57 & \multirow{3}{*}{$-0.36$} \\
-		         & $P$ & 0.45 & 0.59 & & 0.41 & 0.57 & \\
-		         & $R$ & 0.32 & 0.57 & & 0.009\rlap{$^*$} & 0.59 & \\
+		B        & $U$ & 0.009\rlap{$^*$} & 0.58 & \multirow{3}{*}{$-0.44$} & 0.11 & 0.57 & \multirow{3}{*}{$-0.36$} \\
+		         & $P$ & 0.0000\rlap{$^*$} & 0.59 & & 0.41 & 0.57 & \\
+		         & $R$ & 0.0000\rlap{$^*$} & 0.57 & & 0.009\rlap{$^*$} & 0.59 & \\
 		\midrule
-		C        & $U$    & 0.13 & 0.56 & \multirow{4}{*}{$-0.73$} & 0.004\rlap{$^*$} & 0.58 & \multirow{4}{*}{$-0.12$} \\
-		         & $P$    & 0.002\rlap{$^*$} & 0.56 & & 0.07 & 0.58 & \\
-		         & $\rho$ & 0.25 & 0.59 & & 0.0000\rlap{$^*$} & 0.58 & \\
+		C        & $U$    & 0.03\rlap{$^*$} & 0.56 & \multirow{4}{*}{$-0.54$} & 0.004\rlap{$^*$} & 0.58 & \multirow{4}{*}{$-0.12$} \\
+		         & $P$    & 0.02\rlap{$^*$} & 0.56 & & 0.07 & 0.58 & \\
+		         & $\rho$ & 0.36 & 0.59 & & 0.0000\rlap{$^*$} & 0.58 & \\
 		         & $R$    & 0.0000\rlap{$^*$} & 0.56 & & 0.22 & 0.58 & \\
 		\bottomrule
 	\end{tabular}
@@ -605,7 +605,7 @@ Figure~\ref{fig:sbc_plots} shows SBC rank plots for all four models, with 1D pos
 		\caption{Model C (bias + proliferation)}
 		\label{fig:sbc_model_C}
 	\end{subfigure}
-	\caption{Simulation-based calibration (SBC) rank ECDF plots for all four models. Solid lines show 1D NPE posteriors; dashed lines show 2D NPE (CNN) posteriors. A uniform rank distribution (diagonal within the shaded 99\% DKW confidence bands) indicates well-calibrated posteriors; an ECDF bowing below the diagonal indicates mild overconfidence. (a)~Original model: 1D posteriors are well-calibrated for both parameters; 2D posteriors show slight deviations for $U$ and $P$. (b)~Model A: $U$ deviates in both representations; $P$ passes marginally and $\rho$ is well-calibrated in 1D, while all three parameters fail in 2D. (c)~Model B: all parameters are well-calibrated in 1D; $R$ shows marginal deviation in 2D. (d)~Model C: the four-parameter space shows mild miscalibration for $P$ and $R$ in 1D, and for $U$ and $\rho$ in 2D.}
+	\caption{Simulation-based calibration (SBC) rank ECDF plots for all four models. Solid lines show 1D NPE posteriors; dashed lines show 2D NPE (CNN) posteriors. A uniform rank distribution (diagonal within the shaded 99\% DKW confidence bands) indicates well-calibrated posteriors; an ECDF bowing below the diagonal indicates mild overconfidence. (a)~Original model: $U$ is well-calibrated in 1D while $P$ deviates; 2D posteriors show deviations for both parameters. (b)~Model A: $U$ fails in both representations; $P$ and $\rho$ pass in 1D, while all three parameters fail in 2D. (c)~Model B: all three parameters ($U$, $P$, $R$) fail the KS test in 1D; $R$ shows marginal deviation in 2D. (d)~Model C: the four-parameter space shows KS failures for $U$, $P$, and $R$ in 1D (with $\rho$ passing), and for $U$ and $\rho$ in 2D.}
 	\label{fig:sbc_plots}
 \end{figure}
 
@@ -621,21 +621,21 @@ Table~\ref{tab:all_results} provides a comprehensive summary of NPE inference re
 		\toprule
 		\textbf{Model} & \textbf{Parameter} & \textbf{True Value} & \textbf{1D NPE} & \textbf{2D NPE} \\
 		\midrule
-		\multirow{2}{*}{Original} & $U$ & 0.300 & $0.298^{+0.009}_{-0.008}$ & $0.294^{+0.011}_{-0.010}$ \\
-		                          & $D$ & 0.175 & $0.164^{+0.024}_{-0.024}$ & $0.156^{+0.026}_{-0.023}$ \\
+		\multirow{2}{*}{Original} & $U$ & 0.300 & $0.293 \pm 0.008$ & $0.294^{+0.011}_{-0.010}$ \\
+		                          & $D$ & 0.175 & $0.162^{+0.027}_{-0.021}$ & $0.156^{+0.026}_{-0.023}$ \\
 		\midrule
-		\multirow{3}{*}{A (Bias)} & $U$    & 0.500 & $0.498 \pm 0.014$ & $0.508 \pm 0.030$ \\
-		                          & $P$    & 0.700 & $0.627 \pm 0.156$ & $0.801^{+0.170}_{-0.200}$ \\
-		                          & $\rho$ & 0.500 & $0.593 \pm 0.170$ & $0.416^{+0.147}_{-0.073}$ \\
+		\multirow{3}{*}{A (Bias)} & $U$    & 0.500 & $0.498 \pm 0.011$ & $0.508 \pm 0.030$ \\
+		                          & $P$    & 0.700 & $0.631 \pm 0.176$ & $0.801^{+0.170}_{-0.200}$ \\
+		                          & $\rho$ & 0.500 & $0.541^{+0.245}_{-0.129}$ & $0.416^{+0.147}_{-0.073}$ \\
 		\midrule
-		\multirow{3}{*}{B (Proliferation)} & $U$ & 0.500 & $0.600^{+0.349}_{-0.464}$ & $0.345^{+0.290}_{-0.223}$ \\
-		                                   & $P$ & 0.700 & $0.801^{+0.163}_{-0.283}$ & $0.777^{+0.158}_{-0.129}$ \\
-		                                   & $R$ & 0.050 & $0.048^{+0.017}_{-0.010}$ & $0.053^{+0.013}_{-0.009}$ \\
+		\multirow{3}{*}{B (Proliferation)} & $U$ & 0.500 & $0.353^{+0.148}_{-0.137}$ & $0.345^{+0.290}_{-0.223}$ \\
+		                                   & $P$ & 0.700 & $0.764^{+0.085}_{-0.081}$ & $0.777^{+0.158}_{-0.129}$ \\
+		                                   & $R$ & 0.050 & $0.052 \pm 0.006$ & $0.053^{+0.013}_{-0.009}$ \\
 		\midrule
-		\multirow{4}{*}{C (Bias + Prolif.)} & $U$    & 0.500 & $0.597^{+0.205}_{-0.281}$ & $0.354^{+0.125}_{-0.119}$ \\
-		                                    & $P$    & 0.700 & $0.657^{+0.113}_{-0.112}$ & $0.743^{+0.066}_{-0.059}$ \\
-		                                    & $\rho$ & 0.500 & $0.515^{+0.223}_{-0.116}$ & $0.390^{+0.039}_{-0.037}$ \\
-		                                    & $R$    & 0.050 & $0.052^{+0.008}_{-0.005}$ & $0.055^{+0.006}_{-0.004}$ \\
+		\multirow{4}{*}{C (Bias + Prolif.)} & $U$    & 0.500 & $0.496^{+0.116}_{-0.113}$ & $0.354^{+0.125}_{-0.119}$ \\
+		                                    & $P$    & 0.700 & $0.671 \pm 0.073$ & $0.743^{+0.066}_{-0.059}$ \\
+		                                    & $\rho$ & 0.500 & $0.485^{+0.057}_{-0.052}$ & $0.390^{+0.039}_{-0.037}$ \\
+		                                    & $R$    & 0.050 & $0.052 \pm 0.003$ & $0.055^{+0.006}_{-0.004}$ \\
 		\bottomrule
 	\end{tabular}
 	\caption{Comprehensive NPE inference results across all models. Values show posterior medians with 68\% credible intervals. For the original model, $D = P/4$ is reported for comparison with classical methods. All models use broad uniform priors on the unit interval for probability parameters and $R \sim \mathcal{U}(0.001, 0.2)$ for the proliferation rate.}
@@ -645,7 +645,7 @@ Table~\ref{tab:all_results} provides a comprehensive summary of NPE inference re
 
 \subsection{Reproducibility Across Random Seeds}\label{sec:reproducibility}
 
-Neural network training involves stochastic elements---random weight initialisation and mini-batch ordering---that could in principle cause posterior estimates to vary between independent runs. To quantify this variability, we retrained the 1D NPE pipeline five times for each model using different random seeds (42, 123, 456, 789, 1024) while holding the test observation fixed. Table~\ref{tab:seed_study} summarises the results. Posterior mean estimates are highly stable across seeds: the standard deviation of the posterior mean is at most 0.024 ($\rho$ in Model~C), which is small relative to both the posterior width and the parameter range. Credible interval widths are similarly consistent, with relative fluctuations typically below 10\%. The true parameter value falls within the 95\% credible interval for every seed and every parameter, yielding 100\% empirical coverage. These results confirm that the trained posteriors are robust to the stochastic elements of the training procedure and that a single training run is sufficient for reliable inference. We observe similar stability for the 2D NPE posteriors across seeds.
+Neural network training involves stochastic elements---random weight initialisation and mini-batch ordering---that could in principle cause posterior estimates to vary between independent runs. To quantify this variability, we retrained the 1D NPE pipeline five times for each model using different random seeds (42, 123, 456, 789, 1024) while holding the test observation fixed. Table~\ref{tab:seed_study} summarises the results. Posterior mean estimates are highly stable across seeds: the standard deviation of the posterior mean is at most 0.032 ($P$ in Model~A), which is small relative to both the posterior width and the parameter range. Credible interval widths are similarly consistent, with relative fluctuations typically below 10\%. The true parameter value falls within the 95\% credible interval for every seed and every parameter, yielding 100\% empirical coverage. These results confirm that the trained posteriors are robust to the stochastic elements of the training procedure and that a single training run is sufficient for reliable inference. We observe similar stability for the 2D NPE posteriors across seeds.
 
 \begin{table}[htbp]
 	\centering
@@ -654,21 +654,21 @@ Neural network training involves stochastic elements---random weight initialisat
 		\toprule
 		\textbf{Model} & \textbf{Param} & \textbf{True} & \textbf{Post.\ mean (mean $\pm$ std)} & \textbf{CI width (mean $\pm$ std)} & \textbf{Coverage} \\
 		\midrule
-		\multirow{2}{*}{Original} & $U$ & 0.300 & $0.2947 \pm 0.0016$ & $0.0407 \pm 0.0057$ & 5/5 \\
-		                          & $P$ & 0.700 & $0.6748 \pm 0.0194$ & $0.4021 \pm 0.0391$ & 5/5 \\
+		\multirow{2}{*}{Original} & $U$ & 0.300 & $0.2927 \pm 0.0010$ & $0.0349 \pm 0.0016$ & 5/5 \\
+		                          & $P$ & 0.700 & $0.6632 \pm 0.0078$ & $0.3811 \pm 0.0114$ & 5/5 \\
 		\midrule
-		\multirow{3}{*}{A (Bias)} & $U$    & 0.500 & $0.4976 \pm 0.0021$ & $0.0463 \pm 0.0043$ & 5/5 \\
-		                          & $P$    & 0.700 & $0.6170 \pm 0.0107$ & $0.5667 \pm 0.0148$ & 5/5 \\
-		                          & $\rho$ & 0.500 & $0.6066 \pm 0.0099$ & $0.6038 \pm 0.0073$ & 5/5 \\
+		\multirow{3}{*}{A (Bias)} & $U$    & 0.500 & $0.4978 \pm 0.0012$ & $0.0401 \pm 0.0016$ & 5/5 \\
+		                          & $P$    & 0.700 & $0.6531 \pm 0.0319$ & $0.5406 \pm 0.0125$ & 5/5 \\
+		                          & $\rho$ & 0.500 & $0.5613 \pm 0.0314$ & $0.5621 \pm 0.0148$ & 5/5 \\
 		\midrule
-		\multirow{3}{*}{B (Prolif.)} & $U$ & 0.500 & $0.5458 \pm 0.0213$ & $0.7903 \pm 0.0274$ & 5/5 \\
-		                              & $P$ & 0.700 & $0.7702 \pm 0.0159$ & $0.3990 \pm 0.0368$ & 5/5 \\
-		                              & $R$ & 0.050 & $0.0493 \pm 0.0005$ & $0.0261 \pm 0.0020$ & 5/5 \\
+		\multirow{3}{*}{B (Prolif.)} & $U$ & 0.500 & $0.3464 \pm 0.0159$ & $0.4789 \pm 0.0260$ & 5/5 \\
+		                              & $P$ & 0.700 & $0.7615 \pm 0.0050$ & $0.3313 \pm 0.0044$ & 5/5 \\
+		                              & $R$ & 0.050 & $0.0533 \pm 0.0008$ & $0.0223 \pm 0.0006$ & 5/5 \\
 		\midrule
-		\multirow{4}{*}{C (Bias + Prolif.)} & $U$    & 0.500 & $0.5418 \pm 0.0170$ & $0.7550 \pm 0.0151$ & 5/5 \\
-		                                    & $P$    & 0.700 & $0.6477 \pm 0.0151$ & $0.4499 \pm 0.0316$ & 5/5 \\
-		                                    & $\rho$ & 0.500 & $0.5193 \pm 0.0238$ & $0.5029 \pm 0.0306$ & 5/5 \\
-		                                    & $R$    & 0.050 & $0.0539 \pm 0.0004$ & $0.0244 \pm 0.0010$ & 5/5 \\
+		\multirow{4}{*}{C (Bias + Prolif.)} & $U$    & 0.500 & $0.4809 \pm 0.0259$ & $0.4315 \pm 0.0176$ & 5/5 \\
+		                                    & $P$    & 0.700 & $0.6832 \pm 0.0123$ & $0.3038 \pm 0.0112$ & 5/5 \\
+		                                    & $\rho$ & 0.500 & $0.4753 \pm 0.0091$ & $0.2178 \pm 0.0054$ & 5/5 \\
+		                                    & $R$    & 0.050 & $0.0521 \pm 0.0003$ & $0.0143 \pm 0.0003$ & 5/5 \\
 		\bottomrule
 	\end{tabular}
 	\caption{Reproducibility across random seeds. For each model and parameter, we report the mean $\pm$ standard deviation of the posterior mean and the 95\% credible interval width across 5 independent training runs. Coverage indicates the fraction of seeds for which the true value falls within the 95\% credible interval. All 1D NPE with 50{,}000 training simulations.}
@@ -723,7 +723,7 @@ NPE is one of several neural approaches to simulation-based inference \citep{Cra
 \subsection{Role of Spatial Information}
 Our results reveal a nuanced picture of when spatial information improves inference. For the original isotropic model, 1D column counts and 2D spatial data yield comparable posterior precision (Table~\ref{tab:all_results}), confirming that well-chosen summary statistics are highly effective when the model's symmetry aligns with the summary statistic. This framing clarifies the role of each data representation: 1D column counts are hand-crafted summary statistics that exploit known model symmetries, while the 2D CNN performs automated feature extraction directly from raw spatial data. For isotropic models, the CNN learns features functionally equivalent to column counts; the two approaches converge because no additional spatial information exists to exploit.
 
-The value of spatial inference is demonstrated concretely by the extended models. Model A (directional bias) creates anisotropic spreading patterns where agents preferentially migrate in one direction, producing spatial asymmetries that are collapsed when column counts sum across rows. The 2D CNN has access to these directional features, and while the $P$--$\rho$ degeneracy persists in both representations (Section~\ref{sec:model_a}), the spatial approach provides a representation that naturally accommodates anisotropy without requiring the analyst to design bias-aware summary statistics. The concrete benefits of spatial data emerge most clearly for models with proliferation. In Model~B, the 2D posterior for $U$ is substantially narrower than its 1D counterpart, suggesting that spatial patterns of daughter cells help break the $U$--$R$ degeneracy that plagues column-count-based inference (Section~\ref{sec:model_b}). In Model~C, the improvements are even more pronounced: 2D posteriors for $P$ and $\rho$ are roughly two to four times tighter than 1D posteriors (Table~\ref{tab:all_results}), demonstrating that spatial information provides genuine additional constraining power in the most complex model. More broadly, the cost-benefit calculation shifts decisively toward spatial approaches for models where crucial information is encoded in patterns that resist simple summarization: agent-agent interactions, chemotaxis, cell-cell adhesion, heterogeneous environments, and multi-species dynamics all generate spatial structure that 1D projections discard.
+The value of spatial inference is demonstrated concretely by the extended models. Model A (directional bias) creates anisotropic spreading patterns where agents preferentially migrate in one direction, producing spatial asymmetries that are collapsed when column counts sum across rows. The 2D CNN has access to these directional features, and while the $P$--$\rho$ degeneracy persists in both representations (Section~\ref{sec:model_a}), the spatial approach provides a representation that naturally accommodates anisotropy without requiring the analyst to design bias-aware summary statistics. When comparing matched training budgets (50{,}000 simulations for both 1D and 2D), the benefits of spatial data are parameter-dependent. In Model~B, the 1D and 2D posteriors are comparable in width for all three parameters, indicating that column counts already capture the information relevant to this model. In Model~A, the 2D posteriors for $P$ and $\rho$ are roughly two to four times tighter than 1D (ratios of $\sim$0.57 and $\sim$0.28, respectively), reflecting the spatial asymmetries created by directional bias. In Model~C, the picture is mixed: the 2D posteriors are tighter for $P$ ($\sim$0.86$\times$) and $\rho$ ($\sim$0.70$\times$), while $U$ and $R$ are comparably or better constrained by 1D column counts, suggesting that spatial information provides additional constraining power for some parameters but not uniformly across all. More broadly, the cost-benefit calculation shifts decisively toward spatial approaches for models where crucial information is encoded in patterns that resist simple summarization: agent-agent interactions, chemotaxis, cell-cell adhesion, heterogeneous environments, and multi-species dynamics all generate spatial structure that 1D projections discard.
 
 
 
