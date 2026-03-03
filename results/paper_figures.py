@@ -155,7 +155,8 @@ def _labels_and_ranges(model: str):
 # Figure A: Corner plots (1D NPE)
 # ---------------------------------------------------------------------------
 
-def make_corner_plot(model: str, approach: str, output_dir: Path, fmt: str):
+def make_corner_plot(model: str, approach: str, output_dir: Path, fmt: str,
+                     fig_width: float = None):
     """Single corner plot from NPE posterior.
 
     Parameters
@@ -168,6 +169,9 @@ def make_corner_plot(model: str, approach: str, output_dir: Path, fmt: str):
         Directory for output figures.
     fmt : str
         File format ('pdf' or 'png').
+    fig_width : float, optional
+        Override figure width in inches. When None, uses the default logic
+        (SINGLE_COL_WIDTH_IN for <=2 params, DOUBLE_COL_WIDTH_IN otherwise).
     """
     data = load_results(model, approach)
     samples = data["posterior_samples"].copy()
@@ -187,7 +191,10 @@ def make_corner_plot(model: str, approach: str, output_dir: Path, fmt: str):
     suffix = "1d" if approach == "npe" else "2d"
 
     n_params = len(labels)
-    width = SINGLE_COL_WIDTH_IN if n_params <= 2 else DOUBLE_COL_WIDTH_IN
+    if fig_width is not None:
+        width = fig_width
+    else:
+        width = SINGLE_COL_WIDTH_IN if n_params <= 2 else DOUBLE_COL_WIDTH_IN
     title_fs = 8 if n_params <= 2 else 11
     label_fs = 9 if n_params <= 2 else 12
 
@@ -518,6 +525,90 @@ def make_sbc_plot(model: str, output_dir: Path, fmt: str, approach: str = "npe")
 
 
 # ---------------------------------------------------------------------------
+# Figure D2: SBC reparameterization comparison (baseline vs reparam, Model A)
+# ---------------------------------------------------------------------------
+
+BASELINE_PARAMS = ["U", "P", r"$\rho$"]
+REPARAM_PARAMS = ["U", "D", "v"]
+
+COLORS_BASELINE = {"U": "#4682B4", "P": "#E67E22", r"$\rho$": "#27AE60"}
+COLORS_REPARAM = {"U": "#4682B4", "D": "#E67E22", "v": "#27AE60"}
+
+
+def make_sbc_reparam_plot(output_dir: Path, fmt: str):
+    """Two-panel SBC rank ECDF: baseline (U,P,rho) vs reparameterized (U,D,v).
+
+    Uses the same styling as make_sbc_plot() so the output matches Figure 8.
+    """
+    diag_base = load_diagnostics("A", "npe2d")
+    diag_repa = load_diagnostics("A_reparam", "npe2d")
+
+    ranks_base = diag_base["sbc_ranks"]
+    ranks_repa = diag_repa["sbc_ranks"]
+    if isinstance(ranks_base, torch.Tensor):
+        ranks_base = ranks_base.numpy()
+    if isinstance(ranks_repa, torch.Tensor):
+        ranks_repa = ranks_repa.numpy()
+
+    n_sbc_base = ranks_base.shape[0]
+    n_sbc_repa = ranks_repa.shape[0]
+    ranks_base_norm = ranks_base / ranks_base.max()
+    ranks_repa_norm = ranks_repa / ranks_repa.max()
+
+    fig, (ax_base, ax_repa) = plt.subplots(
+        1, 2,
+        figsize=(SINGLE_COL_WIDTH_IN * 2, SINGLE_COL_WIDTH_IN * 0.85),
+        sharey=True,
+    )
+
+    for ax, ranks_norm, n_sbc, param_labels, colors, title in [
+        (ax_base, ranks_base_norm, n_sbc_base, BASELINE_PARAMS,
+         COLORS_BASELINE, r"Baseline $(U, P, \rho)$"),
+        (ax_repa, ranks_repa_norm, n_sbc_repa, REPARAM_PARAMS,
+         COLORS_REPARAM, r"Reparameterized $(U, D, v)$"),
+    ]:
+        # Diagonal reference
+        ax.plot([0, 1], [0, 1], ls="--", color="0.5", lw=0.8, zorder=1)
+
+        # DKW 99% confidence band
+        alpha = 0.01
+        epsilon = np.sqrt(np.log(2.0 / alpha) / (2 * n_sbc))
+        t = np.linspace(0, 1, 200)
+        ax.fill_between(
+            t,
+            np.clip(t - epsilon, 0, 1),
+            np.clip(t + epsilon, 0, 1),
+            color="0.85", zorder=0, label="99% DKW band",
+        )
+
+        # ECDFs
+        ecdf_y = np.arange(1, n_sbc + 1) / n_sbc
+        n_params = ranks_norm.shape[1]
+        for j in range(n_params):
+            name = param_labels[j]
+            sorted_ranks = np.sort(ranks_norm[:, j])
+            color = colors[name]
+            label = f"${name}$" if not name.startswith("$") else name
+            ax.plot(sorted_ranks, ecdf_y, color=color, lw=1.2, ls="-",
+                    label=label, zorder=2)
+
+        ax.set_xlabel("Normalized rank")
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, 1)
+        ax.set_aspect("equal")
+        ax.set_title(title)
+        ax.legend(fontsize=6, loc="upper left")
+
+    ax_base.set_ylabel("ECDF")
+
+    fig.tight_layout(w_pad=1.5)
+    outfile = output_dir / f"sbc_model_A_reparam_comparison.{fmt}"
+    fig.savefig(outfile, dpi=DPI, bbox_inches="tight")
+    plt.close(fig)
+    print(f"  Saved {outfile}")
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -555,9 +646,13 @@ def main():
         print(f"--- Model {model} ---")
 
         # Corner plots for both 1D and 2D
+        # Model A corner plots use the same figure width as the reparam plot
+        # so text sizes match when LaTeX renders them side-by-side in Figure 5.
+        corner_width = SINGLE_COL_WIDTH_IN * 1.4 if model == "A" else None
         for approach in ["npe", "npe2d"]:
             try:
-                make_corner_plot(model, approach, output_dir, fmt)
+                make_corner_plot(model, approach, output_dir, fmt,
+                                 fig_width=corner_width)
             except FileNotFoundError as e:
                 print(f"  SKIP corner {approach}: {e}")
 
@@ -582,6 +677,10 @@ def main():
             make_reparam_corner_comparison(output_dir, fmt)
         except FileNotFoundError as e:
             print(f"  SKIP reparam comparison: {e}")
+        try:
+            make_sbc_reparam_plot(output_dir, fmt)
+        except FileNotFoundError as e:
+            print(f"  SKIP SBC reparam comparison: {e}")
         print()
 
     print("Done.")
