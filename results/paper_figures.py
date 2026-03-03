@@ -195,8 +195,8 @@ def make_corner_plot(model: str, approach: str, output_dir: Path, fmt: str,
         width = fig_width
     else:
         width = SINGLE_COL_WIDTH_IN if n_params <= 2 else DOUBLE_COL_WIDTH_IN
-    title_fs = 8 if n_params <= 2 else 11
-    label_fs = 9 if n_params <= 2 else 12
+    title_fs = 8 if n_params <= 2 else 16
+    label_fs = 9 if n_params <= 2 else 17
 
     fig = corner.corner(
         samples,
@@ -240,9 +240,9 @@ def make_reparam_corner_comparison(output_dir: Path, fmt: str):
     """
     cfg_a = get_model_config("A")
 
-    title_fs = 11
-    label_fs = 12
-    panel_width = SINGLE_COL_WIDTH_IN * 1.4
+    title_fs = 16
+    label_fs = 17
+    panel_width = DOUBLE_COL_WIDTH_IN
 
     corner_kwargs = dict(
         truth_color=COLOR_TRUTH,
@@ -589,7 +589,7 @@ def make_sbc_reparam_plot(output_dir: Path, fmt: str):
             sorted_ranks = np.sort(ranks_norm[:, j])
             color = colors[name]
             label = f"${name}$" if not name.startswith("$") else name
-            ax.plot(sorted_ranks, ecdf_y, color=color, lw=1.2, ls="-",
+            ax.plot(sorted_ranks, ecdf_y, color=color, lw=1.2, ls="--",
                     label=label, zorder=2)
 
         ax.set_xlabel("Normalized rank")
@@ -600,7 +600,7 @@ def make_sbc_reparam_plot(output_dir: Path, fmt: str):
 
     ax_base.set_ylabel("ECDF")
 
-    fig.tight_layout(w_pad=0.5)
+    fig.subplots_adjust(wspace=0.02)
     outfile = output_dir / f"sbc_model_A_reparam_comparison.{fmt}"
     fig.savefig(outfile, dpi=DPI, bbox_inches="tight")
     plt.close(fig)
@@ -645,13 +645,9 @@ def main():
         print(f"--- Model {model} ---")
 
         # Corner plots for both 1D and 2D
-        # Model A corner plots use the same figure width as the reparam plot
-        # so text sizes match when LaTeX renders them side-by-side in Figure 5.
-        corner_width = SINGLE_COL_WIDTH_IN * 1.4 if model == "A" else None
         for approach in ["npe", "npe2d"]:
             try:
-                make_corner_plot(model, approach, output_dir, fmt,
-                                 fig_width=corner_width)
+                make_corner_plot(model, approach, output_dir, fmt)
             except FileNotFoundError as e:
                 print(f"  SKIP corner {approach}: {e}")
 
