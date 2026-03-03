@@ -137,6 +137,9 @@ Manifest.toml
 *.asv
 *.m~
 
+# LaTeX diff files
+docs/paper/diff/
+
 # LaTeX
 *.aux
 *.bbl
