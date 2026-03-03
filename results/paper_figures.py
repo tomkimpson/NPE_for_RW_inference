@@ -596,12 +596,11 @@ def make_sbc_reparam_plot(output_dir: Path, fmt: str):
         ax.set_xlim(0, 1)
         ax.set_ylim(0, 1)
         ax.set_aspect("equal")
-        ax.set_title(title)
         ax.legend(fontsize=6, loc="upper left")
 
     ax_base.set_ylabel("ECDF")
 
-    fig.tight_layout(w_pad=1.5)
+    fig.tight_layout(w_pad=0.5)
     outfile = output_dir / f"sbc_model_A_reparam_comparison.{fmt}"
     fig.savefig(outfile, dpi=DPI, bbox_inches="tight")
     plt.close(fig)
