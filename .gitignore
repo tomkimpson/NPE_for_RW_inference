@@ -195,8 +195,8 @@ external_code/
 src/sbi-logs  # or the log files from the SBI package
 sbi-logs/
 
-# SLURM output logs
-slurm/outputs/
+# SLURM scripts and outputs (cluster-specific, not needed in public repo)
+slurm/
 
 # Internal project files
 handoff.md

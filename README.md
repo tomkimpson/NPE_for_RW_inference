@@ -96,13 +96,6 @@ python src/predict.py results/workflow_.../inference_results/results.pkl
 python src/run_diagnostics.py results/workflow_.../
 ```
 
-### HPC / SLURM
-
-```bash
-sbatch slurm/run_production.sh A          # 1D NPE
-sbatch slurm/run_production_2d_enhanced.sh A  # 2D NPE with CNN
-```
-
 ## Project Structure
 
 ```
@@ -125,7 +118,6 @@ notebooks/
 ├── reproduce_ABC_results_just_surrogate.py
 └── pde_comparison_figure.py          # Paper figure generation
 
-slurm/                   # SLURM job scripts for HPC clusters
 docs/paper/              # Manuscript, figures, and LaTeX source
 ```
 
