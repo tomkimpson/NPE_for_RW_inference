@@ -15,13 +15,22 @@ import torch
 import matplotlib.pyplot as plt
 
 # Project imports
-from simulator import RandomWalkSimulator
+from simulator import RandomWalkSimulator, ExclusionRandomWalkSimulator
 from inference import RandomWalkNPE
+from models import get_model_config, lattice_to_continuum_theta, continuum_to_lattice_theta
 from utils import check_device_availability, print_device_info, configure_warnings
 from predict import posterior_predictive_sample, compute_prediction_intervals, plot_prediction_intervals
 
 # Configure warning filters
 configure_warnings()
+
+# Default true parameters per model (used when --theta_true is not given)
+DEFAULT_THETA_TRUE = {
+    'original': [0.3, 0.7],          # U, P
+    'A':        [0.5, 0.7, 0.5],     # U, P, rho
+    'B':        [0.5, 0.7, 0.05],     # U, P, R
+    'C':        [0.5, 0.7, 0.5, 0.05],    # U, P, rho, R
+}
 
 
 def main():
@@ -29,7 +38,29 @@ def main():
         description='Complete NPE Random Walk workflow',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    
+
+    # Model selection
+    parser.add_argument('--model', type=str, default='original',
+                       choices=['original', 'A', 'B', 'C'],
+                       help='Random walk model variant')
+    parser.add_argument('--fixed_U', type=float, default=None,
+                       help='Override fixed U value for growth models B/C (default from model config)')
+
+    # Method selection
+    parser.add_argument('--method', type=str, default='npe',
+                       choices=['npe', 'abc'],
+                       help='Inference method: npe (Neural Posterior Estimation) or abc (SMC-ABC)')
+
+    # ABC parameters
+    parser.add_argument('--abc_num_particles', type=int, default=500,
+                       help='Number of ABC particles per population')
+    parser.add_argument('--abc_num_simulations', type=int, default=50000,
+                       help='Total ABC simulation budget')
+    parser.add_argument('--abc_num_initial_pop', type=int, default=2000,
+                       help='Number of simulations for initial ABC population')
+    parser.add_argument('--abc_epsilon_decay', type=float, default=0.5,
+                       help='ABC acceptance threshold decay factor')
+
     # Simulation parameters
     parser.add_argument('--Lx', type=int, default=21,
                        help='Lattice width (columns)')
@@ -39,7 +70,7 @@ def main():
                        help='Number of simulation time steps')
     parser.add_argument('--initial_region_half_width', type=int, default=None,
                        help='Half-width of initial region (default: Lx//4)')
-    
+
     # Training data parameters
     parser.add_argument('--n_samples', type=int, default=10000,
                        help='Number of training samples')
@@ -47,7 +78,7 @@ def main():
                        help='Path to existing training data (skip generation if provided)')
     parser.add_argument('--save_data', type=str, default=None,
                        help='Path to save generated training data')
-    
+
     # NPE Training parameters
     parser.add_argument('--max_epochs', type=int, default=100,
                        help='Maximum training epochs')
@@ -63,16 +94,16 @@ def main():
                        help='Validation fraction')
     parser.add_argument('--stop_after_epochs', type=int, default=20,
                        help='Early stopping patience')
-    
+
     # Inference parameters
-    parser.add_argument('--theta_true', type=float, nargs=2, 
-                       default=[0.3, 0.7],
-                       help='True parameters for inference test [U P]')
+    parser.add_argument('--theta_true', type=float, nargs='+',
+                       default=None,
+                       help='True parameters for inference test (order matches model param_names)')
     parser.add_argument('--num_samples', type=int, default=5000,
                        help='Number of posterior samples')
     parser.add_argument('--n_pred_samples', type=int, default=None,
                        help='Number of posterior predictive samples (default: same as num_samples)')
-    
+
     # Sequential NPE parameters
     parser.add_argument('--use_snpe', action='store_true',
                        help='Use Sequential Neural Posterior Estimation (SNPE)')
@@ -82,16 +113,40 @@ def main():
                        help='Number of simulations per SNPE round (default: n_samples // snpe_rounds)')
     parser.add_argument('--convergence_threshold', type=float, default=0.01,
                        help='Convergence threshold for early stopping in SNPE')
-    
+
+    # Data format parameters
+    parser.add_argument('--use_2d_data', action='store_true',
+                       help='Use 2D spatial grids with CNN embedding instead of 1D column counts')
+    parser.add_argument('--no_cnn_normalize', action='store_true',
+                       help='Disable per-sample normalization in CNN (preserves absolute density info)')
+    parser.add_argument('--cnn_auxiliary_features', action='store_true',
+                       help='Add auxiliary features (total count, asymmetry, center of mass) to CNN')
+    parser.add_argument('--cnn_density_channels', action='store_true',
+                       help='Use 3-channel input with density-preserving normalization (fixes P bias)')
+    parser.add_argument('--cnn_spatial_pyramid', action='store_true',
+                       help='Use spatial pyramid pooling to preserve left-right asymmetry (fixes rho bias)')
+    parser.add_argument('--disable_sbi_standardization', action='store_true',
+                       help='Disable sbi z-score standardization so CNN sees raw observations (critical for P inference)')
+    parser.add_argument('--cnn_dual_branch', action='store_true',
+                       help='Use dual-branch CNN: 1D for density (P), 2D for pattern (rho, U)')
+    parser.add_argument('--reparam_continuum', action='store_true',
+                       help='Reparameterize Model A from (U,P,rho) to (U,D,v) for training')
+
     # General parameters
     parser.add_argument('--device', type=str, default='auto',
                        choices=['cpu', 'cuda', 'auto'],
                        help='Device for training (auto: use CUDA if available, else CPU)')
     parser.add_argument('--seed', type=int, default=42,
                        help='Random seed')
+    parser.add_argument('--obs_seed', type=int, default=None,
+                       help='Random seed for generating the observation (default: seed + 1000)')
     parser.add_argument('--output_dir', type=str, default=None,
                        help='Output directory (default: results/workflow_TIMESTAMP)')
-    
+
+    # Parallelism
+    parser.add_argument('--n_workers', type=int, default=1,
+                       help='Number of parallel workers for simulation (1 = sequential)')
+
     # Skip steps (for partial runs)
     parser.add_argument('--skip_data', action='store_true',
                        help='Skip data generation (use existing data)')
@@ -99,9 +154,48 @@ def main():
                        help='Skip training (use existing model)')
     parser.add_argument('--model_path', type=str, default=None,
                        help='Path to existing model (if skipping training)')
-    
+
     args = parser.parse_args()
-    
+
+    # ------------------------------------------------------------------
+    # Model configuration
+    # ------------------------------------------------------------------
+    model_name = args.model
+    cfg = get_model_config(model_name) if model_name != 'original' else None
+
+    # Override fixed_U if requested
+    if args.fixed_U is not None and cfg is not None and 'U' in cfg.fixed_params:
+        cfg.fixed_params['U'] = args.fixed_U
+
+    # Reparameterization: override model config to use continuum space
+    reparam = args.reparam_continuum
+    if reparam:
+        if model_name != 'A':
+            parser.error("--reparam_continuum is currently only supported for Model A")
+        cfg = get_model_config('A_reparam')
+        print(f"[REPARAM] Reparameterizing Model A: (U,P,rho) -> (U,D,v)")
+
+    # Resolve true parameters
+    if args.theta_true is not None:
+        theta_true_list = args.theta_true
+    else:
+        theta_true_list = DEFAULT_THETA_TRUE[model_name]
+        if reparam and model_name == 'A':
+            # Transform default true params from lattice to continuum
+            theta_true_list = lattice_to_continuum_theta(
+                np.array([theta_true_list]), model_name='A'
+            )[0].tolist()
+            print(f"[REPARAM] True parameters transformed: (U,D,v) = {theta_true_list}")
+
+    param_names = cfg.param_names if cfg is not None else ['U', 'P']
+    n_params = len(param_names)
+
+    if len(theta_true_list) != n_params:
+        parser.error(
+            f"Model '{model_name}' expects {n_params} parameters "
+            f"({', '.join(param_names)}), got {len(theta_true_list)}"
+        )
+
     # Check device availability and set device
     if args.device == 'auto':
         recommended_device, device_info = check_device_availability()
@@ -109,115 +203,283 @@ def main():
     else:
         device = args.device
         _, device_info = check_device_availability()
-        
+
         # Handle device fallbacks
         if device == 'cuda' and not device_info['cuda_available']:
-            print("⚠️  WARNING: CUDA requested but not available. Falling back to CPU.")
+            print("WARNING: CUDA requested but not available. Falling back to CPU.")
             device = 'cpu'
-    
+
     # Set random seed
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
-    
+
+    # Resolve observation seed
+    obs_seed = args.obs_seed if args.obs_seed is not None else args.seed + 1000
+
     # Create output directory
     if args.output_dir is None:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_dir = Path(f"results/workflow_{timestamp}")
+        method_tag = args.method
+        if args.method == 'npe' and args.use_2d_data:
+            method_tag = 'npe2d'
+        output_dir = Path(f"results/workflow_{model_name}_{method_tag}_{timestamp}")
     else:
         output_dir = Path(args.output_dir)
-    
+
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Define file paths
     data_path = args.data_path or str(output_dir / "training_data.pkl")
     model_path = args.model_path or str(output_dir / "npe_model.pkl")
     results_dir = output_dir / "inference_results"
     results_dir.mkdir(exist_ok=True)
-    
+
     # Determine training approach
     training_method = "Sequential NPE (SNPE)" if args.use_snpe else "Standard NPE"
-    
-    print(f"🚀 Starting {training_method} Random Walk Workflow")
-    print(f"📁 Output directory: {output_dir}")
-    print(f"🎯 Target parameters: U={args.theta_true[0]}, P={args.theta_true[1]}")
-    
+
+    print(f"Starting {training_method} Random Walk Workflow  [model={model_name}]")
+    print(f"Output directory: {output_dir}")
+    theta_str = ', '.join(f'{n}={v}' for n, v in zip(param_names, theta_true_list))
+    print(f"Target parameters: {theta_str}")
+
+    if cfg is not None and cfg.fixed_params:
+        fixed_str = ', '.join(f'{k}={v}' for k, v in cfg.fixed_params.items())
+        print(f"Fixed parameters: {fixed_str}")
+
     if args.use_snpe:
         samples_per_round = args.samples_per_round or (args.n_samples // args.snpe_rounds)
-        print(f"📊 SNPE Configuration:")
+        print(f"SNPE Configuration:")
         print(f"   Rounds: {args.snpe_rounds}")
         print(f"   Samples per round: {samples_per_round}")
         print(f"   Convergence threshold: {args.convergence_threshold}")
     else:
-        print(f"📊 Training samples: {args.n_samples}")
-    
-    print(f"🌱 Random seed: {args.seed}")
-    print(f"📝 Note: PyTorch deprecation warnings are suppressed for cleaner output")
+        print(f"Training samples: {args.n_samples}")
+
+    print(f"Random seed: {args.seed}")
+    print(f"Observation seed: {obs_seed}")
+    if args.n_workers > 1:
+        print(f"Parallel workers: {args.n_workers}")
     print()
-    
+
     # Print device information
     print_device_info(device, device_info)
-    
+
     # Save configuration
     config_path = output_dir / "config.txt"
     with open(config_path, 'w') as f:
         f.write("NPE Random Walk Workflow Configuration\n")
         f.write("=" * 50 + "\n")
         f.write(f"Timestamp: {datetime.now()}\n")
-        f.write(f"Output directory: {output_dir}\n\n")
-        
+        f.write(f"Output directory: {output_dir}\n")
+        f.write(f"Model: {model_name}\n\n")
+
         f.write("Arguments:\n")
         for key, value in vars(args).items():
             f.write(f"  {key}: {value}\n")
-        
+
         f.write(f"\nDevice Information:\n")
         f.write(f"  device_used: {device}\n")
         f.write(f"  cuda_available: {device_info['cuda_available']}\n")
         if device_info['cuda_available']:
             f.write(f"  cuda_device_name: {device_info['cuda_device_name']}\n")
             f.write(f"  cuda_memory_total_gb: {device_info['cuda_memory_total']:.1f}\n")
-    
+
     total_start = time.time()
-    
+
+    # ------------------------------------------------------------------
     # Initialize simulator
-    print(f"\n📐 Setting up simulator (Lx={args.Lx}, Ly={args.Ly}, T={args.T})")
-    simulator = RandomWalkSimulator(
-        Lx=args.Lx,
-        Ly=args.Ly,
-        initial_region_half_width=args.initial_region_half_width
-    )
-    
-    # Initialize NPE
-    npe = RandomWalkNPE(device=device, seed=args.seed)
-    
-    # Step 0: Generate test observation (needed for SNPE)
-    print(f"\n🎯 Generating test observation with true parameters U={args.theta_true[0]}, P={args.theta_true[1]}")
-    true_theta = torch.tensor(args.theta_true, dtype=torch.float32)
-    
-    # Generate observed data using true parameters
-    column_counts, initial_positions, final_positions = simulator.simulate(
-        U=args.theta_true[0], 
-        P=args.theta_true[1], 
-        T=args.T,
-        random_seed=args.seed + 1000
-    )
-    
-    x_obs = torch.tensor(column_counts, dtype=torch.float32).unsqueeze(0)  # Add batch dimension
+    # ------------------------------------------------------------------
+    print(f"\nSetting up simulator (Lx={args.Lx}, Ly={args.Ly}, T={args.T})")
+
+    if model_name == 'original':
+        simulator = RandomWalkSimulator(
+            Lx=args.Lx,
+            Ly=args.Ly,
+            initial_region_half_width=args.initial_region_half_width
+        )
+    else:
+        simulator = ExclusionRandomWalkSimulator(
+            Lx=args.Lx,
+            Ly=args.Ly,
+            initial_region_half_width=args.initial_region_half_width,
+            has_bias=cfg.has_bias,
+            has_growth=cfg.has_growth,
+        )
+
+    # ------------------------------------------------------------------
+    # Generate test observation (always 1D column counts for observation)
+    # ------------------------------------------------------------------
+    print(f"\nGenerating test observation with true parameters: {theta_str}")
+    true_theta = torch.tensor(theta_true_list, dtype=torch.float32)
+
+    if model_name == 'original':
+        column_counts, initial_positions, final_positions = simulator.simulate(
+            U=theta_true_list[0],
+            P=theta_true_list[1],
+            T=args.T,
+            random_seed=obs_seed
+        )
+    else:
+        # For reparameterized models, convert back to lattice params for simulation
+        if reparam:
+            theta_lattice = continuum_to_lattice_theta(
+                np.array([theta_true_list]), model_name='A'
+            )[0].tolist()
+            lattice_cfg = get_model_config('A')
+            theta_dict_obs = dict(zip(lattice_cfg.param_names, theta_lattice))
+            theta_dict_obs.update(lattice_cfg.fixed_params)
+            print(f"[REPARAM] Simulating with lattice params: {theta_dict_obs}")
+        else:
+            theta_dict_obs = dict(zip(param_names, theta_true_list))
+            theta_dict_obs.update(cfg.fixed_params)
+        column_counts, _, _ = simulator.simulate(
+            theta_dict_obs, T=args.T, random_seed=obs_seed
+        )
+
     print(f"   Observed data: {len(column_counts)} columns, {column_counts.sum()} total agents")
-    
-    # Step 1: Training workflow - different for NPE vs SNPE
+
+    # Build x_obs tensor (1D for ABC/NPE-1D, 2D for NPE+CNN)
+    if args.use_2d_data and args.method == 'npe':
+        # Re-run observation to get 2D grid
+        if model_name == 'original':
+            obs_2d, _, _ = simulator.simulate(
+                U=theta_true_list[0], P=theta_true_list[1],
+                T=args.T, random_seed=obs_seed,
+                use_2d_output=True
+            )
+        else:
+            obs_2d, _, _ = simulator.simulate(
+                theta_dict_obs, T=args.T, random_seed=obs_seed,
+                use_2d_output=True
+            )
+        x_obs = torch.tensor(obs_2d, dtype=torch.float32).unsqueeze(0)  # (1, Ly, Lx)
+    else:
+        x_obs = torch.tensor(column_counts, dtype=torch.float32).unsqueeze(0)  # (1, Lx)
+
+    import pickle
+
+    # ==================================================================
+    # ABC pathway
+    # ==================================================================
+    if args.method == 'abc':
+        from abc_inference import RandomWalkABC
+
+        print(f"\nRunning SMC-ABC inference...")
+        abc = RandomWalkABC(model_config=cfg, device='cpu', seed=args.seed)
+
+        abc_results = abc.run(
+            simulator=simulator,
+            x_obs=x_obs,
+            T=args.T,
+            num_particles=args.abc_num_particles,
+            num_simulations=args.abc_num_simulations,
+            num_initial_pop=args.abc_num_initial_pop,
+            epsilon_decay=args.abc_epsilon_decay,
+            num_workers=args.n_workers,
+        )
+
+        samples_np = abc_results['samples']
+
+        print(f"\nPosterior Summary (ABC):")
+        for pidx, pname in enumerate(param_names):
+            pmean = samples_np[:, pidx].mean()
+            pstd = samples_np[:, pidx].std()
+            pci = np.percentile(samples_np[:, pidx], [2.5, 97.5])
+            true_val = theta_true_list[pidx]
+            in_ci = pci[0] <= true_val <= pci[1]
+            print(f"   {pname}: {pmean:.3f} +/- {pstd:.3f} (true: {true_val})  "
+                  f"95% CI: [{pci[0]:.3f}, {pci[1]:.3f}]  in CI: {in_ci}")
+
+        # Save results
+        posterior_data = {
+            'posterior_samples': samples_np,
+            'true_parameters': theta_true_list,
+            'param_names': param_names,
+            'observed_data': column_counts,
+            'metadata': {
+                'model_name': model_name,
+                'method': 'abc',
+                'abc_num_particles': args.abc_num_particles,
+                'abc_num_simulations': args.abc_num_simulations,
+                'abc_num_initial_pop': args.abc_num_initial_pop,
+                'abc_epsilon_decay': args.abc_epsilon_decay,
+                'lattice_size': (args.Lx, args.Ly),
+                'time_steps': args.T,
+                'seed': args.seed,
+                'obs_seed': obs_seed,
+                'elapsed': abc_results['elapsed'],
+            }
+        }
+
+        # Summary statistics
+        summary_stats = {}
+        for pidx, pname in enumerate(param_names):
+            summary_stats[f'{pname}_mean'] = float(samples_np[:, pidx].mean())
+            summary_stats[f'{pname}_std'] = float(samples_np[:, pidx].std())
+            summary_stats[f'{pname}_ci'] = np.percentile(samples_np[:, pidx], [2.5, 97.5]).tolist()
+        posterior_data['summary_statistics'] = summary_stats
+
+        with open(results_dir / "results.pkl", 'wb') as f:
+            pickle.dump(posterior_data, f)
+
+        # Posterior predictive sampling
+        print(f"\nGenerating posterior predictive samples...")
+        n_pred = args.n_pred_samples or min(args.abc_num_particles, 500)
+        predictions = posterior_predictive_sample(
+            posterior_samples=samples_np,
+            simulator=simulator,
+            T=args.T,
+            n_pred_samples=n_pred,
+            random_seed=args.seed + 2000,
+            param_names=param_names,
+            fixed_params=cfg.fixed_params if cfg is not None else {},
+            n_workers=args.n_workers,
+        )
+
+        prediction_results = compute_prediction_intervals(predictions)
+
+        fig5 = plot_prediction_intervals(
+            prediction_results=prediction_results,
+            observed_data=column_counts,
+            Lx=args.Lx,
+            title_suffix=f" (T={args.T}, ABC)"
+        )
+        fig5.savefig(results_dir / "prediction_intervals.png", dpi=150, bbox_inches='tight')
+        plt.close(fig5)
+
+        total_elapsed = time.time() - total_start
+        print(f"\nABC WORKFLOW COMPLETED SUCCESSFULLY!")
+        print(f"Total time: {total_elapsed:.1f} seconds ({total_elapsed/60:.1f} minutes)")
+        print(f"All results saved in: {output_dir}")
+        return
+
+    # ==================================================================
+    # NPE pathway (existing logic, with 2D support)
+    # ==================================================================
+
+    # Initialize NPE
+    spatial_dims = (args.Ly, args.Lx) if args.use_2d_data else None
+    npe = RandomWalkNPE(
+        device=device, seed=args.seed, model_config=cfg,
+        use_2d_data=args.use_2d_data, spatial_dims=spatial_dims,
+    )
+
+    # ------------------------------------------------------------------
+    # Training
+    # ------------------------------------------------------------------
     if not args.skip_training:
         start_time = time.time()
-        
-        # Setup neural network configuration
+        sim_time = 0.0
+        train_time = 0.0
+
         neural_net_kwargs = {
             'hidden_features': args.hidden_features,
             'num_transforms': args.num_transforms
         }
-        
+
         if args.use_snpe:
-            # Sequential NPE workflow
             samples_per_round = args.samples_per_round or (args.n_samples // args.snpe_rounds)
-            
+
             training_info = npe.train_sequential(
                 simulator=simulator,
                 n_rounds=args.snpe_rounds,
@@ -232,36 +494,56 @@ def main():
                 neural_net_kwargs=neural_net_kwargs,
                 convergence_threshold=args.convergence_threshold,
                 random_seed=args.seed,
-                output_dir=str(output_dir)
+                output_dir=str(output_dir),
+                n_workers=args.n_workers,
+                cnn_normalize_input=not args.no_cnn_normalize,
+                cnn_use_auxiliary_features=args.cnn_auxiliary_features,
+                cnn_use_density_channels=args.cnn_density_channels,
+                cnn_use_spatial_pyramid=args.cnn_spatial_pyramid,
+                disable_sbi_standardization=args.disable_sbi_standardization,
+                cnn_dual_branch=args.cnn_dual_branch,
             )
-            
+
         else:
             # Standard NPE workflow
             if not args.skip_data and args.data_path is None:
-                print(f"\n📊 Generating {args.n_samples} training samples...")
-                
+                print(f"\nGenerating {args.n_samples} training samples...")
+
                 save_path = args.save_data or data_path
+                sim_start = time.time()
                 theta, x = npe.generate_training_data(
                     simulator=simulator,
                     n_simulations=args.n_samples,
                     T=args.T,
                     output_path=save_path,
-                    random_seed=args.seed
+                    random_seed=args.seed,
+                    n_workers=args.n_workers
                 )
-                
-                print(f"✅ Data generation completed")
-                print(f"   Parameter range: U ∈ [{theta[:, 0].min():.3f}, {theta[:, 0].max():.3f}], "
-                      f"P ∈ [{theta[:, 1].min():.3f}, {theta[:, 1].max():.3f}]")
-                print(f"   Observation range: [{x.min():.0f}, {x.max():.0f}] agents per column")
-                
+                sim_time = time.time() - sim_start
+
+                print(f"Data generation completed in {sim_time:.1f} seconds")
+                for pidx, pname in enumerate(param_names):
+                    lo, hi = theta[:, pidx].min(), theta[:, pidx].max()
+                    print(f"   {pname} range: [{lo:.3f}, {hi:.3f}]")
+
             else:
-                print(f"\n📂 Loading training data from {data_path}")
+                print(f"\nLoading training data from {data_path}")
                 theta, x, metadata = RandomWalkNPE.load_training_data(data_path)
-                print(f"✅ Loaded {len(theta)} training samples")
-                print(f"   Simulation metadata: {metadata}")
-            
+                print(f"Loaded {len(theta)} training samples")
+
+            # Transform theta to continuum space if reparameterizing
+            if reparam:
+                theta_np = theta.numpy() if isinstance(theta, torch.Tensor) else theta
+                theta_np = lattice_to_continuum_theta(theta_np, model_name='A')
+                theta = torch.tensor(theta_np, dtype=torch.float32)
+                print(f"[REPARAM] Transformed {len(theta)} training thetas: (U,P,rho) -> (U,D,v)")
+                for pidx, pname in enumerate(cfg.param_names):
+                    lo, hi = theta[:, pidx].min(), theta[:, pidx].max()
+                    print(f"   {pname} range: [{lo:.3f}, {hi:.3f}]")
+
             # Train standard NPE
-            print(f"\n🧠 Training NPE model...")
+            print(f"\nTraining NPE model...")
+            train_start = time.time()
             training_info = npe.train(
                 theta=theta,
                 x=x,
@@ -270,21 +552,35 @@ def main():
                 max_num_epochs=args.max_epochs,
                 validation_fraction=args.validation_fraction,
                 stop_after_epochs=args.stop_after_epochs,
-                neural_net_kwargs=neural_net_kwargs
+                neural_net_kwargs=neural_net_kwargs,
+                cnn_normalize_input=not args.no_cnn_normalize,
+                cnn_use_auxiliary_features=args.cnn_auxiliary_features,
+                cnn_use_density_channels=args.cnn_density_channels,
+                cnn_use_spatial_pyramid=args.cnn_spatial_pyramid,
+                disable_sbi_standardization=args.disable_sbi_standardization,
+                cnn_dual_branch=args.cnn_dual_branch,
             )
-        
+            train_time = time.time() - train_start
+
         elapsed = time.time() - start_time
-        print(f"✅ Training completed in {elapsed:.1f} seconds")
-        
+        print(f"Training completed in {elapsed:.1f} seconds")
+        if not args.use_snpe:
+            print(f"   Data generation: {sim_time:.1f}s")
+            print(f"   Network training: {train_time:.1f}s")
+
         # Save model
         metadata = {
+            'model_name': model_name,
             'training_approach': 'SNPE' if args.use_snpe else 'NPE',
+            'use_2d_data': args.use_2d_data,
             'lattice_size': (args.Lx, args.Ly),
             'time_steps': args.T,
             'training_time': elapsed,
+            'simulation_time': sim_time if not args.use_snpe else None,
+            'network_training_time': train_time if not args.use_snpe else None,
             'training_epochs': args.max_epochs
         }
-        
+
         if args.use_snpe:
             metadata.update({
                 'snpe_rounds': args.snpe_rounds,
@@ -295,110 +591,140 @@ def main():
             })
         else:
             metadata['training_samples'] = len(theta)
-            
+
         npe.save_model(model_path, metadata)
-        
+
     else:
-        print(f"\n📂 Loading trained model from {model_path}")
+        print(f"\nLoading trained model from {model_path}")
         npe = RandomWalkNPE.load_model(model_path, device=device)
-        print("✅ Model loaded successfully")
-    
-    # Step 2: Perform inference
-    print(f"\n🔍 Sampling {args.num_samples} posterior samples...")
+        print("Model loaded successfully")
+
+    # ------------------------------------------------------------------
+    # Inference
+    # ------------------------------------------------------------------
+    print(f"\nSampling {args.num_samples} posterior samples...")
     start_time = time.time()
-    
+
     posterior_samples = npe.sample_posterior(x_obs, num_samples=args.num_samples)
-    
+
     elapsed = time.time() - start_time
-    print(f"✅ Posterior sampling completed in {elapsed:.1f} seconds")
-    
+    print(f"Posterior sampling completed in {elapsed:.1f} seconds")
+
     # Compute summary statistics
     samples_np = posterior_samples.cpu().numpy()
-    U_mean, U_std = samples_np[:, 0].mean(), samples_np[:, 0].std()
-    P_mean, P_std = samples_np[:, 1].mean(), samples_np[:, 1].std()
-    
-    print(f"\n📈 Posterior Summary:")
-    print(f"   U: {U_mean:.3f} ± {U_std:.3f} (true: {args.theta_true[0]})")
-    print(f"   P: {P_mean:.3f} ± {P_std:.3f} (true: {args.theta_true[1]})")
-    
-    # Compute credible intervals
-    U_ci = np.percentile(samples_np[:, 0], [2.5, 97.5])
-    P_ci = np.percentile(samples_np[:, 1], [2.5, 97.5])
-    
-    print(f"   95% Credible Intervals:")
-    print(f"   U: [{U_ci[0]:.3f}, {U_ci[1]:.3f}]")
-    print(f"   P: [{P_ci[0]:.3f}, {P_ci[1]:.3f}]")
-    
-    # Check if true values are within credible intervals
-    U_in_ci = U_ci[0] <= args.theta_true[0] <= U_ci[1]
-    P_in_ci = P_ci[0] <= args.theta_true[1] <= P_ci[1]
-    print(f"   True values in CI: U={U_in_ci}, P={P_in_ci}")
-    
-    # Step 5: Create visualizations
-    print(f"\n📊 Creating visualizations...")
-    
-    # Plot posterior samples
+
+    print(f"\nPosterior Summary (continuum space: U, D, v):" if reparam else "\nPosterior Summary:")
+    for pidx, pname in enumerate(param_names):
+        pmean = samples_np[:, pidx].mean()
+        pstd = samples_np[:, pidx].std()
+        pci = np.percentile(samples_np[:, pidx], [2.5, 97.5])
+        true_val = theta_true_list[pidx]
+        in_ci = pci[0] <= true_val <= pci[1]
+        print(f"   {pname}: {pmean:.3f} +/- {pstd:.3f} (true: {true_val})  "
+              f"95% CI: [{pci[0]:.3f}, {pci[1]:.3f}]  in CI: {in_ci}")
+
+    # Back-transform to lattice space for reporting and posterior predictive
+    if reparam:
+        samples_lattice = continuum_to_lattice_theta(samples_np, model_name='A')
+        lattice_cfg = get_model_config('A')
+        lattice_true = continuum_to_lattice_theta(
+            np.array([theta_true_list]), model_name='A'
+        )[0].tolist()
+        print(f"\nPosterior Summary (lattice space: U, P, rho):")
+        for pidx, pname in enumerate(lattice_cfg.param_names):
+            pmean = samples_lattice[:, pidx].mean()
+            pstd = samples_lattice[:, pidx].std()
+            pci = np.percentile(samples_lattice[:, pidx], [2.5, 97.5])
+            true_val = lattice_true[pidx]
+            in_ci = pci[0] <= true_val <= pci[1]
+            print(f"   {pname}: {pmean:.3f} +/- {pstd:.3f} (true: {true_val:.3f})  "
+                  f"95% CI: [{pci[0]:.3f}, {pci[1]:.3f}]  in CI: {in_ci}")
+
+    # ------------------------------------------------------------------
+    # Visualizations
+    # ------------------------------------------------------------------
+    print(f"\nCreating visualizations...")
+
+    # Posterior marginals
     fig1 = npe.plot_posterior_samples(posterior_samples, true_theta)
     fig1.savefig(results_dir / "posterior_marginals.png", dpi=150, bbox_inches='tight')
     plt.close(fig1)
-    
-    # Plot pairwise relationships
+
+    # Pairwise relationships
     fig2 = npe.plot_pairwise(posterior_samples, true_theta)
     fig2.savefig(results_dir / "posterior_pairwise.png", dpi=150, bbox_inches='tight')
     plt.close(fig2)
-    
-    # Plot observed data
-    from simulator import plot_column_counts, plot_simulation_comparison
-    
+
+    # Column counts
+    from simulator import plot_column_counts
     fig3 = plot_column_counts(column_counts, args.Lx, title="Observed Data")
     fig3.savefig(results_dir / "observed_data.png", dpi=150, bbox_inches='tight')
     plt.close(fig3)
-    
-    # Plot simulation comparison
-    fig4 = plot_simulation_comparison(
-        initial_positions, final_positions, column_counts,
-        args.Lx, args.Ly, args.theta_true[0], args.theta_true[1], args.T
-    )
-    fig4.savefig(results_dir / "simulation_comparison.png", dpi=150, bbox_inches='tight')
-    plt.close(fig4)
-    
-    # Save posterior samples as independent data file
-    print(f"\n💾 Saving posterior samples...") 
+
+    # Simulation comparison plot (only for original model which returns position lists)
+    if model_name == 'original':
+        from simulator import plot_simulation_comparison
+        fig4 = plot_simulation_comparison(
+            initial_positions, final_positions, column_counts,
+            args.Lx, args.Ly, theta_true_list[0], theta_true_list[1], args.T
+        )
+        fig4.savefig(results_dir / "simulation_comparison.png", dpi=150, bbox_inches='tight')
+        plt.close(fig4)
+
+    # ------------------------------------------------------------------
+    # Save posterior samples
+    # ------------------------------------------------------------------
+    print(f"\nSaving posterior samples...")
+    method_label = 'NPE-2D' if args.use_2d_data else ('SNPE' if args.use_snpe else 'NPE')
     posterior_data = {
         'posterior_samples': posterior_samples.cpu().numpy(),
-        'true_parameters': args.theta_true,
+        'true_parameters': theta_true_list,
+        'param_names': param_names,
         'metadata': {
+            'model_name': model_name,
+            'method': method_label,
             'n_samples': args.num_samples,
             'lattice_size': (args.Lx, args.Ly),
             'time_steps': args.T,
             'seed': args.seed,
-            'training_approach': 'SNPE' if args.use_snpe else 'NPE',
+            'obs_seed': obs_seed,
+            'training_approach': method_label,
             'sampling_time': elapsed
         }
     }
-    
-    import pickle
+
     with open(results_dir / "posterior_samples.pkl", 'wb') as f:
         pickle.dump(posterior_data, f)
-    
-    # Step 6: Posterior Predictive Sampling
-    print(f"\n🔮 Generating posterior predictive samples...")
+
+    # ------------------------------------------------------------------
+    # Posterior predictive sampling
+    # ------------------------------------------------------------------
+    print(f"\nGenerating posterior predictive samples...")
     pred_start_time = time.time()
-    
-    # Generate predictive samples 
+
     n_pred = args.n_pred_samples or args.num_samples
+    # Use lattice-space samples for posterior predictive (simulator needs U, P, rho)
+    if reparam:
+        pred_samples = samples_lattice
+        pred_param_names = lattice_cfg.param_names
+        pred_fixed_params = lattice_cfg.fixed_params
+    else:
+        pred_samples = posterior_samples.cpu().numpy()
+        pred_param_names = param_names
+        pred_fixed_params = cfg.fixed_params if cfg is not None else {}
     predictions = posterior_predictive_sample(
-        posterior_samples=posterior_samples.cpu().numpy(),
+        posterior_samples=pred_samples,
         simulator=simulator,
         T=args.T,
         n_pred_samples=n_pred,
-        random_seed=args.seed + 2000
+        random_seed=args.seed + 2000,
+        param_names=pred_param_names,
+        fixed_params=pred_fixed_params,
+        n_workers=args.n_workers,
     )
-    
-    # Compute prediction intervals
+
     prediction_results = compute_prediction_intervals(predictions)
-    
-    # Create prediction visualization  
+
     fig5 = plot_prediction_intervals(
         prediction_results=prediction_results,
         observed_data=column_counts,
@@ -407,13 +733,14 @@ def main():
     )
     fig5.savefig(results_dir / "prediction_intervals.png", dpi=150, bbox_inches='tight')
     plt.close(fig5)
-    
+
     # Save prediction results
     predictive_data = {
         'prediction_results': prediction_results,
         'input_metadata': {
             'posterior_samples_shape': posterior_samples.shape,
-            'true_parameters': args.theta_true,
+            'true_parameters': theta_true_list,
+            'param_names': param_names,
             'simulation_params': {
                 'Lx': args.Lx, 'Ly': args.Ly, 'T': args.T,
                 'initial_region_half_width': args.initial_region_half_width
@@ -425,32 +752,46 @@ def main():
         },
         'observed_data': column_counts
     }
-    
+
     with open(results_dir / "predictive_results.pkl", 'wb') as f:
         pickle.dump(predictive_data, f)
-    
+
     pred_elapsed = time.time() - pred_start_time
-    print(f"✅ Posterior predictive sampling completed in {pred_elapsed:.1f} seconds")
-    
-    # Save results
+    print(f"Posterior predictive sampling completed in {pred_elapsed:.1f} seconds")
+
+    # ------------------------------------------------------------------
+    # Save full results
+    # ------------------------------------------------------------------
+    summary_stats = {}
+    for pidx, pname in enumerate(param_names):
+        summary_stats[f'{pname}_mean'] = float(samples_np[:, pidx].mean())
+        summary_stats[f'{pname}_std'] = float(samples_np[:, pidx].std())
+        summary_stats[f'{pname}_ci'] = np.percentile(samples_np[:, pidx], [2.5, 97.5]).tolist()
+
     results = {
         'posterior_samples': posterior_samples.cpu().numpy(),
-        'true_parameters': args.theta_true,
+        'true_parameters': theta_true_list,
+        'param_names': param_names,
         'observed_data': column_counts,
-        'summary_statistics': {
-            'U_mean': U_mean, 'U_std': U_std, 'U_ci': U_ci,
-            'P_mean': P_mean, 'P_std': P_std, 'P_ci': P_ci
-        },
+        'summary_statistics': summary_stats,
         'metadata': {
+            'model_name': model_name,
+            'method': method_label,
             'n_samples': args.num_samples,
             'lattice_size': (args.Lx, args.Ly),
             'time_steps': args.T,
             'seed': args.seed,
-            'training_approach': 'SNPE' if args.use_snpe else 'NPE'
+            'obs_seed': obs_seed,
+            'training_approach': method_label,
+            'reparam_continuum': reparam,
         }
     }
-    
-    # Add SNPE-specific results if applicable
+
+    if reparam:
+        results['lattice_samples'] = samples_lattice
+        results['lattice_param_names'] = lattice_cfg.param_names
+        results['lattice_true_parameters'] = lattice_true
+
     if args.use_snpe and 'training_info' in locals():
         results['snpe_results'] = {
             'rounds_completed': training_info.get('total_rounds_completed', 0),
@@ -458,50 +799,29 @@ def main():
             'final_convergence_metric': training_info.get('final_convergence_metric'),
             'round_results': npe.get_round_results()
         }
-    
-    import pickle
+
     with open(results_dir / "results.pkl", 'wb') as f:
         pickle.dump(results, f)
-    
-    # Workflow completed
+
+    # ------------------------------------------------------------------
+    # Final summary
+    # ------------------------------------------------------------------
     total_elapsed = time.time() - total_start
-    
-    print(f"\n🎉 WORKFLOW COMPLETED SUCCESSFULLY!")
-    print(f"⏱️  Total time: {total_elapsed:.1f} seconds ({total_elapsed/60:.1f} minutes)")
-    print(f"📁 All results saved in: {output_dir}")
-    print(f"\n📊 Files created:")
-    print(f"   📈 Training data: {data_path}")
-    print(f"   🧠 Trained model: {model_path}")
-    print(f"   📊 Inference results: {results_dir}")
-    print(f"   ⚙️  Configuration: {config_path}")
-    print(f"\n🖼️  Visualization files:")
-    print(f"   - posterior_marginals.png")
-    print(f"   - posterior_pairwise.png") 
-    print(f"   - observed_data.png")
-    print(f"   - simulation_comparison.png")
-    print(f"   - prediction_intervals.png")
-    
-    print(f"\n💾 Data files:")
-    print(f"   - posterior_samples.pkl (independent posterior samples)")
-    print(f"   - predictive_results.pkl (prediction intervals and uncertainty)")
-    print(f"   - results.pkl (complete workflow results)")
-    
-    # Print SNPE-specific summary if applicable
+
+    print(f"\nWORKFLOW COMPLETED SUCCESSFULLY!")
+    print(f"Total time: {total_elapsed:.1f} seconds ({total_elapsed/60:.1f} minutes)")
+    print(f"All results saved in: {output_dir}")
+
     if args.use_snpe and 'training_info' in locals():
-        print(f"\n🔄 SNPE Summary:")
+        print(f"\nSNPE Summary:")
         print(f"   Rounds completed: {training_info.get('total_rounds_completed', 0)}")
         print(f"   Converged: {'Yes' if training_info.get('converged', False) else 'No'}")
-        if training_info.get('final_convergence_metric'):
-            print(f"   Final convergence metric: {training_info['final_convergence_metric']:.6f}")
-        print(f"   Round results saved in: {output_dir}/round_*")
-    
-    
-    print(f"\n🔮 Posterior Predictive Results:")
+
+    print(f"\nPosterior Predictive Results:")
     global_stats = prediction_results['global_stats']
-    print(f"   Total agents: {global_stats['total_agents_mean']:.1f} ± {global_stats['total_agents_std']:.1f}")
-    print(f"   Range: [{global_stats['total_agents_min']}, {global_stats['total_agents_max']}]")
+    print(f"   Total agents: {global_stats['total_agents_mean']:.1f} +/- {global_stats['total_agents_std']:.1f}")
     observed_total = np.sum(column_counts)
-    predictions_total = np.sum(predictions, axis=1) 
+    predictions_total = np.sum(predictions, axis=1)
     p2_5 = np.percentile(predictions_total, 2.5)
     p97_5 = np.percentile(predictions_total, 97.5)
     in_interval = p2_5 <= observed_total <= p97_5

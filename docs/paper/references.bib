@@ -1,3 +1,24 @@
+@article{Friedl2009,
+	author  = {Friedl, Peter and Gilmour, Darren},
+	title   = {Collective cell migration in morphogenesis, regeneration and cancer},
+	journal = {Nature Reviews Molecular Cell Biology},
+	year    = {2009},
+	volume  = {10},
+	number  = {7},
+	pages   = {445--457},
+	doi     = {10.1038/nrm2720}
+}
+
+@article{Rorth2009,
+	author  = {R{\o}rth, Pernille},
+	title   = {Collective cell migration},
+	journal = {Annual Review of Cell and Developmental Biology},
+	year    = {2009},
+	volume  = {25},
+	pages   = {407--429},
+	doi     = {10.1146/annurev.cellbio.042308.113231}
+}
+
 @article{Simpson2025.05.25.656057,
 	author       = {Simpson, Matthew J. and Plank, Michael J.},
 	title        = {Inference and prediction for stochastic models of biological populations undergoing migration and proliferation},
@@ -39,7 +60,7 @@
 	pages = {111732},
 	year = {2024},
 	issn = {0022-5193},
-	doi = {https://doi.org/10.1016/j.jtbi.2024.111732},
+	doi = {10.1016/j.jtbi.2024.111732},
 	url = {https://www.sciencedirect.com/science/article/pii/S0022519324000134},
 	author = {Matthew J. Simpson and Ryan J. Murphy and Oliver J. Maclaren},
 	keywords = {Calibration, Parameter estimation, Identifiability, Prediction, Reaction–diffusion, Cell biology},
@@ -63,23 +84,6 @@
 	adsnote = {Provided by the SAO/NASA Astrophysics Data System}
 }
 
-
-@ARTICLE{Deistler2022,
-	author = {{Deistler}, Michael and {Goncalves}, Pedro J and {Macke}, Jakob H},
-	title = "{Truncated proposals for scalable and hassle-free simulation-based inference}",
-	journal = {arXiv e-prints},
-	keywords = {Statistics - Machine Learning, Computer Science - Machine Learning},
-	year = 2022,
-	month = oct,
-	eid = {arXiv:2210.04815},
-	pages = {arXiv:2210.04815},
-	doi = {10.48550/arXiv.2210.04815},
-	archivePrefix = {arXiv},
-	eprint = {2210.04815},
-	primaryClass = {stat.ML},
-	adsurl = {https://ui.adsabs.harvard.edu/abs/2022arXiv221004815D},
-	adsnote = {Provided by the SAO/NASA Astrophysics Data System}
-}
 
 
 
@@ -133,8 +137,8 @@
 	volume  = {22},
 	pages   = {20240422},
 	year    = {2025},
-	doi     = {10.1098/rsif.20240422},
-	url     = {https://doi.org/10.1098/rsif.20240422}
+	doi     = {10.1098/rsif.2024.0422},
+	url     = {https://doi.org/10.1098/rsif.2024.0422}
 }
 
 
@@ -187,36 +191,13 @@
 	pages = {111201},
 	year = {2022},
 	issn = {0022-5193},
-	doi = {https://doi.org/10.1016/j.jtbi.2022.111201},
+	doi = {10.1016/j.jtbi.2022.111201},
 	url = {https://www.sciencedirect.com/science/article/pii/S0022519322001990},
 	author = {Matthew J. Simpson and Ruth E. Baker and Pascal R. Buenzli and Ruanui Nicholson and Oliver J. Maclaren},
 	keywords = {Proliferation assay, Barrier assay, Logistic equation, Fisher-Kolmogorov equation, Likelihood, Profile likelihood},
 	abstract = {Stochastic individual-based mathematical models are attractive for modelling biological phenomena because they naturally capture the stochasticity and variability that is often evident in biological data. Such models also allow us to track the motion of individuals within the population of interest. Unfortunately, capturing this microscopic detail means that simulation and parameter inference can become computationally expensive. One approach for overcoming this computational limitation is to coarse-grain the stochastic model to provide an approximate continuum model that can be solved using far less computational effort. However, coarse-grained continuum models can be biased or inaccurate, particularly for certain parameter regimes. In this work, we combine stochastic and continuum mathematical models in the context of lattice-based models of two-dimensional cell biology experiments by demonstrating how to simulate two commonly used experiments: cell proliferation assays and barrier assays. Our approach involves building a simple statistical model of the discrepancy between the expensive stochastic model and the associated computationally inexpensive coarse-grained continuum model. We form this statistical model based on a limited number of expensive stochastic model evaluations at design points sampled from a user-chosen distribution, corresponding to a computer experiment design problem. With straightforward design point selection schemes, we show that using the statistical model of the discrepancy in tandem with the computationally inexpensive continuum model allows us to carry out prediction and inference while correcting for biases and inaccuracies due to the continuum approximation. We demonstrate this approach by simulating a proliferation assay, where the continuum limit model is the well-known logistic ordinary differential equation, as well as a barrier assay where the continuum limit model is closely related to the well-known Fisher-KPP partial differential equation. We construct an approximate likelihood function for parameter inference, both with and without discrepancy correction terms. Using maximum likelihood estimation, we provide point estimates of the unknown parameters, and use the profile likelihood to characterise the uncertainty in these estimates and form approximate confidence intervals. For the range of inference problems considered, working with the continuum limit model alone leads to biased parameter estimation and confidence intervals with poor coverage. In contrast, incorporating correction terms arising from the statistical model of the model discrepancy allows us to recover the parameters accurately with minimal computational overhead. The main tradeoff is that the associated confidence intervals are typically broader, reflecting the additional uncertainty introduced by the approximation process. All algorithms required to replicate the results in this work are written in the open source Julia language and are available at GitHub.}
 }
 
-@book{Cox1974,
-	author    = {Cox, D. R. and Hinkley, D. V.},
-	title     = {Theoretical Statistics},
-	publisher = {Chapman \& Hall},
-	address   = {London},
-	year      = {1974}
-}
-
-@book{Casella1990,
-	author    = {Casella, George and Berger, Roger L.},
-	title     = {Statistical Inference},
-	publisher = {Duxbury Press},
-	address   = {Belmont, CA},
-	year      = {1990}
-}
-
-@book{Bernardo1994,
-	author    = {Bernardo, Jos{\'e} M. and Smith, Adrian F. M.},
-	title     = {Bayesian Theory},
-	publisher = {John Wiley \& Sons},
-	address   = {Chichester, UK},
-	year      = {1994}
-}
 @ARTICLE{Gelman2017,
 	author = {{Gelman}, Andrew and {Simpson}, Daniel and {Betancourt}, Michael},
 	title = "{The Prior Can Often Only Be Understood in the Context of the Likelihood}",
@@ -237,18 +218,6 @@
 }
 
 
-@article{Jin2016,
-	author  = {Jin, W. and Shah, E. T. and Penington, C. J. and McCue, S. W. and Chopin, L. K. and Simpson, M. J.},
-	title   = {Reproducibility of scratch assays is affected by the initial degree of confluence: Experiments, modelling and model selection},
-	journal = {Journal of Theoretical Biology},
-	year    = {2016},
-	volume  = {390},
-	pages   = {136--145},
-	month   = feb,
-	doi     = {10.1016/j.jtbi.2015.10.040},
-	note    = {Epub 2015-11-29. PMID: 26646767}
-}
-
 
 
 @book{Gelman1995,
@@ -259,54 +228,7 @@
 	year      = {1995}
 }
 
-@ARTICLE{2024PhRvE.110d4405L,
-	author = {{Liu}, Yihan and {Warne}, David J. and {Simpson}, Matthew J.},
-	title = "{Likelihood-based inference, identifiability, and prediction using count data from lattice-based random walk models}",
-	journal = {PhysRevE},
-	keywords = {Biological Physics, Physics - Applied Physics, Nonlinear Sciences - Cellular Automata and Lattice Gases, Quantitative Biology - Quantitative Methods, 92B99, 82M99, 62M99},
-	year = 2024,
-	month = oct,
-	volume = {110},
-	number = {4},
-	eid = {044405},
-	pages = {044405},
-	doi = {10.1103/PhysRevE.110.044405},
-	archivePrefix = {arXiv},
-	eprint = {2406.16296},
-	primaryClass = {physics.app-ph},
-	adsurl = {https://ui.adsabs.harvard.edu/abs/2024PhRvE.110d4405L},
-	adsnote = {Provided by the SAO/NASA Astrophysics Data System}
-}
 
-
-@ARTICLE{2024arXiv240508177S,
-	author = {{Simpson}, Matthew J and {E Baker}, Ruth},
-	title = "{Parameter identifiability, parameter estimation and model prediction for differential equation models}",
-	journal = {arXiv e-prints},
-	keywords = {Statistics - Methodology, 97M10, 97M50, 00A71},
-	year = 2024,
-	month = may,
-	eid = {arXiv:2405.08177},
-	pages = {arXiv:2405.08177},
-	doi = {10.48550/arXiv.2405.08177},
-	archivePrefix = {arXiv},
-	eprint = {2405.08177},
-	primaryClass = {stat.ME},
-	adsurl = {https://ui.adsabs.harvard.edu/abs/2024arXiv240508177S},
-	adsnote = {Provided by the SAO/NASA Astrophysics Data System}
-}
-
-@article{Simpson2023,
-	author = {Simpson, Matthew J. and Maclaren, Oliver J.},
-	journal = {PLoS Comput Biol},
-	title = {Profile-Wise Analysis: A profile likelihood-based workflow for identifiability analysis, estimation, and prediction with mechanistic mathematical models},
-	year = {2023},
-	volume = {19},
-	number = {9},
-	pages = {e1011515},
-	doi = {10.1371/journal.pcbi.1011515},
-	url = {https://doi.org/10.1371/journal.pcbi.1011515}
-}
 
 @ARTICLE{papamakarios2016fast,
 	author = {{Papamakarios}, George and {Murray}, Iain},
@@ -345,23 +267,16 @@
 
 
 
-@ARTICLE{2020JOSS....5.2505T,
-	author = {{Tejero-Cantero}, Alvaro and {Boelts}, Jan and {Deistler}, Michael and {Lueckmann}, Jan-Matthis and {Durkan}, Conor and {Gon{\c{c}}alves}, Pedro and {Greenberg}, David and {Macke}, Jakob},
-	title = "{sbi: A toolkit for simulation-based inference}",
-	journal = {The Journal of Open Source Software},
-	keywords = {Python, Jupyter Notebook, bayesian inference, system identification, simulation science, parameter identification, likelihood-free inference, Computer Science - Machine Learning, Quantitative Biology - Quantitative Methods, Statistics - Computation, Statistics - Machine Learning},
-	year = 2020,
-	month = aug,
-	volume = {5},
-	number = {52},
-	eid = {2505},
-	pages = {2505},
-	doi = {10.21105/joss.02505},
-	archivePrefix = {arXiv},
-	eprint = {2007.09114},
-	primaryClass = {cs.LG},
-	adsurl = {https://ui.adsabs.harvard.edu/abs/2020JOSS....5.2505T},
-	adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+@article{Boelts2025sbi,
+	author = {Boelts, Jan and Deistler, Michael and Gloeckler, Manuel and Tejero-Cantero, {\'A}lvaro and Lueckmann, Jan-Matthis and Moss, Guy and Steinbach, Peter and Moreau, Thomas and Muratore, Fabio and Linhart, Julia and Durkan, Conor and Vetter, Julius and Miller, Benjamin Kurt and Herold, Maternus and Ziaeemehr, Abolfazl and Pals, Matthijs and Gruner, Theo and Bischoff, Sebastian and Krouglova, Nastya and Gao, Richard and Lappalainen, Janne K. and Mucs{\'a}nyi, B{\'a}lint and Pei, Felix and Schulz, Auguste and Stefanidi, Zinovia and Rodrigues, Pedro and Schr{\"o}der, Cornelius and Zaid, Faried Abu and Beck, Jonas and Kapoor, Jaivardhan and Greenberg, David S. and Gon{\c{c}}alves, Pedro J. and Macke, Jakob H.},
+	title = {sbi reloaded: a toolkit for simulation-based inference workflows},
+	journal = {Journal of Open Source Software},
+	year = {2025},
+	volume = {10},
+	number = {108},
+	pages = {7754},
+	doi = {10.21105/joss.07754},
+	url = {https://doi.org/10.21105/joss.07754}
 }
 
 
@@ -467,194 +382,9 @@
 
 
 
-%epidemioogy
-@article{Dunson2005,
-	author = {Dunson, David B.},
-	title = {Bayesian perspectives for epidemiological research},
-	journal = {The International Journal of Epidemiology},
-	volume = {34},
-	issue = {5},
-	pages = {1170--1173},
-	year = {2005},
-	doi = {10.1093/ije/dyi131}
-}
-
-
-@article{Semochkina2025,
-	title = {Incorporating additional evidence as prior information to resolve non-identifiability in Bayesian disease model calibration. A tutorial. A PREPRINT},
-	author = {Semochkina, Daria and Walsh, Cathal D.},
-	year = {2025},
-	month = {January},
-	journal = {arXiv preprint arXiv:2407.13451v2},
-	eprint = {2407.13451v2},
-	archivePrefix = {arXiv},
-	primaryClass = {stat.CO},
-}
-
-
-%ecology
-
-@article{Qian2009,
-	author = {Qian, Song S. and Craig, Kevin and Baustian, Melissa M. and Rabalais, N. N.},
-	title = {A Bayesian hierarchical modeling approach for analyzing observational data from marine ecological studies},
-	journal = {Marine Pollution Bulletin},
-	volume = {58},
-	issue = {12},
-	pages = {1916--1921},
-	year = {2009},
-	doi = {10.1016/j.marpolbul.2009.09.029}
-}
-
-
-@article{Rosen2001,
-	title = {Bayesian and frequentist inference for ecological inference: the R $\times$ C case},
-	author = {Rosen, Ori and Jiang, Wenxin and King, Gary and Tanner, Martin A.},
-	journal = {Statistica Neerlandica},
-	volume = {55},
-	number = {2},
-	pages = {134--156},
-	year = {2001},
-	publisher = {Blackwell Publishers}
-}
 
 
 
-%cell bio
-@article{Vallejos2015,
-	author = {Vallejos, Catalina A. and Marioni, John C. and Richardson, Sylvia},
-	journal = {PLoS Computational Biology},
-	title = {{BASiCS: Bayesian Analysis of Single-Cell Sequencing Data}},
-	year = {2015},
-	volume = {11},
-	issue = {6},
-	pages = {e1004333},
-	doi = {10.1371/journal.pcbi.1004333}
-}
-
-
-%genes
-@article{Liu2016,
-	author = {Liu, Fei and Zhang, Shao-Wu and Guo, Wei-Feng and Wei, Ze-Gang and Chen, Luonan},
-	title = {Inference of Gene Regulatory Network Based on Local Bayesian Networks},
-	journal = {PLOS Computational Biology},
-	volume = {12},
-	issue = {8},
-	pages = {e1005024},
-	year = {2016},
-	doi = {10.1371/journal.pcbi.1005024}
-}
-
-@article{Wang2019,
-	author = {Wang, Lingfei and Audenaert, Pieter and Michoel, Tom},
-	title = {High-Dimensional Bayesian Network Inference From Systems Genetics Data Using Genetic Node Ordering},
-	journal = {Frontiers in Genetics},
-	volume = {10},
-	year = {2019},
-	pages = {1196},
-	doi = {10.3389/fgene.2019.01196},
-	month = dec,
-}
-
-
-
-
-%Other
-@article{Rabinowitz2013,
-	author = {Rabinowitz, Michael and Sridhar, Swaroop},
-	title = {Nested sampling for parameter inference in systems biology},
-	journal = {Journal of the Royal Society Interface},
-	volume = {10},
-	issue = {88},
-	pages = {20130664},
-	year = {2013},
-	doi = {10.1098/rsif.2013.0664}
-}
-
-@article{Nascimento2017,
-	author = {Nascimento, Fabrícia F. and dos Reis, Mario and Yang, Ziheng},
-	title = {A biologist's guide to Bayesian phylogenetic analysis},
-	journal = {Nature Ecology and Evolution},
-	volume = {1},
-	issue = {10},
-	pages = {1446--1454},
-	year = {2017},
-	doi = {10.1038/s41559-017-0280-x}
-}
-
-@article{Coventry2024,
-	author = {Coventry, Brandon S and Bartlett, Edward L},
-	title = {Practical Bayesian Inference in Neuroscience: Or How I Learned to Stop Worrying and Embrace the Distribution},
-	journal = {eNeuro},
-	volume = {11},
-	issue = {7},
-	pages = {ENEURO.0484-23.2024},
-	year = {2024},
-	doi = {10.1523/ENEURO.0484-23.2024},
-	pmcid = {PMC11270157},
-	pmid = {38918054}
-}
-
-
-
-
-
-
-%climate science 
-@article{Vrugt2014,
-	author = {Vrugt, Jasper A. and D. ter Braak, Cajo and Clark, Martyn P. and H. H. van den Eijnden, Eric},
-	title = {Computational methods for parameter estimation in climate models},
-	journal = {Bayesian Analysis},
-	volume = {9},
-	issue = {3},
-	pages = {535--575},
-	year = {2014},
-	doi = {10.1214/14-BA866},
-	url = {https://doi.org/10.1214/14-BA866},
-}
-
-@article{Cheung2011,
-	author  = {Cheung, Sai Hung and Oliver, Todd A. and Prudencio, Ernesto E. and Prudhomme, Serge and Moser, Robert D.},
-	title   = {Bayesian uncertainty analysis with applications to turbulence modeling},
-	journal = {Reliability Engineering \& System Safety},
-	year    = {2011},
-	volume  = {96},
-	number  = {9},
-	pages   = {1137--1149},
-	doi     = {10.1016/j.ress.2010.09.013}
-}
-
-@article{Ricciardi2023,
-	author  = {Ricciardi, D. E. and Newman, P. J. and Villarreal, M. O. and Kerr, R. A. and Bishop, J. E. and Funnell, A. C. and Long, K. N.},
-	title   = {Bayesian Optimal Experimental Design for Constitutive Model Calibration},
-	journal = {arXiv preprint arXiv:2308.10702},
-	year    = {2023},
-	url     = {https://arxiv.org/abs/2308.10702}
-}
-
-
-
-@article{Veitch2015,
-	author  = {Veitch, John and others},
-	title   = {Parameter estimation for compact binaries with ground-based gravitational-wave observations using the LALInference software library},
-	journal = {Physical Review D},
-	year    = {2015},
-	volume  = {91},
-	number  = {4},
-	pages   = {042003},
-	doi     = {10.1103/PhysRevD.91.042003}
-}
-
-@article{Planck2018Params,
-	author  = {{Planck Collaboration} and Aghanim, N. and Akrami, Y. and others},
-	title   = {Planck 2018 results. VI. Cosmological parameters},
-	journal = {Astronomy \& Astrophysics},
-	year    = {2020},
-	volume  = {641},
-	pages   = {A6},
-	doi     = {10.1051/0004-6361/201833910},
-	eprint  = {1807.06209},
-	archivePrefix = {arXiv}
-}
 %CNNS
 
 
@@ -717,27 +447,6 @@
 	doi     = {10.1038/s41540-017-0010-7}
 }
 
-@article{Lagergren2020BINN,
-	title   = {Biologically-informed neural networks guide mechanistic modeling from sparse experimental data},
-	author  = {Lagergren, John H. and Nardini, John T. and Baker, Ruth E. and Simpson, Matthew J. and Flores, Kevin B.},
-	journal = {PLOS Computational Biology},
-	year    = {2020},
-	volume  = {16},
-	number  = {12},
-	pages   = {e1008462},
-	doi     = {10.1371/journal.pcbi.1008462}
-}
-
-
-@article{Nardini2023BINNForecast,
-	title   = {{Forecasting and Predicting Stochastic Agent-Based Model Data with Biologically-Informed Neural Networks}},
-	author  = {Nardini, John T.},
-	journal = {Bulletin of Mathematical Biology},
-	year    = {2024},
-	volume  = {86},
-	pages   = {130},
-	doi     = {10.1007/s11538-024-01357-2}
-}
 
 @article{Liu2024PRE,
 	title   = {Likelihood-based inference, identifiability, and prediction using count data from lattice-based random walk models},
@@ -850,7 +559,7 @@
 
 @article{Blum2013,
 	author  = {M. G. B. Blum and M. A. Nunes and D. Prangle and S. A. Sisson},
-	title   = {A comparative review of approximate {B}ayesian computation},
+	title   = {A Comparative Review of Dimension Reduction Methods in Approximate {B}ayesian Computation},
 	journal = {Statistical Science},
 	year    = {2013},
 	volume  = {28},
@@ -881,37 +590,16 @@
 	doi     = {10.1073/pnas.1102900108}
 }
 
-@article{Sisson2007,
-	author  = {S. A. Sisson and Y. Fan and M. M. Tanaka},
-	title   = {Sequential {M}onte {C}arlo without likelihoods},
-	journal = {Proceedings of the National Academy of Sciences},
-	year    = {2007},
-	volume  = {104},
-	number  = {6},
-	pages   = {1760--1765},
-	doi     = {10.1073/pnas.0607208104}
-}
 
-@article{Beaumont2009,
-	author  = {M. A. Beaumont and J.-M. Cornuet and J.-M. Marin and C. P. Robert},
-	title   = {Adaptive approximate {B}ayesian computation},
-	journal = {Biometrika},
-	year    = {2009},
-	volume  = {96},
-	number  = {4},
-	pages   = {983--990},
-	doi     = {10.1093/biomet/asp052}
-}
 
 @article{ErbanChapman2009,
-	author  = {R. Erban and S. J. Chapman},
-	title   = {Stochastic modelling of reaction--diffusion processes in biology},
-	journal = {SIAM Review},
-	year    = {2009},
-	volume  = {50},
-	number  = {1},
-	pages   = {37--114},
-	doi     = {10.1137/070696772}
+	author  = {R. Erban and S. J. Chapman and P. K. Maini},
+	title   = {A practical guide to stochastic simulations of reaction--diffusion processes},
+	journal = {arXiv preprint arXiv:0704.1908},
+	year    = {2007},
+	eprint  = {0704.1908},
+	archivePrefix = {arXiv},
+	primaryClass  = {q-bio.SC}
 }
 
 
@@ -974,5 +662,33 @@
 	author={Kingma, Diederik P. and Ba, Jimmy},
 	journal={arXiv preprint arXiv:1412.6980},
 	year={2014}
+}
+
+@inproceedings{lueckmann2021benchmarking,
+	title={Benchmarking Simulation-Based Inference},
+	author={Lueckmann, Jan-Matthis and Boelts, Jan and Greenberg, David S. and Gon{\c{c}}alves, Pedro J. and Macke, Jakob H.},
+	booktitle={Proceedings of the 24th International Conference on Artificial Intelligence and Statistics (AISTATS)},
+	year={2021}
+}
+
+@inproceedings{hermans2020likelihood,
+	title={Likelihood-free {MCMC} with Amortized Approximate Ratio Estimators},
+	author={Hermans, Joeri and Begy, Volodimir and Louppe, Gilles},
+	booktitle={Proceedings of the 37th International Conference on Machine Learning (ICML)},
+	year={2020}
+}
+
+@article{hermans2022crisis,
+	title={A Trust Crisis In Simulation-Based Inference? Your Posterior Approximations Can Be Unfaithful},
+	author={Hermans, Joeri and Delaunoy, Arnaud and Rozet, Fran{\c{c}}ois and Wehenkel, Antoine and Begy, Volodimir and Louppe, Gilles},
+	journal={Transactions on Machine Learning Research},
+	year={2022}
+}
+
+@inproceedings{papamakarios2019sequential,
+	title={Sequential Neural Likelihood: Fast Likelihood-free Inference with Autoregressive Flows},
+	author={Papamakarios, George and Sterratt, David C. and Murray, Iain},
+	booktitle={Proceedings of the 22nd International Conference on Artificial Intelligence and Statistics (AISTATS)},
+	year={2019}
 }
 

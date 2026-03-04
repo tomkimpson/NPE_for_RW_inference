@@ -1,0 +1,172 @@
+\documentclass[tikz,border=6pt]{standalone}
+\usetikzlibrary{
+  arrows.meta,
+  positioning,
+  fit,
+  backgrounds,
+  calc
+}
+
+% --- Publication-quality sans-serif font ---
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+
+\begin{document}
+
+% --- Restrained Nature/Science palette ---
+% Muted, distinguishable fills; no saturated colours
+\definecolor{priorblue}{HTML}{D6E6F5}
+\definecolor{simgreen}{HTML}{D9EEDB}
+\definecolor{netamber}{HTML}{FDE8CD}
+\definecolor{postlav}{HTML}{E3D8ED}
+\definecolor{obsblue}{HTML}{D6E6F5}
+\definecolor{trainbg}{HTML}{F5F5F5}
+\definecolor{inferbg}{HTML}{EEF0F8}
+\definecolor{darktext}{HTML}{2D2D2D}
+\definecolor{midgray}{HTML}{666666}
+\definecolor{bordergray}{HTML}{AAAAAA}
+\definecolor{arrowgray}{HTML}{444444}
+
+\tikzset{
+  % --- Base node: clean, no shadow ---
+  base/.style={
+    draw=bordergray,
+    line width=0.6pt,
+    text centered,
+    font=\footnotesize,
+    text=darktext,
+    inner sep=6pt,
+  },
+  % Rectangular process nodes
+  proc/.style={
+    base,
+    rectangle,
+    rounded corners=4pt,
+    minimum height=2.6em,
+    text width=5.8em,
+  },
+  % Rounded-rect data nodes (instead of ellipses, which look informal)
+  datum/.style={
+    base,
+    rectangle,
+    rounded corners=10pt,
+    minimum height=2.6em,
+    text width=6em,
+  },
+  % Neural network node — slightly taller
+  network/.style={
+    base,
+    rectangle,
+    rounded corners=4pt,
+    fill=netamber,
+    minimum height=5em,
+    text width=7em,
+    font=\footnotesize\bfseries,
+  },
+  % Posterior node
+  post/.style={
+    datum,
+    fill=postlav,
+    font=\footnotesize\bfseries,
+  },
+  % Arrow style: thin, precise
+  arr/.style={
+    -{Stealth[length=5pt, width=3.5pt]},
+    line width=0.7pt,
+    color=arrowgray,
+  },
+  % Edge labels
+  elabel/.style={
+    font=\scriptsize,
+    text=midgray,
+  },
+  % Phase labels
+  phlabel/.style={
+    font=\scriptsize\bfseries,
+    text=midgray,
+    anchor=north west,
+  },
+}
+
+\begin{tikzpicture}[node distance=1.2cm and 1.6cm]
+
+  % ===== Column 1: Simulation =====
+  \node[proc, fill=priorblue] (prior)
+    {Prior\\[1pt] $p(\boldsymbol{\theta})$};
+
+  \node[proc, fill=simgreen, below=1.2cm of prior] (sim)
+    {Simulator\\[1pt] $p(\mathbf{Y}\!\mid\!\boldsymbol{\theta})$};
+
+  \draw[arr] (prior) -- (sim)
+    node[midway, right=2pt, elabel] {sample $\boldsymbol{\theta}$};
+
+  % Dashed grouping box
+  \node[draw=bordergray, dashed, line width=0.5pt,
+        rounded corners=6pt,
+        fit={(prior)(sim)},
+        inner sep=8pt] (simblock) {};
+
+  % ===== Column 2: Training data =====
+  \node[datum, fill=simgreen!60, right=1.8cm of simblock] (traindata)
+    {Training data\\[1pt]
+     $\{(\boldsymbol{\theta}_i,\,\mathbf{Y}_i)\}_{i=1}^{N}$};
+
+  % ===== Column 3: Neural density estimator =====
+  \node[network, right=1.8cm of traindata] (nde)
+    {Neural density\\estimator\\[1pt]
+     $q_{\phi}(\boldsymbol{\theta}\!\mid\!\mathbf{Y})$};
+
+  % ===== Column 4: Inference =====
+  \node[datum, fill=obsblue, above=0.8cm of nde] (obs)
+    {Observed data\\[1pt] $\mathbf{Y}_{\mathrm{obs}}$};
+
+  \node[post, right=1.8cm of nde] (posterior)
+    {Posterior\\[1pt]
+     $q(\boldsymbol{\theta}\!\mid\!\mathbf{Y}_{\mathrm{obs}})$};
+
+  % ===== Arrows =====
+  \draw[arr] (simblock.east) -- (traindata.west)
+    node[midway, above=2pt, elabel] {simulate $N$ times};
+
+  \draw[arr] (traindata.east) -- (nde.west)
+    node[midway, above=2pt, elabel] {train};
+
+  \draw[arr] (obs.south) -- (nde.north);
+
+  \draw[arr] (nde.east) -- (posterior.west)
+    node[midway, above=2pt, elabel] {evaluate};
+
+  % ===== Background phase boxes =====
+  \begin{scope}[on background layer]
+    % Training phase
+    \node[fill=trainbg,
+          draw=bordergray!60, line width=0.4pt,
+          rounded corners=6pt,
+          fit={(simblock)(traindata)(nde)
+               ($(simblock.north west)+(0,0.55)$)
+               ($(nde.south east)+(0.15,-0.35)$)},
+          inner sep=14pt] (trbg) {};
+    \node[phlabel] at (trbg.north west) {\hspace{4pt}Training phase};
+
+    % Inference phase
+    \node[fill=inferbg,
+          draw=bordergray!60, line width=0.4pt,
+          rounded corners=6pt,
+          fit={(obs)(posterior)
+               ($(nde.north east)+(0,0.3)$)
+               ($(nde.south east)+(0,-0.35)$)},
+          inner sep=14pt] (ifbg) {};
+    \node[phlabel, anchor=north east]
+      at (ifbg.north east) {Inference phase\hspace{4pt}};
+
+    % --- Vertical dashed separator to mark the phase boundary ---
+    \draw[dashed, bordergray!70, line width=0.5pt]
+      ($(nde.north west)+(-0.35, 0)$|- trbg.north) -- ($(nde.south west)+(-0.35, 0)$|- trbg.south)
+      node[midway, rotate=90, anchor=south, yshift=-2pt,
+           font=\tiny\itshape, text=midgray] {amortised};
+  \end{scope}
+
+\end{tikzpicture}
+\end{document}

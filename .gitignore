@@ -137,6 +137,9 @@ Manifest.toml
 *.asv
 *.m~
 
+# LaTeX diff files
+docs/paper/diff/
+
 # LaTeX
 *.aux
 *.bbl
@@ -191,3 +194,6 @@ src/results/
 external_code/
 src/sbi-logs  # or the log files from the SBI package
 sbi-logs/
+
+# SLURM output logs
+slurm/outputs/
