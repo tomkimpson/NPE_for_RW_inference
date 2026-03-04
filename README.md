@@ -6,11 +6,20 @@
 
 ## Overview
 
-This repository implements Neural Posterior Estimation (NPE) for inferring the parameters of a stochastic random walk model of barrier assay experiments, based on the work by [Simpson & Planck](https://www.biorxiv.org/content/10.1101/2025.10.26.684706v1).
+This repository implements Neural Posterior Estimation (NPE) for inferring the parameters of stochastic random walk models of barrier assay experiments, as described in our paper (Kimpson, Flegg & Simpson, submitted to JTB).
 
-The goal is to infer two key parameters from observation data:
-- **U**: Initial occupancy probability (probability that a site contains an agent at t=0)
-- **P**: Movement probability (probability that an agent moves during a time step)
+We consider four model variants of increasing complexity:
+
+| Model | Parameters inferred | Mechanisms |
+|-------|-------------------|------------|
+| **Original** | U, P | Migration only (no exclusion) |
+| **Model A** | U, P, rho | Exclusion + directional bias |
+| **Model B** | U, P, R | Exclusion + proliferation |
+| **Model C** | U, P, rho, R | Exclusion + bias + proliferation |
+
+where **U** is the initial occupancy probability, **P** is the movement probability, **rho** is a directional bias parameter, and **R** is the proliferation rate.
+
+The NPE approach supports both **1D** (column-count summary statistics) and **2D** (full spatial grid via CNN embedding) data representations.
 
 ## Installation
 
@@ -21,27 +30,10 @@ The goal is to infer two key parameters from observation data:
 ### Setup
 
 ```bash
-# Clone the repository
 git clone https://github.com/tomkimpson/NPE_for_RW_inference.git
 cd NPE_for_RW_inference
 
-# Create a virtual environment (recommended)
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-**For GPU support (optional):**
-```bash
-# Install PyTorch with CUDA support (example for CUDA 11.8)
-pip install torch --index-url https://download.pytorch.org/whl/cu118
-```
-
-**For conda users:**
-```bash
-# Create conda environment
+# Create conda environment (recommended)
 conda create -n npe_rw python=3.12
 conda activate npe_rw
 
@@ -49,188 +41,137 @@ conda activate npe_rw
 pip install -r requirements.txt
 ```
 
+**For GPU support** (optional):
+```bash
+pip install torch --index-url https://download.pytorch.org/whl/cu118
+```
+
 ## Quick Start
 
-Please see `notebooks/demo.py` for a pedagogical walkthrough.
+### Interactive tutorial
 
-This is a [marimo](https://marimo.io) notebook and can be launched (editable) as `marimo edit notebooks/demo.py`
+The best way to get started is the interactive [marimo](https://marimo.io) notebook:
 
-### Run the complete workflow:
 ```bash
-# Basic run with default parameters (auto-detects GPU)
+marimo edit notebooks/demo.py
+```
+
+This walks through the full workflow — data generation, training, and inference — with explanations.
+
+### Command-line usage
+
+```bash
+# Run with default settings (original model, 1D data)
 python src/main.py
 
-# Custom parameters
-python src/main.py --n_samples 5000 --max_epochs 50 --theta_true 0.4 0.8
+# Choose a model variant
+python src/main.py --model A
+python src/main.py --model C --n_samples 50000
 
-# Force CPU usage
-python src/main.py --device cpu --n_samples 10000
+# Use 2D spatial data with CNN embedding
+python src/main.py --model A --use_2d_data
 
-# Force NVIDIA GPU usage (CUDA)
-python src/main.py --device cuda --n_samples 10000
+# Custom training parameters
+python src/main.py --model B --n_samples 50000 --max_epochs 100 --hidden_features 256
 
-# Generate 10k training samples, train for 100 epochs, infer parameters
-python src/main.py --n_samples 10000 --max_epochs 100
+# Reuse existing training data (skip regeneration)
+python src/main.py --model A --skip_data --data_path results/workflow_.../training_data.pkl
+
+# Force CPU/GPU
+python src/main.py --device cpu
+python src/main.py --device cuda
 ```
 
-### Sequential NPE (SNPE) - Recommended for better inference:
-```bash
-# Basic SNPE run
-python src/main.py --use_snpe --snpe_rounds 5
+### Posterior predictive sampling
 
-# Advanced SNPE with custom parameters
-python src/main.py --use_snpe --snpe_rounds 10 --samples_per_round 2000 \
-  --convergence_threshold 0.001 --max_epochs 300
-
-# SNPE with larger neural networks (for complex problems)
-python src/main.py --use_snpe --hidden_features 768 --num_transforms 15 \
-  --learning_rate 5e-6 --batch_size 128
-
-```
-
-
-### Resume from existing models:
-```bash
-# Skip training, use existing model for inference
-python src/main.py --skip_training --model_path results/previous_run/npe_model.pkl
-```
-
-### HPC/Cluster usage:
-```bash
-# Submit SNPE job to SLURM cluster
-sbatch slurm/run_main.sh
-```
-
-### Posterior Predictive Sampling:
-After running the main workflow, you can generate posterior predictive samples to quantify uncertainty and validate your model:
+After running the main workflow:
 
 ```bash
-# Basic posterior predictive sampling (uses all posterior samples)
-python src/predict.py results/workflow_YYYYMMDD_HHMMSS/inference_results/results.pkl
-
-# Generate fewer predictive samples for faster computation
-python src/predict.py results/workflow_YYYYMMDD_HHMMSS/inference_results/results.pkl --n_pred_samples 1000
-
-# Custom simulation parameters (must match training data)
-python src/predict.py results/workflow_YYYYMMDD_HHMMSS/inference_results/results.pkl \
-  --T 100 --Lx 21 --Ly 21
-
-# Specify output directory
-python src/predict.py results/workflow_YYYYMMDD_HHMMSS/inference_results/results.pkl \
-  --output_dir custom_predictions/
+python src/predict.py results/workflow_.../inference_results/results.pkl
 ```
 
-The posterior predictive sampling generates:
-- **Prediction intervals**: Uncertainty bands showing the range of possible outcomes
-- **Probabilistic forecasts**: Multiple realizations from the posterior predictive distribution  
-- **Model validation**: Compare observed data against predictive distribution
-- **Uncertainty quantification**: Visualize model confidence in different regions
+### SBI diagnostics (SBC, C2ST, TARP)
 
-## NPE vs SNPE
-
-The complete pipeline supports two training approaches:
-
-**Standard NPE (3 steps):**
-1. **Training Data Generation**: Generate parameter-observation pairs by running the forward simulation
-2. **NPE Training**: Train a neural density estimator to learn the posterior p(U,P|data)  
-3. **Inference**: Use the trained model to infer parameters from observed data
-
-**Sequential NPE (SNPE) - Recommended:**
-1. **Initial Round**: Train on simulations from prior, get initial posterior estimate
-2. **Sequential Rounds**: Iteratively refine by simulating from previous posterior, retraining
-3. **Convergence**: Stop when posterior estimates stabilize or max rounds reached
-4. **Inference**: Use final trained model for parameter inference
-
-
-
-## Output Structure
-
-Each workflow run creates a timestamped directory in `results/` containing:
-
-**Standard NPE Output:**
-```
-results/workflow_YYYYMMDD_HHMMSS/
-├── config.txt                    # Run configuration
-├── training_data.pkl             # Generated training data (NPE only)
-├── npe_model.pkl                 # Trained NPE model
-├── inference_results/            # Inference outputs
-│   ├── posterior_marginals.png   # Marginal posterior plots
-│   ├── posterior_pairwise.png    # Joint posterior visualization
-│   ├── observed_data.png         # Observed column counts
-│   ├── simulation_comparison.png # Initial vs final states
-│   └── results.pkl               # Numerical results
-└── predictions/                  # Posterior predictive sampling (optional)
-    ├── prediction_intervals.png  # Prediction intervals plot
-    ├── predictive_results.pkl    # Full predictive results
-    └── prediction_summary.txt    # Summary statistics
+```bash
+python src/run_diagnostics.py results/workflow_.../
 ```
 
-**Sequential NPE (SNPE) Output:**
+### HPC / SLURM
+
+```bash
+sbatch slurm/run_production.sh A          # 1D NPE
+sbatch slurm/run_production_2d_enhanced.sh A  # 2D NPE with CNN
 ```
-results/workflow_YYYYMMDD_HHMMSS/
-├── config.txt                    # Run configuration  
-├── npe_model.pkl                 # Final trained SNPE model
-├── round_1/                      # First round results
-│   ├── posterior_samples.npy     # Posterior samples from round 1
-│   └── training_info.pkl         # Round 1 training metadata
-├── round_2/                      # Second round results
-│   └── ...
-├── round_N/                      # Final round results
-│   └── ...
-├── inference_results/            # Final inference outputs
-│   ├── posterior_marginals.png   # Final marginal posterior plots
-│   ├── posterior_pairwise.png    # Final joint posterior visualization
-│   ├── observed_data.png         # Observed column counts
-│   ├── simulation_comparison.png # Initial vs final states
-│   └── results.pkl               # Numerical results + SNPE metadata
-└── predictions/                  # Posterior predictive sampling (optional)
-    ├── prediction_intervals.png  # Prediction intervals plot
-    ├── predictive_results.pkl    # Full predictive results
-    └── prediction_summary.txt    # Summary statistics
+
+## Project Structure
+
+```
+src/
+├── main.py              # Entry point — data generation, training, inference
+├── simulator.py         # Random walk simulators (standard + exclusion process)
+├── inference.py         # NPE training and posterior sampling
+├── models.py            # Model configurations (original, A, B, C)
+├── cnn_utils.py         # CNN embedding network for 2D spatial data
+├── predict.py           # Posterior predictive sampling
+├── diagnostics.py       # SBC, C2ST, TARP diagnostics
+├── run_diagnostics.py   # Diagnostics entry point
+├── abc_inference.py     # ABC-SMC baseline
+└── utils.py             # Posterior statistics and helpers
+
+notebooks/
+├── demo.py              # Interactive tutorial (marimo notebook)
+├── NPE_results.py       # Results analysis
+├── reproduce_ABC_results.py          # Classical baseline reproduction
+├── reproduce_ABC_results_just_surrogate.py
+└── pde_comparison_figure.py          # Paper figure generation
+
+slurm/                   # SLURM job scripts for HPC clusters
+docs/paper/              # Manuscript, figures, and LaTeX source
 ```
 
 ## Key Parameters
 
-**Simulation Parameters:**
-- `--Lx`, `--Ly`: Lattice dimensions (default: 21×21)
-- `--T`: Number of simulation time steps (default: 100)
-- `--theta_true`: True parameter values for testing [U, P] (default: [0.3, 0.7])
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `--model` | `original` | Model variant: `original`, `A`, `B`, or `C` |
+| `--use_2d_data` | off | Use full 2D spatial grid (CNN embedding) instead of 1D column counts |
+| `--n_samples` | 10000 | Number of training simulations |
+| `--max_epochs` | 100 | Maximum training epochs |
+| `--hidden_features` | 128 | Neural spline flow width |
+| `--num_transforms` | 5 | Number of coupling transforms |
+| `--Lx`, `--Ly` | 200, 50 | Lattice dimensions |
+| `--T` | 100 | Simulation time steps |
+| `--device` | `auto` | `cpu`, `cuda`, or `auto` |
 
-**Training Parameters:**
-- `--n_samples`: Number of training simulations for NPE (default: 10,000)
-- `--max_epochs`: Maximum training epochs per round (default: 100)
-- `--batch_size`: Training batch size (default: 512)
-- `--learning_rate`: Learning rate (default: 1e-4)
-- `--hidden_features`: Neural network width (default: 128)
-- `--num_transforms`: Number of coupling transforms (default: 5)
-- `--validation_fraction`: Validation data fraction (default: 0.1)
-- `--stop_after_epochs`: Early stopping patience (default: 20)
-- `--device`: Device for training ('cpu', 'cuda', or 'auto', default: 'auto')
+## Output
 
-**Sequential NPE (SNPE) Parameters:**
-- `--use_snpe`: Enable Sequential Neural Posterior Estimation
-- `--snpe_rounds`: Number of sequential rounds (default: 3)
-- `--samples_per_round`: Simulations per SNPE round (default: n_samples // snpe_rounds)
-- `--convergence_threshold`: Convergence threshold for early stopping (default: 0.01)
+Each run creates a timestamped directory in `results/`:
 
-## External Code
+```
+results/workflow_YYYYMMDD_HHMMSS/
+├── config.txt               # Run configuration
+├── training_data.pkl        # Training simulations
+├── npe_model.pkl            # Trained NPE model
+├── inference_results/       # Posterior samples, plots, summary
+└── predictions/             # Posterior predictive results (optional)
+```
 
-The `external_code/RandomWalkInference/` directory contains reference implementations from [Simpson and Planck's repository](https://github.com/ProfMJSimpson/RandomWalkInference) for comparison and validation.
+## Citation
 
-## Training Method Comparison
+If you use this code, please cite:
 
-**When to use Standard NPE:**
-- Quick prototyping and testing
-- Smaller lattice sizes (≤ 31×31)
-- Limited computational resources
-- When you have good prior knowledge of parameter ranges
+```bibtex
+@article{kimpson2025npe,
+  author  = {Kimpson, Tom and Flegg, Mark B. and Simpson, Matthew J.},
+  title   = {Rapid parameter inference for stochastic models of biological
+             populations undergoing migration and proliferation using
+             neural posterior estimation},
+  journal = {Journal of Theoretical Biology},
+  year    = {2025},
+  note    = {Submitted}
+}
+```
 
-**When to use Sequential NPE (SNPE) - Recommended:**
-- Better inference accuracy and convergence
-- Larger lattice sizes (≥ 50×50)  
-- Complex parameter relationships
-- Production runs and final results
-- When computational resources allow for multiple rounds
+## License
 
-SNPE typically achieves better posterior estimates by iteratively refining the training data distribution, focusing simulations on parameter regions more likely given the observed data.
-
+This project is licensed under the MIT License — see [LICENSE](LICENSE) for details.
