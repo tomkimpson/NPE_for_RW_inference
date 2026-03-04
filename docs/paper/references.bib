@@ -85,23 +85,6 @@
 }
 
 
-@ARTICLE{Deistler2022,
-	author = {{Deistler}, Michael and {Goncalves}, Pedro J and {Macke}, Jakob H},
-	title = "{Truncated proposals for scalable and hassle-free simulation-based inference}",
-	journal = {arXiv e-prints},
-	keywords = {Statistics - Machine Learning, Computer Science - Machine Learning},
-	year = 2022,
-	month = oct,
-	eid = {arXiv:2210.04815},
-	pages = {arXiv:2210.04815},
-	doi = {10.48550/arXiv.2210.04815},
-	archivePrefix = {arXiv},
-	eprint = {2210.04815},
-	primaryClass = {stat.ML},
-	adsurl = {https://ui.adsabs.harvard.edu/abs/2022arXiv221004815D},
-	adsnote = {Provided by the SAO/NASA Astrophysics Data System}
-}
-
 
 
 @article{Cranmer2020FrontierSBI,
@@ -215,29 +198,6 @@
 	abstract = {Stochastic individual-based mathematical models are attractive for modelling biological phenomena because they naturally capture the stochasticity and variability that is often evident in biological data. Such models also allow us to track the motion of individuals within the population of interest. Unfortunately, capturing this microscopic detail means that simulation and parameter inference can become computationally expensive. One approach for overcoming this computational limitation is to coarse-grain the stochastic model to provide an approximate continuum model that can be solved using far less computational effort. However, coarse-grained continuum models can be biased or inaccurate, particularly for certain parameter regimes. In this work, we combine stochastic and continuum mathematical models in the context of lattice-based models of two-dimensional cell biology experiments by demonstrating how to simulate two commonly used experiments: cell proliferation assays and barrier assays. Our approach involves building a simple statistical model of the discrepancy between the expensive stochastic model and the associated computationally inexpensive coarse-grained continuum model. We form this statistical model based on a limited number of expensive stochastic model evaluations at design points sampled from a user-chosen distribution, corresponding to a computer experiment design problem. With straightforward design point selection schemes, we show that using the statistical model of the discrepancy in tandem with the computationally inexpensive continuum model allows us to carry out prediction and inference while correcting for biases and inaccuracies due to the continuum approximation. We demonstrate this approach by simulating a proliferation assay, where the continuum limit model is the well-known logistic ordinary differential equation, as well as a barrier assay where the continuum limit model is closely related to the well-known Fisher-KPP partial differential equation. We construct an approximate likelihood function for parameter inference, both with and without discrepancy correction terms. Using maximum likelihood estimation, we provide point estimates of the unknown parameters, and use the profile likelihood to characterise the uncertainty in these estimates and form approximate confidence intervals. For the range of inference problems considered, working with the continuum limit model alone leads to biased parameter estimation and confidence intervals with poor coverage. In contrast, incorporating correction terms arising from the statistical model of the model discrepancy allows us to recover the parameters accurately with minimal computational overhead. The main tradeoff is that the associated confidence intervals are typically broader, reflecting the additional uncertainty introduced by the approximation process. All algorithms required to replicate the results in this work are written in the open source Julia language and are available at GitHub.}
 }
 
-@book{Cox1974,
-	author    = {Cox, D. R. and Hinkley, D. V.},
-	title     = {Theoretical Statistics},
-	publisher = {Chapman \& Hall},
-	address   = {London},
-	year      = {1974}
-}
-
-@book{Casella1990,
-	author    = {Casella, George and Berger, Roger L.},
-	title     = {Statistical Inference},
-	publisher = {Duxbury Press},
-	address   = {Belmont, CA},
-	year      = {1990}
-}
-
-@book{Bernardo1994,
-	author    = {Bernardo, Jos{\'e} M. and Smith, Adrian F. M.},
-	title     = {Bayesian Theory},
-	publisher = {John Wiley \& Sons},
-	address   = {Chichester, UK},
-	year      = {1994}
-}
 @ARTICLE{Gelman2017,
 	author = {{Gelman}, Andrew and {Simpson}, Daniel and {Betancourt}, Michael},
 	title = "{The Prior Can Often Only Be Understood in the Context of the Likelihood}",
@@ -269,34 +229,6 @@
 }
 
 
-@ARTICLE{2024arXiv240508177S,
-	author = {Simpson, Matthew J. and Baker, Ruth E.},
-	title = "{Parameter identifiability, parameter estimation and model prediction for differential equation models}",
-	journal = {arXiv e-prints},
-	keywords = {Statistics - Methodology, 97M10, 97M50, 00A71},
-	year = 2024,
-	month = may,
-	eid = {arXiv:2405.08177},
-	pages = {arXiv:2405.08177},
-	doi = {10.48550/arXiv.2405.08177},
-	archivePrefix = {arXiv},
-	eprint = {2405.08177},
-	primaryClass = {stat.ME},
-	adsurl = {https://ui.adsabs.harvard.edu/abs/2024arXiv240508177S},
-	adsnote = {Provided by the SAO/NASA Astrophysics Data System}
-}
-
-@article{Simpson2023,
-	author = {Simpson, Matthew J. and Maclaren, Oliver J.},
-	journal = {PLoS Comput Biol},
-	title = {Profile-Wise Analysis: A profile likelihood-based workflow for identifiability analysis, estimation, and prediction with mechanistic mathematical models},
-	year = {2023},
-	volume = {19},
-	number = {9},
-	pages = {e1011515},
-	doi = {10.1371/journal.pcbi.1011515},
-	url = {https://doi.org/10.1371/journal.pcbi.1011515}
-}
 
 @ARTICLE{papamakarios2016fast,
 	author = {{Papamakarios}, George and {Murray}, Iain},
@@ -450,173 +382,9 @@
 
 
 
-%epidemioogy
-@article{Dunson2005,
-	author = {Dunson, David B.},
-	title = {Bayesian perspectives for epidemiological research},
-	journal = {The International Journal of Epidemiology},
-	volume = {34},
-	issue = {5},
-	pages = {1170--1173},
-	year = {2005},
-	doi = {10.1093/ije/dyi131}
-}
-
-
-@article{Semochkina2025,
-	title = {Incorporating additional evidence as prior information to resolve non-identifiability in {B}ayesian disease model calibration. {A} tutorial},
-	author = {Semochkina, Daria and Walsh, Cathal D.},
-	year = {2025},
-	month = {January},
-	journal = {arXiv preprint arXiv:2407.13451v2},
-	eprint = {2407.13451v2},
-	archivePrefix = {arXiv},
-	primaryClass = {stat.CO},
-}
-
-
-%ecology
-
-@article{Qian2009,
-	author = {Qian, Song S. and Craig, Kevin and Baustian, Melissa M. and Rabalais, N. N.},
-	title = {A Bayesian hierarchical modeling approach for analyzing observational data from marine ecological studies},
-	journal = {Marine Pollution Bulletin},
-	volume = {58},
-	issue = {12},
-	pages = {1916--1921},
-	year = {2009},
-	doi = {10.1016/j.marpolbul.2009.09.029}
-}
-
-
-@article{Rosen2001,
-	title = {Bayesian and frequentist inference for ecological inference: the R $\times$ C case},
-	author = {Rosen, Ori and Jiang, Wenxin and King, Gary and Tanner, Martin A.},
-	journal = {Statistica Neerlandica},
-	volume = {55},
-	number = {2},
-	pages = {134--156},
-	year = {2001},
-	publisher = {Blackwell Publishers}
-}
 
 
 
-%cell bio
-@article{Vallejos2015,
-	author = {Vallejos, Catalina A. and Marioni, John C. and Richardson, Sylvia},
-	journal = {PLoS Computational Biology},
-	title = {{BASiCS: Bayesian Analysis of Single-Cell Sequencing Data}},
-	year = {2015},
-	volume = {11},
-	issue = {6},
-	pages = {e1004333},
-	doi = {10.1371/journal.pcbi.1004333}
-}
-
-
-%genes
-@article{Liu2016,
-	author = {Liu, Fei and Zhang, Shao-Wu and Guo, Wei-Feng and Wei, Ze-Gang and Chen, Luonan},
-	title = {Inference of Gene Regulatory Network Based on Local Bayesian Networks},
-	journal = {PLOS Computational Biology},
-	volume = {12},
-	issue = {8},
-	pages = {e1005024},
-	year = {2016},
-	doi = {10.1371/journal.pcbi.1005024}
-}
-
-@article{Wang2019,
-	author = {Wang, Lingfei and Audenaert, Pieter and Michoel, Tom},
-	title = {High-Dimensional Bayesian Network Inference From Systems Genetics Data Using Genetic Node Ordering},
-	journal = {Frontiers in Genetics},
-	volume = {10},
-	year = {2019},
-	pages = {1196},
-	doi = {10.3389/fgene.2019.01196},
-	month = dec,
-}
-
-
-
-
-%Other
-
-@article{Nascimento2017,
-	author = {Nascimento, Fabrícia F. and dos Reis, Mario and Yang, Ziheng},
-	title = {A biologist's guide to Bayesian phylogenetic analysis},
-	journal = {Nature Ecology and Evolution},
-	volume = {1},
-	issue = {10},
-	pages = {1446--1454},
-	year = {2017},
-	doi = {10.1038/s41559-017-0280-x}
-}
-
-@article{Coventry2024,
-	author = {Coventry, Brandon S and Bartlett, Edward L},
-	title = {Practical Bayesian Inference in Neuroscience: Or How I Learned to Stop Worrying and Embrace the Distribution},
-	journal = {eNeuro},
-	volume = {11},
-	issue = {7},
-	pages = {ENEURO.0484-23.2024},
-	year = {2024},
-	doi = {10.1523/ENEURO.0484-23.2024},
-	pmcid = {PMC11270157},
-	pmid = {38918054}
-}
-
-
-
-
-
-
-%climate science
-
-@article{Cheung2011,
-	author  = {Cheung, Sai Hung and Oliver, Todd A. and Prudencio, Ernesto E. and Prudhomme, Serge and Moser, Robert D.},
-	title   = {Bayesian uncertainty analysis with applications to turbulence modeling},
-	journal = {Reliability Engineering \& System Safety},
-	year    = {2011},
-	volume  = {96},
-	number  = {9},
-	pages   = {1137--1149},
-	doi     = {10.1016/j.ress.2010.09.013}
-}
-
-@article{Ricciardi2023,
-	author  = {Ricciardi, D. E. and Newman, P. J. and Villarreal, M. O. and Kerr, R. A. and Bishop, J. E. and Funnell, A. C. and Long, K. N.},
-	title   = {Bayesian Optimal Experimental Design for Constitutive Model Calibration},
-	journal = {arXiv preprint arXiv:2308.10702},
-	year    = {2023},
-	url     = {https://arxiv.org/abs/2308.10702}
-}
-
-
-
-@article{Veitch2015,
-	author  = {Veitch, John and others},
-	title   = {Parameter estimation for compact binaries with ground-based gravitational-wave observations using the LALInference software library},
-	journal = {Physical Review D},
-	year    = {2015},
-	volume  = {91},
-	number  = {4},
-	pages   = {042003},
-	doi     = {10.1103/PhysRevD.91.042003}
-}
-
-@article{Planck2018Params,
-	author  = {{Planck Collaboration} and Aghanim, N. and Akrami, Y. and others},
-	title   = {Planck 2018 results. VI. Cosmological parameters},
-	journal = {Astronomy \& Astrophysics},
-	year    = {2020},
-	volume  = {641},
-	pages   = {A6},
-	doi     = {10.1051/0004-6361/201833910},
-	eprint  = {1807.06209},
-	archivePrefix = {arXiv}
-}
 %CNNS
 
 
@@ -679,27 +447,6 @@
 	doi     = {10.1038/s41540-017-0010-7}
 }
 
-@article{Lagergren2020BINN,
-	title   = {Biologically-informed neural networks guide mechanistic modeling from sparse experimental data},
-	author  = {Lagergren, John H. and Nardini, John T. and Baker, Ruth E. and Simpson, Matthew J. and Flores, Kevin B.},
-	journal = {PLOS Computational Biology},
-	year    = {2020},
-	volume  = {16},
-	number  = {12},
-	pages   = {e1008462},
-	doi     = {10.1371/journal.pcbi.1008462}
-}
-
-
-@article{Nardini2023BINNForecast,
-	title   = {{Forecasting and Predicting Stochastic Agent-Based Model Data with Biologically-Informed Neural Networks}},
-	author  = {Nardini, John T.},
-	journal = {Bulletin of Mathematical Biology},
-	year    = {2024},
-	volume  = {86},
-	pages   = {130},
-	doi     = {10.1007/s11538-024-01357-2}
-}
 
 @article{Liu2024PRE,
 	title   = {Likelihood-based inference, identifiability, and prediction using count data from lattice-based random walk models},
@@ -812,7 +559,7 @@
 
 @article{Blum2013,
 	author  = {M. G. B. Blum and M. A. Nunes and D. Prangle and S. A. Sisson},
-	title   = {A comparative review of approximate {B}ayesian computation},
+	title   = {A Comparative Review of Dimension Reduction Methods in Approximate {B}ayesian Computation},
 	journal = {Statistical Science},
 	year    = {2013},
 	volume  = {28},
@@ -844,16 +591,6 @@
 }
 
 
-@article{Beaumont2009,
-	author  = {M. A. Beaumont and J.-M. Cornuet and J.-M. Marin and C. P. Robert},
-	title   = {Adaptive approximate {B}ayesian computation},
-	journal = {Biometrika},
-	year    = {2009},
-	volume  = {96},
-	number  = {4},
-	pages   = {983--990},
-	doi     = {10.1093/biomet/asp052}
-}
 
 @article{ErbanChapman2009,
 	author  = {R. Erban and S. J. Chapman and P. K. Maini},
@@ -942,7 +679,7 @@
 }
 
 @article{hermans2022crisis,
-	title={A Crisis in Simulation-Based Inference? {B}eware, Your Posterior Approximations Can Be Unfaithful},
+	title={A Trust Crisis In Simulation-Based Inference? Your Posterior Approximations Can Be Unfaithful},
 	author={Hermans, Joeri and Delaunoy, Arnaud and Rozet, Fran{\c{c}}ois and Wehenkel, Antoine and Begy, Volodimir and Louppe, Gilles},
 	journal={Transactions on Machine Learning Research},
 	year={2022}
