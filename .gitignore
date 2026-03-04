@@ -221,8 +221,10 @@ notebooks/generate_overlay_corner_plot.py
 notebooks/generate_overlay_corner_plot_model_A.py
 notebooks/images/
 
-# Paper: compiled PDF, old diagrams, duplicates
+# Paper: compiled PDF, old diagrams, template boilerplate
 docs/paper/template.pdf
+docs/paper/README.md
+docs/paper/License.txt
 docs/paper/flow_diagram/
 docs/paper/orcid.pdf
 docs/paper/pde_comparison_figure.pdf
