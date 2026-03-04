@@ -195,5 +195,41 @@ external_code/
 src/sbi-logs  # or the log files from the SBI package
 sbi-logs/
 
-# SLURM output logs
-slurm/outputs/
+# SLURM scripts and outputs (cluster-specific, not needed in public repo)
+slurm/
+
+# Internal project files
+handoff.md
+CLAUDE.md
+rough.tex
+debug_sbc_ranks.py
+
+# Internal docs (investigation notes, not for public)
+docs/*.md
+docs/*.pdf
+
+# Paper: reviewer/editorial materials (keep manuscript + figures)
+docs/paper/reviewer_comments/
+docs/paper/shared/
+docs/paper/comments_on_revision/
+docs/paper/New Folder With Items/
+docs/paper/reviewer_response.*
+docs/paper/reviewer_response_audit.md
+
+# Stale notebook outputs
+notebooks/generate_overlay_corner_plot.py
+notebooks/generate_overlay_corner_plot_model_A.py
+notebooks/images/
+
+# Paper: compiled PDF, old diagrams, template boilerplate
+docs/paper/template.pdf
+docs/paper/README.md
+docs/paper/License.txt
+docs/paper/flow_diagram/
+docs/paper/orcid.pdf
+docs/paper/pde_comparison_figure.pdf
+docs/paper/unused/
+
+# Results: generated outputs
+results/figures/
+results/README.md
